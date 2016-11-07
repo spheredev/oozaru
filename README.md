@@ -1,2 +1,6 @@
-# oozaru
-An implementation of Sphere v2 for the web
+Oozaru
+======
+
+An implementation of the Sphere v2 API for the Web.
+
+Work in progress.
