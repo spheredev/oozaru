@@ -4,6 +4,7 @@
 
 'use strict';
 
+var g_screen = document.getElementById('screen').getContext('2d');
 var g_renderJobs = [];
 var g_updateJobs = [];
 var g_now = 0;
@@ -57,7 +58,9 @@ function doFrame(time)
 {
 	requestAnimationFrame(doFrame);
 
-	for (let job of g_renderJobs)
+    g_screen.fillStyle = "black";
+    g_screen.fillRect(0, 0, 320, 240);
+    for (let job of g_renderJobs)
 		job.handler.call(undefined);
 
 	for (let job of g_updateJobs)
