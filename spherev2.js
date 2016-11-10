@@ -2,17 +2,27 @@
 // a lightweight JavaScript-powered game engine
 // (c) 2016 Fat Cerberus
 
-'use strict';
-
 var g_screen = document.getElementById('screen').getContext('2d');
+var g_frameRate = 60;
 var g_renderJobs = [];
 var g_updateJobs = [];
-var g_now = 0;
+var g_counter = 0;
 
-requestAnimationFrame(doFrame);
+window.global = window;
+
+// `screen object
+global.screen =
+{
+	get frameRate() {
+		return g_frameRate;
+	},
+	set frameRate(value) {
+		g_frameRate = value;
+	},
+};
 
 // Sphere v2 `system` object
-window.system =
+global.system =
 {
 	name: "Oozaru",
 	version: "X.X.X",
@@ -21,14 +31,26 @@ window.system =
 	extensions: [],
 
 	now: function() {
-		return g_now;
+		return g_counter;
 	},
 };
 
-// Sphere v2 Dispatch API
-window.Dispatch =
+global.prim =
 {
-	onRender: function(fn, priority) {
+	rect: function(surface, x, y, w, h, color)
+	{
+		g_screen.fillStyle = "dodgerblue";
+		g_screen.fillRect(x, y, w, h);
+	}
+};
+
+global.Color = {};
+
+// Sphere v2 Dispatch API
+global.Dispatch =
+{
+	onRender: function(fn, priority)
+	{
 		priority = priority || 0.0;
 
 		let job = {
@@ -40,7 +62,9 @@ window.Dispatch =
 		g_renderJobs.sort((a, b) => a.priority - b.priority);
 		return job.token;
 	},
-	onUpdate: function(fn, priority) {
+
+	onUpdate: function(fn, priority)
+	{
 		priority = priority || 0.0;
 
 		let job = {
@@ -54,6 +78,7 @@ window.Dispatch =
 	},
 };
 
+requestAnimationFrame(doFrame);
 function doFrame(time)
 {
 	requestAnimationFrame(doFrame);
@@ -66,5 +91,7 @@ function doFrame(time)
 	for (let job of g_updateJobs)
 		job.handler.call(undefined);
 	
-	++g_now;
+	++g_counter;
 }
+
+require('./game/main');
