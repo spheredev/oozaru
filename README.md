@@ -16,5 +16,5 @@ Rationale
 
 The goal of the Oozaru project is to make a lightweight browser-based game
 engine which is fully code-compatible with a full
-[minisphere](https://github.com/fatcerberus/minisphere) client and based on
+[miniSphere](https://github.com/fatcerberus/minisphere) client and based on
 established Web and JavaScript technologies wherever possible.
