@@ -1,4 +1,4 @@
-var image = new Image('images/saiyan.png');
+var image = new Texture('images/saiyan.png');
 var x = 0, xVel = 1;
 var y = 0, yVel = 1;
 
