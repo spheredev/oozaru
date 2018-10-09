@@ -1,6 +1,6 @@
 /**
  *  Oozaru JavaScript game engine
- *  Copyright (c) 2015-2018, Fat Cerberus
+ *  Copyright (c) 2016-2018, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -13,7 +13,7 @@
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
  *
- *  * Neither the name of miniSphere nor the names of its contributors may be
+ *  * Neither the name of Oozaru nor the names of its contributors may be
  *    used to endorse or promote products derived from this software without
  *    specific prior written permission.
  *
@@ -30,15 +30,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import * as API from './oozaru/pegasus.js';
-import EventLoop from './oozaru/event-loop.js';
-
-Object.defineProperty(window, 'global', {
-	writable: false, enumerable: false, configurable: false,
-	value: window,
-});
-
-for (const [ key, value ] of Object.entries(API))
-	global[key] = value;
-
-EventLoop.start();
+export default
+{
+	Name:    "Oozaru",
+	Version: "X.X.X",
+};

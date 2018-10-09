@@ -30,15 +30,50 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import * as API from './oozaru/pegasus.js';
-import EventLoop from './oozaru/event-loop.js';
+import Dispatch from './dispatch.js';
 
-Object.defineProperty(window, 'global', {
-	writable: false, enumerable: false, configurable: false,
-	value: window,
-});
+const
+	Canvas = document.getElementById('screen'),
+	GL = Canvas.getContext('webgl');
 
-for (const [ key, value ] of Object.entries(API))
-	global[key] = value;
+let
+	animationFrameID = null,
+	frameCount = 0;
 
-EventLoop.start();
+export default
+class EventLoop
+{
+	static start()
+	{
+		GL.clearColor(0.0, 0.0, 0.0, 1.0);
+		GL.viewport(0, 0, 320, 240);
+
+		this.stop();
+		animationFrameID = requestAnimationFrame(doAnimationFrame);
+	}
+
+	static stop()
+	{
+		if (animationFrameID !== null)
+			cancelAnimationFrame(animationFrameID);
+		animationFrameID = null;
+		frameCount = 0;
+	}
+
+	static now()
+	{
+		return frameCount;
+	}
+}
+
+function doAnimationFrame()
+{
+	animationFrameID = requestAnimationFrame(doAnimationFrame);
+
+	GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT | GL.STENCIL_BUFFER_BIT);
+	Dispatch.run('render');
+	Dispatch.run('update');
+	Dispatch.run('asap');
+
+	++frameCount;
+}
