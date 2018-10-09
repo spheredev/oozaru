@@ -1,6 +1,6 @@
 /**
  *  Oozaru JavaScript game engine
- *  Copyright (c) 2016-2018, Fat Cerberus
+ *  Copyright (c) 2015-2018, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -13,7 +13,7 @@
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
  *
- *  * Neither the name of Oozaru nor the names of its contributors may be
+ *  * Neither the name of miniSphere nor the names of its contributors may be
  *    used to endorse or promote products derived from this software without
  *    specific prior written permission.
  *
@@ -30,43 +30,62 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import EventLoop from './event-loop.js';
-import VersionInfo from './version.js';
-
-const
-	APIVersion = 2,
-	APILevel = 1;
+let
+	s_eventLoop;
 
 export
+function initialize(global, eventLoop)
+{
+	s_eventLoop = eventLoop;
+	Object.assign(global, {
+		Sphere,
+		Dispatch,
+	});
+}
+
 class Sphere
 {
-	static get APILevel()
-	{
-		return APILevel;
-	}
-
 	static get Engine()
 	{
-		return `${VersionInfo.Name} ${VersionInfo.Version}`;
-	}
-
-	static get Version()
-	{
-		return APIVersion;
-	}
-
-	static get frameRate()
-	{
-		return 60;
-	}
-
-	static set frameRate(value)
-	{
-
+		return "Oozaru X.X.X";
 	}
 
 	static now()
 	{
-		return EventLoop.now();
+		return s_eventLoop.now();
+	}
+}
+
+class Dispatch
+{
+	static now(callback)
+	{
+		let jobID = s_eventLoop.addJob('immediate', callback, false);
+		return new JobToken(jobID);
+	}
+
+	static onRender(callback)
+	{
+		let jobID = s_eventLoop.addJob('render', callback, true);
+		return new JobToken(jobID);
+	}
+
+	static onUpdate(callback)
+	{
+		let jobID = s_eventLoop.addJob('update', callback, true);
+		return new JobToken(jobID);
+	}
+}
+
+class JobToken
+{
+	constructor(jobID)
+	{
+		this.jobID = jobID;
+	}
+
+	cancel()
+	{
+		s_eventLoop.cancelJob(this.jobID);
 	}
 }

@@ -30,50 +30,78 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import Dispatch from './dispatch.js';
-
-const
-	Canvas = document.getElementById('screen'),
-	GL = Canvas.getContext('webgl');
+import from from './from.js';
 
 let
-	animationFrameID = null,
-	frameCount = 0;
+	nextJobID = 1;
 
 export default
 class EventLoop
 {
-	static start()
+	constructor(glContext)
 	{
-		GL.clearColor(0.0, 0.0, 0.0, 1.0);
-		GL.viewport(0, 0, 320, 240);
+		this.frameCount = 0;
+		this.gl = glContext;
+		this.jobQueue = [];
+		this.rafID = null;
+	}
+
+	addJob(type, callback, recurring = false, delay = 0)
+	{
+		this.jobQueue.push({ id: nextJobID, type, callback, recurring, timer: delay });
+		return nextJobID++;
+	}
+
+	animate()
+	{
+		this.rafID = requestAnimationFrame(t => this.animate(t));
+
+		this.runJobs('update');
+		this.gl.clear(this.gl.COLOR_BUFFER_BIT
+			| this.gl.DEPTH_BUFFER_BIT
+			| this.gl.STENCIL_BUFFER_BIT);
+		this.runJobs('render');
+		this.runJobs('immediate');
+		++this.frameCount;
+	}
+
+	cancelJob(jobID)
+	{
+		from.array(this.jobQueue)
+			.remove(it => it.id === jobID);
+	}
+
+	now()
+	{
+		return this.frameCount;
+	}
+
+	runJobs(type)
+	{
+		let jobsToRun = from.array(this.jobQueue)
+			.where(it => it.type === type)
+			.where(it => it.recurring || it.timer-- <= 0);
+		for (const job of jobsToRun)
+			job.callback.call(undefined);
+		from.array(this.jobQueue)
+			.remove(it => !it.recurring && it.timer < 0);
+	}
+
+	start()
+	{
+		this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+		this.gl.viewport(0, 0, 320, 240);
 
 		this.stop();
-		animationFrameID = requestAnimationFrame(doAnimationFrame);
+		this.rafID = requestAnimationFrame(t => this.animate(t));
 	}
 
-	static stop()
+	stop()
 	{
-		if (animationFrameID !== null)
-			cancelAnimationFrame(animationFrameID);
-		animationFrameID = null;
-		frameCount = 0;
+		if (this.rafID !== null)
+			cancelAnimationFrame(this.rafID);
+		this.frameCount = 0;
+		this.jobQueue.length = 0;
+		this.rafID = null;
 	}
-
-	static now()
-	{
-		return frameCount;
-	}
-}
-
-function doAnimationFrame()
-{
-	animationFrameID = requestAnimationFrame(doAnimationFrame);
-
-	GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT | GL.STENCIL_BUFFER_BIT);
-	Dispatch.run('render');
-	Dispatch.run('update');
-	Dispatch.run('asap');
-
-	++frameCount;
 }

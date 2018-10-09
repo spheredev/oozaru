@@ -30,15 +30,21 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import * as API from './oozaru/pegasus.js';
 import EventLoop from './oozaru/event-loop.js';
+import * as Pegasus from './oozaru/pegasus.js';
 
+const
+	Canvas = document.getElementById('screen'),
+	GL = Canvas.getContext('webgl');
+
+// register Node.js-like `global` alias
 Object.defineProperty(window, 'global', {
-	writable: false, enumerable: false, configurable: false,
-	value: window,
+	writable:     false,
+	enumerable:   false,
+	configurable: false,
+	value:        window,
 });
 
-for (const [ key, value ] of Object.entries(API))
-	global[key] = value;
-
-EventLoop.start();
+let eventLoop = new EventLoop(GL);
+Pegasus.initialize(window, eventLoop);
+eventLoop.start();
