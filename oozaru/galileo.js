@@ -55,7 +55,7 @@ class Shader
 		gl.compileShader(vertShader);
 		if (!gl.getShaderParameter(vertShader, gl.COMPILE_STATUS)) {
 			let message = gl.getShaderInfoLog(vertShader);
-			throw new Error(`Couldn't compile vertex shader...\n\n${message}`);
+			throw new Error(`Couldn't compile vertex shader...\n${message}`);
 		}
 
 		let fragShader = gl.createShader(gl.FRAGMENT_SHADER);
@@ -63,7 +63,7 @@ class Shader
 		gl.compileShader(fragShader);
 		if (!gl.getShaderParameter(fragShader, gl.COMPILE_STATUS)) {
 			let message = gl.getShaderInfoLog(fragShader);
-			throw new Error(`Couldn't compile fragment shader...\n\n${message}`);
+			throw new Error(`Couldn't compile fragment shader...\n${message}`);
 		}
 
 		gl.attachShader(hwShader, vertShader);
@@ -74,7 +74,7 @@ class Shader
 		gl.linkProgram(hwShader);
 		if (!gl.getProgramParameter(hwShader, gl.LINK_STATUS)) {
 			let message = gl.getProgramInfoLog(hwShader);
-			throw new Error(`Couldn't link shader program...\n\n${message}`);
+			throw new Error(`Couldn't link shader program...\n${message}`);
 		}
 
 		this.hwShader = hwShader;
@@ -162,7 +162,7 @@ class VBO
 			data[0 + i * 10] = vertex.x;
 			data[1 + i * 10] = vertex.y;
 			data[2 + i * 10] = 0.0;
-			data[3 + i * 10] = 0.0;
+			data[3 + i * 10] = 1.0;
 			data[4 + i * 10] = 1.0;
 			data[5 + i * 10] = 1.0;
 			data[6 + i * 10] = 1.0;

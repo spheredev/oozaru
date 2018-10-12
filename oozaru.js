@@ -50,10 +50,10 @@ eventLoop.start();
 	let texture = new Texture(image);
 	let shader = new Shader(vertSource, fragSource);
 	let vbo = new VBO([
-		{ x: -1, y: -1, u: 0.0, v: 1.0 },
-		{ x: +1, y: -1, u: 1.0, v: 1.0 },
-		{ x: -1, y: +1, u: 0.0, v: 0.0 },
-		{ x: +1, y: +1, u: 1.0, v: 0.0 },
+		{ x: -0.75, y: -0.75, u: 0.0, v: 1.0 },
+		{ x: +0.75, y: -0.75, u: 1.0, v: 1.0 },
+		{ x: -0.75, y: +0.75, u: 0.0, v: 0.0 },
+		{ x: +0.75, y: +0.75, u: 1.0, v: 0.0 },
 	]);
 	let transform = new Transform();
 	eventLoop.addJob('render', () => {
