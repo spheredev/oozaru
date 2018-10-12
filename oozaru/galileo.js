@@ -113,6 +113,38 @@ class Shader
 		}
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, vbo.length);
 	}
+
+	drawIndexed(vbo, ibo, texture = null, transform = null)
+	{
+		if (this.hwShader !== lastShader) {
+			gl.useProgram(this.hwShader);
+			lastShader = this.hwShader;
+		}
+		gl.bindBuffer(gl.ARRAY_BUFFER, vbo.hwBuffer);
+		gl.enableVertexAttribArray(0);
+		gl.enableVertexAttribArray(1);
+		gl.enableVertexAttribArray(2);
+		gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 40, 0);
+		gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 40, 16);
+		gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 40, 32);
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, texture !== null ? texture.hwTexture : null);
+		gl.uniform1i(this.hasTextureLoc, texture !== null ? 1 : 0);
+		gl.uniform1i(this.textureLoc, 0);
+		if (transform !== null) {
+			gl.uniformMatrix4fv(this.modelViewLoc, false, transform.matrix);
+		}
+		else {
+			gl.uniformMatrix4fv(this.modelViewLoc, false, [
+				1.0, 0.0, 0.0, 0.0,
+				0.0, 1.0, 0.0, 0.0,
+				0.0, 0.0, 1.0, 0.0,
+				0.0, 0.0, 0.0, 1.0,
+			]);
+		}
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo.hwBuffer);
+		gl.drawElements(gl.TRIANGLE_STRIP, ibo.length, gl.UNSIGNED_SHORT, 0);
+	}
 }
 
 export
@@ -148,6 +180,21 @@ class Transform
 			0.0, 0.0, 1.0, 0.0,
 			0.0, 0.0, 0.0, 1.0,
 		]);
+	}
+}
+
+export
+class IBO
+{
+	constructor(indices)
+	{
+		let data = new Uint16Array(indices);
+		let hwBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, hwBuffer);
+		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
+
+		this.hwBuffer = hwBuffer;
+		this.length = indices.length;
 	}
 }
 
