@@ -30,29 +30,16 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import EventLoop from './oozaru/event-loop.js';
-import Galileo from './oozaru/galileo.js';
-import Pegasus from './oozaru/pegasus.js';
+import Pact from './pact.js';
 
-const
-	Canvas = document.getElementById('screen'),
-	GL = Canvas.getContext('webgl');
-
-let eventLoop = new EventLoop(GL);
-eventLoop.start();
-
-(async () => {
-	Galileo.initialize(GL);
-	await Pegasus.initialize(window, eventLoop);
-	let main = await import('./game/main.js');
-	if (typeof main.default === 'function') {
-		if (main.default.constructor.name === 'AsyncFunction') {
-			main.default();
-		}
-		else {
-			let o = new main.default();
-			if (typeof o.start === 'function')
-				o.start();
-		}
-	}
-})();
+export
+async function loadImage(fileName)
+{
+	let image = new Image();
+	let pact = new Pact();
+	image.onload = () => {
+		pact.resolve(image);
+	};
+	image.src = fileName;
+	return await pact;
+}
