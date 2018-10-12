@@ -30,44 +30,19 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import EventLoop from './oozaru/event-loop.js';
-import Galileo, { Shader, Texture, Transform, VBO } from './oozaru/galileo.js';
-import Pact from './oozaru/pact.js';
+#ifdef GL_ES
+precision mediump float;
+#endif
 
-const
-	Canvas = document.getElementById('screen'),
-	GL = Canvas.getContext('webgl');
+uniform bool      uHasTexture;
+uniform sampler2D uTexture;
 
-let eventLoop = new EventLoop(GL);
-eventLoop.start();
+varying vec4 autoColor;
+varying vec2 autoTexCoord;
 
-(async () => {
-	let vertSource = await (await fetch('shaders/default.vert.glsl')).text();
-	let fragSource = await (await fetch('shaders/default.frag.glsl')).text();
-	let image = await loadImageFile('game/images/saiyan.png');
-
-	Galileo.initialize(GL);
-	let texture = new Texture(image);
-	let shader = new Shader(vertSource, fragSource);
-	let vbo = new VBO([
-		{ x: -1, y: -1, u: 0.0, v: 1.0 },
-		{ x: +1, y: -1, u: 1.0, v: 1.0 },
-		{ x: -1, y: +1, u: 0.0, v: 0.0 },
-		{ x: +1, y: +1, u: 1.0, v: 0.0 },
-	]);
-	let transform = new Transform();
-	eventLoop.addJob('render', () => {
-		shader.draw(vbo, texture, transform);
-	}, true);
-})();
-
-async function loadImageFile(fileName)
+void main()
 {
-	let image = new Image();
-	let pact = new Pact();
-	image.onload = () => {
-		pact.resolve(image);
-	};
-	image.src = fileName;
-	return await pact;
+	gl_FragColor = uHasTexture
+		? autoColor * texture2D(uTexture, autoTexCoord)
+        : autoColor;
 }

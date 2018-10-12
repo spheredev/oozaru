@@ -30,62 +30,49 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-let
-	s_eventLoop;
+const ControllerSymbol = Symbol('Promise controller');
 
-export
-function initialize(global, eventLoop)
+/**
+ * A Pact is type of promise which can be fulfilled or rejected externally.
+ */
+export default
+class Pact extends Promise
 {
-	s_eventLoop = eventLoop;
-	Object.assign(global, {
-		Sphere,
-		Dispatch,
-	});
-}
+	get [Symbol.toStringTag]() { return 'Pact'; }
+	get [Symbol.species]() { return Promise; }
 
-class Sphere
-{
-	static get Engine()
+	constructor(executor = null)
 	{
-		return "Oozaru X.X.X";
+		let promiseController;
+		super((resolve, reject) => {
+			promiseController = { resolve, reject };
+			if (typeof executor === 'function')
+				return executor(resolve, reject);
+		});
+		this[ControllerSymbol] = promiseController;
 	}
 
-	static now()
+	/**
+	 * Settles the pact with a given rejection reason.
+	 * @param {any} reason The value with which to reject the pact
+	 */
+	reject(reason)
 	{
-		return s_eventLoop.now();
-	}
-}
-
-class Dispatch
-{
-	static now(callback)
-	{
-		let jobID = s_eventLoop.addJob('immediate', callback, false);
-		return new JobToken(jobID);
+		this[ControllerSymbol].reject(reason);
 	}
 
-	static onRender(callback)
+	/**
+	 * Settles the pact with the given resolution value.
+	 * @param {any} value The value to with which to resolve the pact.  If this is a promise, the pact
+	 *                    will adopt its eventual state and value.
+	 */
+	resolve(value)
 	{
-		let jobID = s_eventLoop.addJob('render', callback, true);
-		return new JobToken(jobID);
+		this[ControllerSymbol].resolve(value);
 	}
 
-	static onUpdate(callback)
+	toPromise()
 	{
-		let jobID = s_eventLoop.addJob('update', callback, true);
-		return new JobToken(jobID);
-	}
-}
-
-class JobToken
-{
-	constructor(jobID)
-	{
-		this.jobID = jobID;
-	}
-
-	cancel()
-	{
-		s_eventLoop.cancelJob(this.jobID);
+		return Promise.resolve(this);
 	}
 }
