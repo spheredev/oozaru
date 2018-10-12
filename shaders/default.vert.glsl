@@ -1,6 +1,6 @@
 /**
- *  Oozaru JavaScript game engine
- *  Copyright (c) 2015-2018, Fat Cerberus
+ *  miniSphere JavaScript game engine
+ *  Copyright (c) 2015-2017, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -30,18 +30,19 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-attribute vec4 vPosition;
-attribute vec4 vColor;
-attribute vec2 vTexCoord;
+// texture and transformation parameters courtesy of Allegro
+attribute vec4 al_color;
+attribute vec4 al_pos;
+attribute vec2 al_texcoord;
+uniform mat4 al_projview_matrix;
 
-uniform mat4 uModelView;
-
-varying vec4 autoColor;
-varying vec2 autoTexCoord;
+// input to fragment shader
+varying vec4 varying_color;
+varying vec2 varying_texcoord;
 
 void main()
 {
-	gl_Position = uModelView * vPosition;
-	autoColor = vColor;
-	autoTexCoord = vTexCoord;
+	gl_Position = al_projview_matrix * al_pos;
+	varying_color = al_color;
+	varying_texcoord = al_texcoord;
 }

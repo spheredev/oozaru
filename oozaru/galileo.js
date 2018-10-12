@@ -68,9 +68,9 @@ class Shader
 
 		gl.attachShader(hwShader, vertShader);
 		gl.attachShader(hwShader, fragShader);
-		gl.bindAttribLocation(hwShader, 0, 'vPosition');
-		gl.bindAttribLocation(hwShader, 1, 'vColor');
-		gl.bindAttribLocation(hwShader, 2, 'vTexCoord');
+		gl.bindAttribLocation(hwShader, 0, 'al_pos');
+		gl.bindAttribLocation(hwShader, 1, 'al_color');
+		gl.bindAttribLocation(hwShader, 2, 'al_texcoord');
 		gl.linkProgram(hwShader);
 		if (!gl.getProgramParameter(hwShader, gl.LINK_STATUS)) {
 			let message = gl.getProgramInfoLog(hwShader);
@@ -78,9 +78,9 @@ class Shader
 		}
 
 		this.hwShader = hwShader;
-		this.hasTextureLoc = gl.getUniformLocation(hwShader, 'uHasTexture');
-		this.modelViewLoc = gl.getUniformLocation(hwShader, 'uModelView');
-		this.textureLoc = gl.getUniformLocation(hwShader, 'uTexture');
+		this.hasTextureLoc = gl.getUniformLocation(hwShader, 'al_use_tex');
+		this.modelViewLoc = gl.getUniformLocation(hwShader, 'al_projview_matrix');
+		this.textureLoc = gl.getUniformLocation(hwShader, 'al_tex');
 	}
 
 	draw(vbo, texture = null, transform = null)
