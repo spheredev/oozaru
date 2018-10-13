@@ -33,14 +33,17 @@
 import * as galileo from './galileo.js';
 import * as util from './utility.js';
 
+const
+	kTag = Symbol("internal use");
+
 let
 	s_defaultShader,
 	s_eventLoop;
 
 export default
-class Pegasus
+class API
 {
-	static async initialize(global, eventLoop)
+	static async initialize(eventLoop)
 	{
 		s_eventLoop = eventLoop;
 
@@ -48,11 +51,11 @@ class Pegasus
 		let fragSource = await (await fetch('shaders/default.frag.glsl')).text();
 		s_defaultShader = new galileo.Shader(vertSource, fragSource);
 
-		Object.defineProperty(global, 'global', {
+		Object.defineProperty(window, 'global', {
 			writable: false,
 			enumerable: false,
 			configurable: false,
-			value: global,
+			value: window,
 		});
 
 		global.ShapeType = Object.freeze({
@@ -67,6 +70,7 @@ class Pegasus
 
 		global.Sphere = Sphere;
 		global.Dispatch = Dispatch;
+		global.SSj = SSj;
 		global.Shader = Shader;
 		global.Shape = Shape;
 		global.Texture = Texture;
@@ -77,9 +81,20 @@ class Pegasus
 
 class Sphere
 {
-	static get Engine() { return "Oozaru X.X.X"; }
-	static get Version() { return 2; }
-	static get APILevel() { return 1; }
+	static get APILevel()
+	{
+		return 1;
+	}
+
+	static get Engine()
+	{
+		return "Oozaru X.X.X";
+	}
+
+	static get Version()
+	{
+		return 2;
+	}
 
 	static now()
 	{
@@ -89,19 +104,52 @@ class Sphere
 
 class Dispatch
 {
+	static later(numFrames, callback)
+	{
+		let jobID = s_eventLoop.addJob('update', callback, false, numFrames);
+		return new JobToken(jobID);
+	}
+
 	static now(callback)
 	{
-		s_eventLoop.addJob('immediate', callback, false);
+		let jobID = s_eventLoop.addJob('immediate', callback, false);
+		return new JobToken(jobID);
 	}
 
 	static onRender(callback)
 	{
-		s_eventLoop.addJob('render', callback, true);
+		let jobID = s_eventLoop.addJob('render', callback, true);
+		return new JobToken(jobID);
 	}
 
 	static onUpdate(callback)
 	{
-		s_eventLoop.addJob('update', callback, true);
+		let jobID = s_eventLoop.addJob('update', callback, true);
+		return new JobToken(jobID);
+	}
+}
+
+class JobToken
+{
+	get [Symbol.toStringTag]() { return 'JobToken'; }
+
+	constructor(jobID)
+	{
+		this[kTag] = jobID;
+	}
+
+	cancel()
+	{
+		let jobID = this[kTag];
+		s_eventLoop.cancelJob(jobID);
+	}
+}
+
+class SSj
+{
+	static log(object)
+	{
+		console.log(object);
 	}
 }
 
@@ -110,7 +158,7 @@ class Shader
 	static get Default()
 	{
 		let shader = Object.create(this.prototype);
-		shader.shader = s_defaultShader;
+		shader[kTag] = s_defaultShader;
 		Object.defineProperty(this, 'Default', {
 			writable: false,
 			enumerable: false,
@@ -124,19 +172,26 @@ class Shape
 {
 	constructor(type, texture, vertexList, indexList = null)
 	{
-		this.vertexList = vertexList;
-		this.indexList = indexList;
-		this.texture = texture;
+		let tag = this[kTag] = {};
+		tag.vertexList = vertexList;
+		tag.indexList = indexList;
+		tag.texture = texture;
 	}
 
 	draw(surface = null, transform = null)
 	{
+		let tag = this[kTag];
 		if (transform !== null)
-			transform = transform.transform;
-		if (this.indexList !== null)
-			s_defaultShader.drawIndexed(this.vertexList.vbo, this.indexList.ibo, this.texture.texture, transform);
-		else
-			s_defaultShader.draw(this.vertexList.vbo, this.texture.texture, transform);
+			transform = transform[kTag];
+		let vbo = tag.vertexList[kTag];
+		let texture = tag.texture !== null ? tag.texture[kTag] : null;
+		if (tag.indexList !== null) {
+			let ibo = tag.indexList[kTag];
+			s_defaultShader.drawIndexed(vbo, ibo, texture, transform);
+		}
+		else {
+			s_defaultShader.draw(vbo, texture, transform);
+		}
 	}
 }
 
@@ -145,9 +200,9 @@ class Texture
 	static async fromFile(fileName)
 	{
 		let image = await util.loadImage(`game/${fileName}`);
-		let o = Object.create(this.prototype);
-		o.texture = new galileo.Texture(image);
-		return o;
+		let texture = Object.create(this.prototype);
+		texture[kTag] = new galileo.Texture(image);
+		return texture;
 	}
 }
 
@@ -155,7 +210,7 @@ class Transform
 {
 	constructor()
 	{
-		this.transform = new galileo.Transform();
+		this[kTag] = new galileo.Transform();
 	}
 }
 
@@ -163,6 +218,6 @@ class VertexList
 {
 	constructor(vertices)
 	{
-		this.vbo = new galileo.VBO(vertices);
+		this[kTag] = new galileo.VBO(vertices);
 	}
 }

@@ -9,7 +9,6 @@ async function main()
 		{ x: +0.75, y: +0.75, u: 1.0, v: 0.0 },
 	]);
 	let shape = new Shape(ShapeType.TriStrip, texture, vbo);
-	let transform = new Transform();
 	Dispatch.onRender(() => {
 		shape.draw();
 	});
