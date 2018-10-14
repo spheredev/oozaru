@@ -38,6 +38,6 @@ const
 
 (async () => {
 	await Galileo.initialize(mainCanvas);
-	Pegasus.initialize();
+	Pegasus.initializeGlobals();
 	Pegasus.launchGame('/game/');
 })();

@@ -1,6 +1,6 @@
 /**
- *  Sphere Runtime for Sphere games
- *  Copyright (c) 2015-2017, Fat Cerberus
+ *  Oozaru JavaScript game engine
+ *  Copyright (c) 2015-2018, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -34,17 +34,15 @@
 precision mediump float;
 #endif
 
-// texturing parameters courtesy of Allegro
 uniform sampler2D al_tex;
-uniform bool al_use_tex;
+uniform bool      al_use_tex;
 
-// input from vertex shader
-varying vec4 varying_color;
-varying vec2 varying_texcoord;
+varying vec4 auto_color;
+varying vec2 auto_texcoord;
 
 void main()
 {
 	gl_FragColor = al_use_tex
-		? varying_color * texture2D(al_tex, varying_texcoord)
-        : varying_color;
+		? auto_color * texture2D(al_tex, auto_texcoord)
+        : auto_color;
 }

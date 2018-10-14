@@ -38,16 +38,14 @@ const
 	kTag = Symbol("internal use");
 
 let
-	s_eventLoop,
+	s_eventLoop = new EventLoop(),
 	s_mainObject = undefined;
 
 export default
 class Pegasus extends null
 {
-	static initialize()
+	static initializeGlobals()
 	{
-		s_eventLoop = new EventLoop();
-
 		Object.defineProperty(window, 'global', {
 			writable: false,
 			enumerable: false,
@@ -184,6 +182,7 @@ class Shader
 			configurable: true,
 			value: shader,
 		});
+		return shader;
 	}
 }
 
