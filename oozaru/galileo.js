@@ -30,22 +30,60 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-/** @type WebGLRenderingContext */
-let gl = null;
-let lastShader = null;
+let
+	defaultShader,
+	gl = null,
+	lastShader = null;
 
 export default
-class Galileo
+class Galileo extends null
 {
-	static initialize(glContext)
+	static async initialize(canvas)
 	{
-		gl = glContext;
+		gl = canvas.getContext('webgl');
+		gl.viewport(0, 0, canvas.width, canvas.height);
+		gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+		let vertSource = await (await fetch('shaders/default.vert.glsl')).text();
+		let fragSource = await (await fetch('shaders/default.frag.glsl')).text();
+		defaultShader = new Shader(vertSource, fragSource);
+	}
+}
+
+export
+class IBO
+{
+	constructor(indices)
+	{
+		let data = new Uint16Array(indices);
+		let hwBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, hwBuffer);
+		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
+
+		this.hwBuffer = hwBuffer;
+		this.length = indices.length;
+	}
+}
+
+export
+class Screen extends null
+{
+	static clear()
+	{
+		gl.clear(gl.COLOR_BUFFER_BIT
+			| gl.DEPTH_BUFFER_BIT
+			| gl.STENCIL_BUFFER_BIT);
 	}
 }
 
 export
 class Shader
 {
+	static get Default()
+	{
+		return defaultShader;
+	}
+
 	constructor(vertexSource, fragmentSource)
 	{
 		let hwShader = gl.createProgram();
@@ -180,21 +218,6 @@ class Transform
 			0.0, 0.0, 1.0, 0.0,
 			0.0, 0.0, 0.0, 1.0,
 		]);
-	}
-}
-
-export
-class IBO
-{
-	constructor(indices)
-	{
-		let data = new Uint16Array(indices);
-		let hwBuffer = gl.createBuffer();
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, hwBuffer);
-		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
-
-		this.hwBuffer = hwBuffer;
-		this.length = indices.length;
 	}
 }
 

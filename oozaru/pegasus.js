@@ -30,6 +30,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
+import EventLoop from './event-loop.js';
 import * as galileo from './galileo.js';
 import * as util from './utility.js';
 
@@ -37,19 +38,15 @@ const
 	kTag = Symbol("internal use");
 
 let
-	s_defaultShader,
-	s_eventLoop;
+	s_eventLoop,
+	s_mainObject = undefined;
 
 export default
-class API
+class Pegasus extends null
 {
-	static async initialize(eventLoop)
+	static initialize()
 	{
-		s_eventLoop = eventLoop;
-
-		let vertSource = await (await fetch('shaders/default.vert.glsl')).text();
-		let fragSource = await (await fetch('shaders/default.frag.glsl')).text();
-		s_defaultShader = new galileo.Shader(vertSource, fragSource);
+		s_eventLoop = new EventLoop();
 
 		Object.defineProperty(window, 'global', {
 			writable: false,
@@ -77,9 +74,26 @@ class API
 		global.Transform = Transform;
 		global.VertexList = VertexList;
 	}
+
+	static async launchGame(dirName)
+	{
+		let fileName = `${dirName}/main.js`;
+		let main = await import(fileName);
+		if (typeof main.default === 'function') {
+			if (main.default.constructor.name === 'AsyncFunction') {
+				main.default();
+			}
+			else {
+				s_mainObject = new main.default();
+				if (typeof s_mainObject.start === 'function')
+					s_mainObject.start();
+			}
+		}
+		s_eventLoop.start();
+	}
 }
 
-class Sphere
+class Sphere extends null
 {
 	static get APILevel()
 	{
@@ -96,13 +110,18 @@ class Sphere
 		return 2;
 	}
 
+	static get main()
+	{
+		return s_mainObject;
+	}
+
 	static now()
 	{
 		return s_eventLoop.now();
 	}
 }
 
-class Dispatch
+class Dispatch extends null
 {
 	static later(numFrames, callback)
 	{
@@ -145,7 +164,7 @@ class JobToken
 	}
 }
 
-class SSj
+class SSj extends null
 {
 	static log(object)
 	{
@@ -158,7 +177,7 @@ class Shader
 	static get Default()
 	{
 		let shader = Object.create(this.prototype);
-		shader[kTag] = s_defaultShader;
+		shader[kTag] = galileo.Shader.Default;
 		Object.defineProperty(this, 'Default', {
 			writable: false,
 			enumerable: false,
@@ -185,12 +204,13 @@ class Shape
 			transform = transform[kTag];
 		let vbo = tag.vertexList[kTag];
 		let texture = tag.texture !== null ? tag.texture[kTag] : null;
+		let shader = galileo.Shader.Default;
 		if (tag.indexList !== null) {
 			let ibo = tag.indexList[kTag];
-			s_defaultShader.drawIndexed(vbo, ibo, texture, transform);
+			shader.drawIndexed(vbo, ibo, texture, transform);
 		}
 		else {
-			s_defaultShader.draw(vbo, texture, transform);
+			shader.draw(vbo, texture, transform);
 		}
 	}
 }

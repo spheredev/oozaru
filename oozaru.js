@@ -30,29 +30,14 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import API from './oozaru/api.js';
-import EventLoop from './oozaru/event-loop.js';
 import Galileo from './oozaru/galileo.js';
+import Pegasus from './oozaru/pegasus.js';
 
 const
-	Canvas = document.getElementById('screen'),
-	GL = Canvas.getContext('webgl');
-
-let eventLoop = new EventLoop(GL);
+	mainCanvas = document.getElementById('screen');
 
 (async () => {
-	Galileo.initialize(GL);
-	await API.initialize(eventLoop);
-	eventLoop.start();
-	let main = await import('./game/main.js');
-	if (typeof main.default === 'function') {
-		if (main.default.constructor.name === 'AsyncFunction') {
-			main.default();
-		}
-		else {
-			let o = new main.default();
-			if (typeof o.start === 'function')
-				o.start();
-		}
-	}
+	await Galileo.initialize(mainCanvas);
+	Pegasus.initialize();
+	Pegasus.launchGame('/game/');
 })();

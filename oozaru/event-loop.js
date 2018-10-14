@@ -31,6 +31,7 @@
 **/
 
 import from from './from.js';
+import * as galileo from './galileo.js';
 
 let
 	nextJobID = 1;
@@ -38,10 +39,9 @@ let
 export default
 class EventLoop
 {
-	constructor(glContext)
+	constructor()
 	{
 		this.frameCount = 0;
-		this.gl = glContext;
 		this.jobQueue = [];
 		this.rafID = null;
 	}
@@ -57,9 +57,7 @@ class EventLoop
 		this.rafID = requestAnimationFrame(t => this.animate(t));
 
 		this.runJobs('update');
-		this.gl.clear(this.gl.COLOR_BUFFER_BIT
-			| this.gl.DEPTH_BUFFER_BIT
-			| this.gl.STENCIL_BUFFER_BIT);
+		galileo.Screen.clear();
 		this.runJobs('render');
 		this.runJobs('immediate');
 		++this.frameCount;
@@ -89,9 +87,6 @@ class EventLoop
 
 	start()
 	{
-		this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
-		this.gl.viewport(0, 0, 320, 240);
-
 		this.stop();
 		this.rafID = requestAnimationFrame(t => this.animate(t));
 	}
