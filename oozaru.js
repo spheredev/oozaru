@@ -39,5 +39,8 @@ const
 (async () => {
 	await Galileo.initialize(mainCanvas);
 	Pegasus.initializeGlobals();
-	Pegasus.launchGame('/game/');
+	mainCanvas.onclick = () => {
+		mainCanvas.onclick = null;
+		Pegasus.launchGame('/game/');
+	};
 })();

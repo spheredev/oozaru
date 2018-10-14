@@ -219,16 +219,71 @@ class Sound
 {
 	static async fromFile(fileName)
 	{
-		let element = await util.loadSound(`game/${fileName}`);
-		let sound = Object.create(this.prototype);
-		sound[kTag] = element;
-		return sound;
+		let audioElement = await util.loadSound(`game/${fileName}`);
+		audioElement.loop = true;
+		return new this(audioElement);
+	}
+
+	constructor(audioElement)
+	{
+		if (!(audioElement instanceof HTMLAudioElement))
+			throw new TypeError('HTMLAudioElement object expected here');
+		this[kTag] = audioElement;
+	}
+
+	get length()
+	{
+		let audioElement = this[kTag];
+		return Math.ceil(audioElement.duration * 1e6);
+	}
+
+	get position()
+	{
+		let audioElement = this[kTag];
+		return Math.round(audioElement.currentTime * 1e6);
+	}
+
+	get repeat()
+	{
+		let audioElement = this[kTag];
+		return audioElement.loop;
+	}
+
+	get volume()
+	{
+		let audioElement = this[kTag];
+		return audioElement.volume;
+	}
+
+	set position(value)
+	{
+		let audioElement = this[kTag];
+		audioElement.currentTime = value / 1e6;
+	}
+
+	set repeat(value)
+	{
+		let audioElement = this[kTag];
+		audioElement.loop = value;
+	}
+
+	set volume(value)
+	{
+		let audioElement = this[kTag];
+		audioElement.volume = value;
 	}
 
 	play()
 	{
-		let element = this[kTag];
-		element.play();
+		let audioElement = this[kTag];
+		audioElement.play();
+	}
+
+	stop()
+	{
+		let audioElement = this[kTag];
+		audioElement.pause();
+		audioElement.fastSeek(0.0);
 	}
 }
 
