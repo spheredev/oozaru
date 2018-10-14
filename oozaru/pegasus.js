@@ -68,6 +68,7 @@ class Pegasus extends null
 		global.SSj = SSj;
 		global.Shader = Shader;
 		global.Shape = Shape;
+		global.Sound = Sound;
 		global.Texture = Texture;
 		global.Transform = Transform;
 		global.VertexList = VertexList;
@@ -211,6 +212,23 @@ class Shape
 		else {
 			shader.draw(vbo, texture, transform);
 		}
+	}
+}
+
+class Sound
+{
+	static async fromFile(fileName)
+	{
+		let element = await util.loadSound(`game/${fileName}`);
+		let sound = Object.create(this.prototype);
+		sound[kTag] = element;
+		return sound;
+	}
+
+	play()
+	{
+		let element = this[kTag];
+		element.play();
 	}
 }
 

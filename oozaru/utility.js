@@ -41,5 +41,19 @@ async function loadImage(fileName)
 		pact.resolve(image);
 	};
 	image.src = fileName;
-	return await pact;
+	await pact;
+	return image;
+}
+
+export
+async function loadSound(fileName)
+{
+	let sound = new Audio();
+	let pact = new Pact();
+	sound.onloadeddata = () => {
+		pact.resolve(sound);
+	};
+	sound.src = fileName;
+	await pact;
+	return sound;
 }
