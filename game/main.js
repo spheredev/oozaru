@@ -5,6 +5,11 @@ async function main()
 	SSj.log(`API: Sphere v${Sphere.Version} API level ${Sphere.APILevel}`);
 	SSj.log(`Sphere.now() on startup: ${Sphere.now()}`);
 
+	let sound = await Sound.fromFile('music/vegetaSSj.ogg');
+	sound.repeat = true;
+	SSj.log(`length of BGM track: ~${Math.round(sound.length / 1e6)} seconds`);
+	sound.play();
+
 	let texture = await Texture.fromFile('images/saiyan.png');
 	let vbo = new VertexList([
 		{ x: -0.75, y: -0.75, u: 0.0, v: 1.0 },

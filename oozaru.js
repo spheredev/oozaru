@@ -41,6 +41,9 @@ const
 	Pegasus.initializeGlobals();
 	mainCanvas.onclick = () => {
 		mainCanvas.onclick = null;
+		let divElement = document.getElementById('prompt');
+		divElement.innerHTML = "<i>launching Sphere game...</i>";
 		Pegasus.launchGame('/game/');
+		divElement.innerHTML = "Sphere game launched!";
 	};
 })();
