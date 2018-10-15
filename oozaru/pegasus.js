@@ -31,8 +31,159 @@
 **/
 
 import EventLoop from './event-loop.js';
+import from from './from.js';
 import * as galileo from './galileo.js';
 import * as util from './utility.js';
+
+// note: predefined colors encoded in 8-bit RGBA (not float) because this whole table was
+//       copied and pasted from miniSphere and I was too lazy to convert it.
+const COLOR_TABLE =
+[
+	[ 1, "AliceBlue", 240, 248, 255, 255 ],
+	[ 1, "AntiqueWhite", 250, 235, 215, 255 ],
+	[ 1, "Aqua", 0, 255, 255, 255 ],
+	[ 1, "Aquamarine", 127, 255, 212, 255 ],
+	[ 1, "Azure", 240, 255, 255, 255 ],
+	[ 1, "Beige", 245, 245, 220, 255 ],
+	[ 1, "Bisque", 255, 228, 196, 255 ],
+	[ 1, "Black", 0, 0, 0, 255 ],
+	[ 1, "BlanchedAlmond", 255, 235, 205, 255 ],
+	[ 1, "Blue", 0, 0, 255, 255 ],
+	[ 1, "BlueViolet", 138, 43, 226, 255 ],
+	[ 1, "Brown", 165, 42, 42, 255 ],
+	[ 1, "BurlyWood", 222, 184, 135, 255 ],
+	[ 1, "CadetBlue", 95, 158, 160, 255 ],
+	[ 1, "Chartreuse", 127, 255, 0, 255 ],
+	[ 1, "Chocolate", 210, 105, 30, 255 ],
+	[ 1, "Coral", 255, 127, 80, 255 ],
+	[ 1, "CornflowerBlue", 100, 149, 237, 255 ],
+	[ 1, "Cornsilk", 255, 248, 220, 255 ],
+	[ 1, "Crimson", 220, 20, 60, 255 ],
+	[ 1, "Cyan", 0, 255, 255, 255 ],
+	[ 1, "DarkBlue", 0, 0, 139, 255 ],
+	[ 1, "DarkCyan", 0, 139, 139, 255 ],
+	[ 1, "DarkGoldenrod", 184, 134, 11, 255 ],
+	[ 1, "DarkGray", 169, 169, 169, 255 ],
+	[ 1, "DarkGreen", 0, 100, 0, 255 ],
+	[ 1, "DarkKhaki", 189, 183, 107, 255 ],
+	[ 1, "DarkMagenta", 139, 0, 139, 255 ],
+	[ 1, "DarkOliveGreen", 85, 107, 47, 255 ],
+	[ 1, "DarkOrange", 255, 140, 0, 255 ],
+	[ 1, "DarkOrchid", 153, 50, 204, 255 ],
+	[ 1, "DarkRed", 139, 0, 0, 255 ],
+	[ 1, "DarkSalmon", 233, 150, 122, 255 ],
+	[ 1, "DarkSeaGreen", 143, 188, 143, 255 ],
+	[ 1, "DarkSlateBlue", 72, 61, 139, 255 ],
+	[ 1, "DarkSlateGray", 47, 79, 79, 255 ],
+	[ 1, "DarkTurquoise", 0, 206, 209, 255 ],
+	[ 1, "DarkViolet", 148, 0, 211, 255 ],
+	[ 1, "DeepPink", 255, 20, 147, 255 ],
+	[ 1, "DeepSkyBlue", 0, 191, 255, 255 ],
+	[ 1, "DimGray", 105, 105, 105, 255 ],
+	[ 1, "DodgerBlue", 30, 144, 255, 255 ],
+	[ 1, "FireBrick", 178, 34, 34, 255 ],
+	[ 1, "FloralWhite", 255, 250, 240, 255 ],
+	[ 1, "ForestGreen", 34, 139, 34, 255 ],
+	[ 1, "Fuchsia", 255, 0, 255, 255 ],
+	[ 1, "Gainsboro", 220, 220, 220, 255 ],
+	[ 1, "GhostWhite", 248, 248, 255, 255 ],
+	[ 1, "Gold", 255, 215, 0, 255 ],
+	[ 1, "Goldenrod", 218, 165, 32, 255 ],
+	[ 1, "Gray", 128, 128, 128, 255 ],
+	[ 1, "Green", 0, 128, 0, 255 ],
+	[ 1, "GreenYellow", 173, 255, 47, 255 ],
+	[ 1, "Honeydew", 240, 255, 240, 255 ],
+	[ 1, "HotPink", 255, 105, 180, 255 ],
+	[ 1, "IndianRed", 205, 92, 92, 255 ],
+	[ 1, "Indigo", 75, 0, 130, 255 ],
+	[ 1, "Ivory", 255, 255, 240, 255 ],
+	[ 1, "Khaki", 240, 230, 140, 255 ],
+	[ 1, "Lavender", 230, 230, 250, 255 ],
+	[ 1, "LavenderBlush", 255, 240, 245, 255 ],
+	[ 1, "LawnGreen", 124, 252, 0, 255 ],
+	[ 1, "LemonChiffon", 255, 250, 205, 255 ],
+	[ 1, "LightBlue", 173, 216, 230, 255 ],
+	[ 1, "LightCoral", 240, 128, 128, 255 ],
+	[ 1, "LightCyan", 224, 255, 255, 255 ],
+	[ 1, "LightGoldenrodYellow", 250, 250, 210, 255 ],
+	[ 1, "LightGray", 211, 211, 211, 255 ],
+	[ 1, "LightGreen", 144, 238, 144, 255 ],
+	[ 1, "LightPink", 255, 182, 193, 255 ],
+	[ 1, "LightSalmon", 255, 160, 122, 255 ],
+	[ 1, "LightSeaGreen", 32, 178, 170, 255 ],
+	[ 1, "LightSkyBlue", 135, 206, 250, 255 ],
+	[ 1, "LightSlateGray", 119, 136, 153, 255 ],
+	[ 1, "LightSteelBlue", 176, 196, 222, 255 ],
+	[ 1, "LightYellow", 255, 255, 224, 255 ],
+	[ 1, "Lime", 0, 255, 0, 255 ],
+	[ 1, "LimeGreen", 50, 205, 50, 255 ],
+	[ 1, "Linen", 250, 240, 230, 255 ],
+	[ 1, "Magenta", 255, 0, 255, 255 ],
+	[ 1, "Maroon", 128, 0, 0, 255 ],
+	[ 1, "MediumAquamarine", 102, 205, 170, 255 ],
+	[ 1, "MediumBlue", 0, 0, 205, 255 ],
+	[ 1, "MediumOrchid", 186, 85, 211, 255 ],
+	[ 1, "MediumPurple", 147, 112, 219, 255 ],
+	[ 1, "MediumSeaGreen", 60, 179, 113, 255 ],
+	[ 1, "MediumSlateBlue", 123, 104, 238, 255 ],
+	[ 1, "MediumSpringGreen", 0, 250, 154, 255 ],
+	[ 1, "MediumTurquoise", 72, 209, 204, 255 ],
+	[ 1, "MediumVioletRed", 199, 21, 133, 255 ],
+	[ 1, "MidnightBlue", 25, 25, 112, 255 ],
+	[ 1, "MintCream", 245, 255, 250, 255 ],
+	[ 1, "MistyRose", 255, 228, 225, 255 ],
+	[ 1, "Moccasin", 255, 228, 181, 255 ],
+	[ 1, "NavajoWhite", 255, 222, 173, 255 ],
+	[ 1, "Navy", 0, 0, 128, 255 ],
+	[ 1, "OldLace", 253, 245, 230, 255 ],
+	[ 1, "Olive", 128, 128, 0, 255 ],
+	[ 1, "OliveDrab", 107, 142, 35, 255 ],
+	[ 1, "Orange", 255, 165, 0, 255 ],
+	[ 1, "OrangeRed", 255, 69, 0, 255 ],
+	[ 1, "Orchid", 218, 112, 214, 255 ],
+	[ 1, "PaleGoldenrod", 238, 232, 170, 255 ],
+	[ 1, "PaleGreen", 152, 251, 152, 255 ],
+	[ 1, "PaleTurquoise", 175, 238, 238, 255 ],
+	[ 1, "PaleVioletRed", 219, 112, 147, 255 ],
+	[ 1, "PapayaWhip", 225, 239, 213, 255 ],
+	[ 1, "PeachPuff", 255, 218, 185, 255 ],
+	[ 1, "Peru", 205, 133, 63, 255 ],
+	[ 1, "Pink", 255, 192, 203, 255 ],
+	[ 1, "Plum", 221, 160, 221, 255 ],
+	[ 1, "PowderBlue", 176, 224, 230, 255 ],
+	[ 1, "Purple", 128, 0, 128, 255 ],
+	[ 1, "Red", 255, 0, 0, 255 ],
+	[ 1, "RosyBrown", 188, 143, 143, 255 ],
+	[ 1, "RoyalBlue", 65, 105, 225, 255 ],
+	[ 1, "SaddleBrown", 139, 69, 19, 255 ],
+	[ 1, "Salmon", 250, 128, 114, 255 ],
+	[ 1, "SandyBrown", 244, 164, 96, 255 ],
+	[ 1, "SeaGreen", 46, 139, 87, 255 ],
+	[ 1, "Seashell", 255, 245, 238, 255 ],
+	[ 1, "Sienna", 160, 82, 45, 255 ],
+	[ 1, "Silver", 192, 192, 192, 255 ],
+	[ 1, "SkyBlue", 135, 206, 235, 255 ],
+	[ 1, "SlateBlue", 106, 90, 205, 255 ],
+	[ 1, "SlateGray", 112, 128, 144, 255 ],
+	[ 1, "Snow", 255, 250, 250, 255 ],
+	[ 1, "SpringGreen", 0, 255, 127, 255 ],
+	[ 1, "SteelBlue", 70, 130, 180, 255 ],
+	[ 1, "Tan", 210, 180, 140, 255 ],
+	[ 1, "Teal", 0, 128, 128, 255 ],
+	[ 1, "Thistle", 216, 191, 216, 255 ],
+	[ 1, "Tomato", 255, 99, 71, 255 ],
+	[ 1, "Transparent", 0, 0, 0, 0 ],
+	[ 1, "Turquoise", 64, 224, 208, 255 ],
+	[ 1, "Violet", 238, 130, 238, 255 ],
+	[ 1, "Wheat", 245, 222, 179, 255 ],
+	[ 1, "White", 255, 255, 255, 255 ],
+	[ 1, "WhiteSmoke", 245, 245, 245, 255 ],
+	[ 1, "Yellow", 255, 255, 0, 255 ],
+	[ 1, "YellowGreen", 154, 205, 50, 255 ],
+	[ 2, "PurwaBlue", 155, 225, 255, 255 ],
+	[ 2, "RebeccaPurple", 102, 51, 153, 255 ],
+	[ 2, "StankyBean", 197, 162, 171, 255 ],
+];
 
 const
 	kTag = Symbol("internal use");
@@ -64,14 +215,34 @@ class Pegasus extends null
 		});
 
 		global.Sphere = Sphere;
+		global.Color = Color;
 		global.Dispatch = Dispatch;
+		global.FS = FS;
+		global.Mixer = Mixer;
 		global.SSj = SSj;
 		global.Shader = Shader;
 		global.Shape = Shape;
 		global.Sound = Sound;
+		global.Surface = Surface;
 		global.Texture = Texture;
 		global.Transform = Transform;
 		global.VertexList = VertexList;
+
+		// register getters for predefined colors
+		for (const entry of COLOR_TABLE) {
+			let colorName = entry[1];
+			let r = entry[2] / 255.0,
+				g = entry[3] / 255.0,
+				b = entry[4] / 255.0,
+				a = entry[5] / 255.0;
+			Object.defineProperty(Color, colorName, {
+				enumerable: false,
+				configurable: true,
+				get: function getPredefinedColor() {
+					return new Color(r, g, b, a);
+				},
+			});
+		}
 	}
 
 	static async launchGame(dirName)
@@ -118,6 +289,105 @@ class Sphere extends null
 	{
 		return s_eventLoop.now();
 	}
+
+	static sleep(numFrames)
+	{
+		let resolver;
+		let promise = new Promise(resolve => resolver = resolve);
+		Dispatch.later(numFrames, () => resolver());
+		return promise;
+	}
+
+	static setResolution(width, height)
+	{
+		galileo.Screen.resize(width, height);
+	}
+}
+
+class Color
+{
+	static of(name)
+	{
+		// parse 6-digit format (#rrggbb)
+		let matched = name.match(/^#?([0-9a-f]{6})$/i);
+		if (matched) {
+			let m = matched[1];
+			return new Color(
+				parseInt(m.substr(0, 2), 16) / 255.0,
+				parseInt(m.substr(2, 2), 16) / 255.0,
+				parseInt(m.substr(4, 2), 16) / 255.0,
+			);
+		}
+
+		// parse 8-digit format (#aarrggbb)
+		matched = name.match(/^#?([0-9a-f]{8})$/i);
+		if (matched) {
+			let m = matched[1];
+			return new Color(
+				parseInt(m.substr(2, 2), 16) / 255.0,
+				parseInt(m.substr(4, 2), 16) / 255.0,
+				parseInt(m.substr(6, 2), 16) / 255.0,
+				parseInt(m.substr(0, 2), 16) / 255.0,
+			);
+		}
+
+		// see if `name` matches a predefined color (not case sensitive)
+		let toMatch = name.toUpperCase();
+		let color = from(COLOR_TABLE)
+			.where(it => it[1].toUpperCase() === toMatch)
+			.select(it => Color[it[1]])
+			.first();
+		if (color !== undefined)
+			return color;  // found a match!
+
+		// if we got here, none of the parsing attempts succeeded, so throw an error.
+		throw new RangeError(`Invalid color designation '${name}'`);
+	}
+	
+	constructor(r, g, b, a = 1.0)
+	{
+		this[kTag] = { r, g, b, a };
+	}
+
+	get r()
+	{
+		return this[kTag].r;
+	}
+
+	get g()
+	{
+		return this[kTag].g;
+	}
+
+	get b()
+	{
+		return this[kTag].b;
+	}
+
+	get a()
+	{
+		return this[kTag].a;
+	}
+
+	set r(value)
+	{
+		this[kTag].r = Math.min(Math.max(value, 0.0), 1.0);
+	}
+
+	set g(value)
+	{
+		this[kTag].g = Math.min(Math.max(value, 0.0), 1.0);
+	}
+
+	set b(value)
+	{
+		this[kTag].b = Math.min(Math.max(value, 0.0), 1.0);
+	}
+
+	set a(value)
+	{
+		this[kTag].a = Math.min(Math.max(value, 0.0), 1.0);
+	}
 }
 
 class Dispatch extends null
@@ -147,6 +417,19 @@ class Dispatch extends null
 	}
 }
 
+class FS extends null
+{
+	static fileExists(fileName)
+	{
+		return true;
+	}
+	
+	static fullPath(pathName, baseDirName)
+	{
+		return pathName;
+	}
+}
+
 class JobToken
 {
 	get [Symbol.toStringTag]() { return 'JobToken'; }
@@ -161,6 +444,12 @@ class JobToken
 		let jobID = this[kTag];
 		s_eventLoop.cancelJob(jobID);
 	}
+}
+
+class Mixer
+{
+	get volume() { return 1.0; }
+	set volume(value) {}
 }
 
 class SSj extends null
@@ -189,12 +478,26 @@ class Shader
 
 class Shape
 {
-	constructor(type, texture, vertexList, indexList = null)
+	constructor(...args)
 	{
+		// function(type[, texture], vertexList[, indexList])
+
 		let tag = this[kTag] = {};
-		tag.vertexList = vertexList;
-		tag.indexList = indexList;
-		tag.texture = texture;
+		tag.texture = null;
+		tag.indexList = null;
+		if (args[1] instanceof Texture || args[1] === null) {
+			tag.type = args[0];
+			tag.texture = args[1];
+			tag.vertexList = args[2];
+			if (args[3] !== undefined)
+				tag.indexList = args[3];
+		}
+		else {
+			tag.type = args[0];
+			tag.vertexList = args[1];
+			if (args[2] !== undefined)
+				tag.indexList = args[2];
+		}
 	}
 
 	draw(surface = null, transform = null)
@@ -202,15 +505,16 @@ class Shape
 		let tag = this[kTag];
 		if (transform !== null)
 			transform = transform[kTag];
+		let type = tag.type;
 		let vbo = tag.vertexList[kTag];
 		let texture = tag.texture !== null ? tag.texture[kTag] : null;
 		let shader = galileo.Shader.Default;
 		if (tag.indexList !== null) {
 			let ibo = tag.indexList[kTag];
-			shader.drawIndexed(vbo, ibo, texture, transform);
+			shader.drawIndexed(type, vbo, ibo, texture, transform);
 		}
 		else {
-			shader.draw(vbo, texture, transform);
+			shader.draw(type, vbo, texture, transform);
 		}
 	}
 }
@@ -296,6 +600,41 @@ class Texture
 		texture[kTag] = new galileo.Texture(image);
 		return texture;
 	}
+
+	get height()
+	{
+		return this[kTag].height;
+	}
+	
+	get width()
+	{
+		return this[kTag].width;
+	}
+}
+
+class Surface extends Texture
+{
+	static get Screen()
+	{
+		let surface = new Surface();
+		Object.defineProperty(this, 'Screen', {
+			writable: false,
+			enumerable: false,
+			configurable: true,
+			value: surface,
+		});
+		return surface;
+	}
+	
+	get height()
+	{
+		return galileo.Screen.height;
+	}
+
+	get width()
+	{
+		return galileo.Screen.width;
+	}
 }
 
 class Transform
@@ -310,6 +649,11 @@ class VertexList
 {
 	constructor(vertices)
 	{
+		// `new galileo.VBO()` expects an array as input, so if we only have a
+		// non-array iterable we need to convert it first.
+		if (!Array.isArray(vertices))
+			vertices = [ ...vertices ];
+
 		this[kTag] = new galileo.VBO(vertices);
 	}
 }

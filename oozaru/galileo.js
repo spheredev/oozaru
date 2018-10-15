@@ -33,14 +33,16 @@
 let
 	defaultShader,
 	gl = null,
-	lastShader = null;
+	lastShader = null,
+	screenCanvas;
 
 export default
 class Galileo extends null
 {
 	static async initialize(canvas)
 	{
-		gl = canvas.getContext('webgl');
+		screenCanvas = canvas;
+		gl = screenCanvas.getContext('webgl');
 		gl.viewport(0, 0, canvas.width, canvas.height);
 		gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
@@ -49,6 +51,18 @@ class Galileo extends null
 		defaultShader = new Shader(vertSource, fragSource);
 	}
 }
+
+export
+const ShapeType =
+{
+	Fan: 0,
+	Lines: 1,
+	LineLoop: 2,
+	LineStrip: 3,
+	Points: 4,
+	Triangles: 5,
+	TriStrip: 6,
+};
 
 export
 class IBO
@@ -68,11 +82,28 @@ class IBO
 export
 class Screen extends null
 {
+	static get height()
+	{
+		return screenCanvas.height;
+	}
+
+	static get width()
+	{
+		return screenCanvas.width;
+	}
+
 	static clear()
 	{
 		gl.clear(gl.COLOR_BUFFER_BIT
 			| gl.DEPTH_BUFFER_BIT
 			| gl.STENCIL_BUFFER_BIT);
+	}
+
+	static resize(width, height)
+	{
+		screenCanvas.width = width;
+		screenCanvas.height = height;
+		gl.viewport(0, 0, width, height);
 	}
 }
 
@@ -121,7 +152,7 @@ class Shader
 		this.textureLoc = gl.getUniformLocation(hwShader, 'al_tex');
 	}
 
-	draw(vbo, texture = null, transform = null)
+	draw(type, vbo, texture = null, transform = null)
 	{
 		if (this.hwShader !== lastShader) {
 			gl.useProgram(this.hwShader);
@@ -142,17 +173,27 @@ class Shader
 			gl.uniformMatrix4fv(this.modelViewLoc, false, transform.matrix);
 		}
 		else {
+			let sX = 2 / screenCanvas.width;
+			let sY = 2 / -screenCanvas.height;
+			let sZ = -2 / (1.0 - -1.0);
 			gl.uniformMatrix4fv(this.modelViewLoc, false, [
-				1.0, 0.0, 0.0, 0.0,
-				0.0, 1.0, 0.0, 0.0,
-				0.0, 0.0, 1.0, 0.0,
-				0.0, 0.0, 0.0, 1.0,
+				sX,  0.0,  0.0, 0.0,
+				0.0, sY,   0.0, 0.0,
+				0.0, 0.0,  sZ,  0.0,
+				-1.0, 1.0, 0.0, 1.0,
 			]);
 		}
-		gl.drawArrays(gl.TRIANGLE_STRIP, 0, vbo.length);
+		let drawMode = type === ShapeType.Fan ? gl.TRIANGLE_FAN
+			: type === ShapeType.Lines ? gl.LINES
+			: type === ShapeType.LineLoop ? gl.LINE_LOOP
+			: type === ShapeType.LineStrip ? gl.LINE_STRIP
+			: type === ShapeType.Points ? gl.POINTS
+			: type === ShapeType.TriStrip ? gl.TRIANGLE_STRIP
+			: gl.TRIANGLES;
+		gl.drawArrays(drawMode, 0, vbo.length);
 	}
 
-	drawIndexed(vbo, ibo, texture = null, transform = null)
+	drawIndexed(type, vbo, ibo, texture = null, transform = null)
 	{
 		if (this.hwShader !== lastShader) {
 			gl.useProgram(this.hwShader);
@@ -180,8 +221,15 @@ class Shader
 				0.0, 0.0, 0.0, 1.0,
 			]);
 		}
+		let drawMode = type === ShapeType.Fan ? gl.TRIANGLE_FAN
+			: type === ShapeType.Lines ? gl.LINES
+			: type === ShapeType.LineLoop ? gl.LINE_LOOP
+			: type === ShapeType.LineStrip ? gl.LINE_STRIP
+			: type === ShapeType.Points ? gl.POINTS
+			: type === ShapeType.TriStrip ? gl.TRIANGLE_STRIP
+			: gl.TRIANGLES;
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo.hwBuffer);
-		gl.drawElements(gl.TRIANGLE_STRIP, ibo.length, gl.UNSIGNED_SHORT, 0);
+		gl.drawElements(drawMode, ibo.length, gl.UNSIGNED_SHORT, 0);
 	}
 }
 
@@ -192,12 +240,15 @@ class Texture
 	{
 		let hwTexture = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, hwTexture);
+		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
 		this.hwTexture = hwTexture;
+		this.width = image.width;
+		this.height = image.height;
 	}
 }
 
@@ -229,16 +280,28 @@ class VBO
 		let data = new Float32Array(10 * vertices.length);
 		for (let i = 0, len = vertices.length; i < len; ++i) {
 			let vertex = vertices[i];
-			data[0 + i * 10] = vertex.x;
-			data[1 + i * 10] = vertex.y;
+			if (vertex.x !== undefined)
+				data[0 + i * 10] = vertex.x;
+			if (vertex.y !== undefined)
+				data[1 + i * 10] = vertex.y;
 			data[2 + i * 10] = 0.0;
 			data[3 + i * 10] = 1.0;
-			data[4 + i * 10] = 1.0;
-			data[5 + i * 10] = 1.0;
-			data[6 + i * 10] = 1.0;
-			data[7 + i * 10] = 1.0;
-			data[8 + i * 10] = vertex.u;
-			data[9 + i * 10] = vertex.v;
+			if (vertex.color !== undefined) {
+				data[4 + i * 10] = vertex.color.r;
+				data[5 + i * 10] = vertex.color.g;
+				data[6 + i * 10] = vertex.color.b;
+				data[7 + i * 10] = vertex.color.a;
+			}
+			else {
+				data[4 + i * 10] = 1.0;
+				data[5 + i * 10] = 1.0;
+				data[6 + i * 10] = 1.0;
+				data[7 + i * 10] = 1.0;
+			}
+			if (vertex.u !== undefined && vertex.v !== undefined) {
+				data[8 + i * 10] = vertex.u;
+				data[9 + i * 10] = vertex.v;
+			}
 		}
 		let hwBuffer = gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, hwBuffer);

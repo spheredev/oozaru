@@ -87,7 +87,6 @@ class EventLoop
 
 	start()
 	{
-		this.stop();
 		this.rafID = requestAnimationFrame(t => this.animate(t));
 	}
 

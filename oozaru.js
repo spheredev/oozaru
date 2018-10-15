@@ -36,7 +36,10 @@ import Pegasus from './oozaru/pegasus.js';
 const
 	mainCanvas = document.getElementById('screen');
 
-(async () => {
+main();
+
+async function main()
+{
 	await Galileo.initialize(mainCanvas);
 	Pegasus.initializeGlobals();
 	mainCanvas.onclick = () => {
@@ -46,4 +49,4 @@ const
 		Pegasus.launchGame('/game/');
 		divElement.innerHTML = "Sphere game launched!";
 	};
-})();
+}

@@ -11,11 +11,13 @@ async function main()
 	sound.play();
 
 	let texture = await Texture.fromFile('images/saiyan.png');
+	let w = Surface.Screen.width;
+	let h = Surface.Screen.height;
 	let vbo = new VertexList([
-		{ x: -0.75, y: -0.75, u: 0.0, v: 1.0 },
-		{ x: +0.75, y: -0.75, u: 1.0, v: 1.0 },
-		{ x: -0.75, y: +0.75, u: 0.0, v: 0.0 },
-		{ x: +0.75, y: +0.75, u: 1.0, v: 0.0 },
+		{ x: 0, y: 0, u: 0.0, v: 1.0, color: Color.Red },
+		{ x: w, y: 0, u: 1.0, v: 1.0, color: Color.Yellow },
+		{ x: 0, y: h, u: 0.0, v: 0.0, color: Color.Lime },
+		{ x: w, y: h, u: 1.0, v: 0.0, color: Color.Blue },
 	]);
 	let shape = new Shape(ShapeType.TriStrip, texture, vbo);
 	Dispatch.onRender(() => {
