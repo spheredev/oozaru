@@ -306,6 +306,15 @@ class Sphere extends null
 
 class Color
 {
+	static is(color, otherColor)
+	{
+		let tag1 = color[kTag];
+		let tag2 = otherColor[kTag];
+		return tag2.r === tag1.r
+			&& tag2.g === tag1.g
+			&& tag2.b === tag1.b;
+	}
+	
 	static mix(color1, color2, w1 = 1.0, w2 = 1.0)
 	{
 		let totalWeight = w1 + w2;
@@ -361,6 +370,11 @@ class Color
 		this[kTag] = { r, g, b, a };
 	}
 
+	get name()
+	{
+		throw new Error("Oops, not implemented!");
+	}
+	
 	get r()
 	{
 		return this[kTag].r;
@@ -399,6 +413,18 @@ class Color
 	set a(value)
 	{
 		this[kTag].a = Math.min(Math.max(value, 0.0), 1.0);
+	}
+
+	clone()
+	{
+		let tag = this[kTag];
+		return new Color(tag.r, tag.g, tag.b, tag.a);
+	}
+
+	fadeTo(alphaFactor)
+	{
+		let tag = this[kTag];
+		return new Color(tag.r, tag.g, tag.b, tag.a * alphaFactor);
 	}
 }
 
@@ -545,13 +571,13 @@ class Sound
 	get length()
 	{
 		let audioElement = this[kTag];
-		return Math.ceil(audioElement.duration * 1e6);
+		return audioElement.duration;
 	}
 
 	get position()
 	{
 		let audioElement = this[kTag];
-		return Math.round(audioElement.currentTime * 1e6);
+		return audioElement.currentTime;
 	}
 
 	get repeat()
@@ -569,7 +595,7 @@ class Sound
 	set position(value)
 	{
 		let audioElement = this[kTag];
-		audioElement.currentTime = value / 1e6;
+		audioElement.currentTime = value;
 	}
 
 	set repeat(value)
@@ -584,6 +610,12 @@ class Sound
 		audioElement.volume = value;
 	}
 
+	pause()
+	{
+		let audioElement = this[kTag];
+		audioElement.pause();
+	}
+	
 	play()
 	{
 		let audioElement = this[kTag];

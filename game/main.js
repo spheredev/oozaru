@@ -7,7 +7,7 @@ async function main()
 
 	let sound = await Sound.fromFile('music/vegetaSSj.ogg');
 	sound.repeat = true;
-	SSj.log(`length of BGM track: ~${Math.round(sound.length / 1e6)} seconds`);
+	SSj.log(`length of BGM track: ~${Math.round(sound.length)} seconds`);
 	sound.play();
 
 	let texture = await Texture.fromFile('images/saiyan.png');
