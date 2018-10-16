@@ -306,6 +306,18 @@ class Sphere extends null
 
 class Color
 {
+	static mix(color1, color2, w1 = 1.0, w2 = 1.0)
+	{
+		let totalWeight = w1 + w2;
+		let tag1 = color1[kTag];
+		let tag2 = color2[kTag];
+		let r = (w1 * tag1.r + w2 * tag2.r) / totalWeight;
+		let g = (w1 * tag1.g + w2 * tag2.g) / totalWeight;
+		let b = (w1 * tag1.b + w2 * tag2.b) / totalWeight;
+		let a = (w1 * tag1.a + w2 * tag2.a) / totalWeight;
+		return new Color(r, g, b, a);
+	}
+
 	static of(name)
 	{
 		// parse 6-digit format (#rrggbb)
@@ -343,7 +355,7 @@ class Color
 		// if we got here, none of the parsing attempts succeeded, so throw an error.
 		throw new RangeError(`Invalid color designation '${name}'`);
 	}
-	
+
 	constructor(r, g, b, a = 1.0)
 	{
 		this[kTag] = { r, g, b, a };
@@ -419,11 +431,6 @@ class Dispatch extends null
 
 class FS extends null
 {
-	static fileExists(fileName)
-	{
-		return true;
-	}
-	
 	static fullPath(pathName, baseDirName)
 	{
 		return pathName;
@@ -605,7 +612,7 @@ class Texture
 	{
 		return this[kTag].height;
 	}
-	
+
 	get width()
 	{
 		return this[kTag].width;
@@ -625,7 +632,7 @@ class Surface extends Texture
 		});
 		return surface;
 	}
-	
+
 	get height()
 	{
 		return galileo.Screen.height;
