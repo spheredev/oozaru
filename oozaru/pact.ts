@@ -1,4 +1,4 @@
-/**
+/*
  *  Oozaru JavaScript game engine
  *  Copyright (c) 2015-2018, Fat Cerberus
  *  All rights reserved.
@@ -30,30 +30,47 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import Pact from './pact.js';
+const ControllerSymbol = Symbol('Promise controller');
 
-export
-async function loadImage(fileName)
+/**
+ * A Pact is type of promise which can be fulfilled or rejected externally.
+ */
+export default
+class Pact<T> extends Promise<T>
 {
-	let image = new Image();
-	let pact = new Pact();
-	image.onload = () => {
-		pact.resolve(image);
-	};
-	image.src = fileName;
-	await pact;
-	return image;
-}
+	//can uncomment next line when https://github.com/Microsoft/TypeScript/pull/24396 is solved
+	//get [Symbol.toStringTag]() { return 'Pact'; }
+	get [Symbol.species]() { return Promise; }
 
-export
-async function loadSound(fileName)
-{
-	let sound = new Audio();
-	let pact = new Pact();
-	sound.onloadeddata = () => {
-		pact.resolve(sound);
-	};
-	sound.src = fileName;
-	await pact;
-	return sound;
+	constructor(executor = null)
+	{
+		let promiseController;
+		super((resolve, reject) => {
+			promiseController = { resolve, reject };
+			if (typeof executor === 'function')
+				return executor(resolve, reject);
+		});
+		this[ControllerSymbol] = promiseController;
+	}
+
+	/**
+	 * Settles the pact with a given rejection reason.
+	 */
+	reject(reason: any)
+	{
+		this[ControllerSymbol].reject(reason);
+	}
+
+	/**
+	 * Settles the pact with the given resolution value.
+	 */
+	resolve(value: any)
+	{
+		this[ControllerSymbol].resolve(value);
+	}
+
+	toPromise()
+	{
+		return Promise.resolve(this);
+	}
 }

@@ -1,0 +1,12 @@
+{
+  "name": "Oozaru",
+  "version": "0.0.1",
+  "license": "see top of each file",
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/fatcerberus/oozaru"
+  },
+  "devDependencies": {
+    "typescript": "^3.1.3"
+  }
+}

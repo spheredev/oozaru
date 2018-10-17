@@ -39,11 +39,14 @@ let
 export default
 class EventLoop
 {
+	frameCount: number;
+	jobQueue: any[];
+	rafID: number;
 	constructor()
 	{
 		this.frameCount = 0;
 		this.jobQueue = [];
-		this.rafID = null;
+		this.rafID = 0;
 	}
 
 	addJob(type, callback, recurring = false, delay = 0)
@@ -52,7 +55,7 @@ class EventLoop
 		return nextJobID++;
 	}
 
-	animate()
+	animate(id: number)
 	{
 		this.rafID = requestAnimationFrame(t => this.animate(t));
 
@@ -93,7 +96,7 @@ class EventLoop
 
 	stop()
 	{
-		if (this.rafID !== null)
+		if (this.rafID !== 0)
 			cancelAnimationFrame(this.rafID);
 		this.frameCount = 0;
 		this.jobQueue.length = 0;

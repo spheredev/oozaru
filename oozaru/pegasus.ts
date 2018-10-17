@@ -35,9 +35,18 @@ import from from './from.js';
 import * as galileo from './galileo.js';
 import * as util from './utility.js';
 
+type colorEntry = {
+	'0' : number,
+	'1' : string,
+	'2' : number,
+	'3' : number,
+	'4' : number,
+	'5' : number
+}
+
 // note: predefined colors encoded in 8-bit RGBA (not float) because this whole table was
 //       copied and pasted from miniSphere and I was too lazy to convert it.
-const COLOR_TABLE =
+const COLOR_TABLE :colorEntry[] =
 [
 	[ 1, "AliceBlue", 240, 248, 255, 255 ],
 	[ 1, "AntiqueWhite", 250, 235, 215, 255 ],
@@ -192,33 +201,46 @@ let
 	s_eventLoop = new EventLoop(),
 	s_mainObject = undefined;
 
+
+function declareGlobal (name: string, value:any, writable:boolean = false)
+{
+	Object.defineProperty(window, name, {
+		writable : writable,
+		enumerable : false,
+		configurable : false,
+		value : value
+	});
+}
+
 export default
 class Pegasus extends null
 {
 	static initializeGlobals()
 	{
-		Object.defineProperty(window, 'global', {
-			writable: false,
-			enumerable: false,
-			configurable: false,
-			value: window,
-		});
+		declareGlobal('global', window);
+		declareGlobal("ShapeType", Object.freeze({
+			Fan: 0,
+			Lines: 1,
+			LineLoop: 2,
+			LineStrip: 3,
+			Points: 4,
+			Triangles: 5,
+			TriStrip: 6,
+		}));
 
-		global.ShapeType = galileo.ShapeType;
-
-		global.Sphere = Sphere;
-		global.Color = Color;
-		global.Dispatch = Dispatch;
-		global.FS = FS;
-		global.Mixer = Mixer;
-		global.SSj = SSj;
-		global.Shader = Shader;
-		global.Shape = Shape;
-		global.Sound = Sound;
-		global.Surface = Surface;
-		global.Texture = Texture;
-		global.Transform = Transform;
-		global.VertexList = VertexList;
+		declareGlobal("Sphere", Sphere);
+		declareGlobal("Color", Color);
+		declareGlobal("Dispatch", Dispatch);
+		declareGlobal("FS", FS);
+		declareGlobal("Mixer", Mixer);
+		declareGlobal("SSj", SSj);
+		declareGlobal("Shader", Shader);
+		declareGlobal("Shape", Shape);
+		declareGlobal("Sound", Sound);
+		declareGlobal("Surface", Surface);
+		declareGlobal("Texture", Texture);
+		declareGlobal("Transform", Transform);
+		declareGlobal("VertexList", VertexList);
 
 		// register getters for predefined colors
 		for (const entry of COLOR_TABLE) {
@@ -241,15 +263,12 @@ class Pegasus extends null
 	{
 		let fileName = `${dirName}/main.js`;
 		let main = await import(fileName);
-		if (typeof main.default === 'function') {
-			if (main.default.constructor.name === 'AsyncFunction') {
-				main.default();
-			}
-			else {
-				s_mainObject = new main.default();
+		if (util.isConstructor(main.default)) {
+			s_mainObject = new main.default();
 				if (typeof s_mainObject.start === 'function')
 					s_mainObject.start();
-			}
+		} else {
+			main.default();
 		}
 		s_eventLoop.start();
 	}
@@ -285,8 +304,8 @@ class Sphere extends null
 	static sleep(numFrames)
 	{
 		return new Promise(resolve => {
-			s_eventLoop.addJob('update', resolve, false, numFrames);
-		});
+            s_eventLoop.addJob('update', resolve, false, numFrames);
+        });
 	}
 
 	static setResolution(width, height)
@@ -500,15 +519,23 @@ class Shader
 	}
 }
 
+type shapeTag = {
+	texture : Texture,
+	indexList : number[],
+	shape : galileo.Shape
+}
+
 class Shape
 {
 	constructor(...args)
 	{
 		// function(type[, texture], vertexList[, indexList])
 
-		let tag = this[kTag] = {};
-		tag.texture = null;
-		tag.indexList = null;
+		let tag : shapeTag = this[kTag] = {
+			texture : undefined,
+			indexList : undefined,
+			shape : undefined
+		};
 		if (args[1] instanceof Texture || args[1] === null) {
 			let vbo = args[2][kTag];
 			let ibo = null;

@@ -30,49 +30,63 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-const ControllerSymbol = Symbol('Promise controller');
+import Pact from './pact.js';
 
 /**
- * A Pact is type of promise which can be fulfilled or rejected externally.
+ * Asynchronously load the specified image file as an Image object
  */
-export default
-class Pact extends Promise
+export
+async function loadImage(fileName: string)
 {
-	get [Symbol.toStringTag]() { return 'Pact'; }
-	get [Symbol.species]() { return Promise; }
+	let image = new Image();
+	let pact = new Pact();
+	image.onload = () => {
+		pact.resolve(image);
+	};
+	image.onerror = () => {
+		pact.reject(`Error loading image file ${fileName}`);
+	};
+	image.src = fileName;
+	await pact;
+	// allow Pact to be collected
+	image.onload = doNothing;
+	image.onerror = doNothing;
+	return image;
+}
 
-	constructor(executor = null)
-	{
-		let promiseController;
-		super((resolve, reject) => {
-			promiseController = { resolve, reject };
-			if (typeof executor === 'function')
-				return executor(resolve, reject);
-		});
-		this[ControllerSymbol] = promiseController;
-	}
+/**
+ * Asynchronously load the specified sound file as an Audio object
+ */
+export
+async function loadSound(fileName: string)
+{
+	let sound = new Audio();
+	let pact = new Pact();
+	sound.onloadeddata = () => {
+		pact.resolve(sound);
+	};
+	sound.onerror = () => {
+		pact.reject(`Error loading sound file ${fileName}`);
+	};
+	sound.src = fileName;
+	await pact;
+	// allow Pact to be collected
+	sound.onloadeddata = doNothing;
+	sound.onerror = doNothing;
+	return sound;
+}
 
-	/**
-	 * Settles the pact with a given rejection reason.
-	 * @param {any} reason The value with which to reject the pact
-	 */
-	reject(reason)
-	{
-		this[ControllerSymbol].reject(reason);
-	}
-
-	/**
-	 * Settles the pact with the given resolution value.
-	 * @param {any} value The value to with which to resolve the pact.  If this is a promise, the pact
-	 *                    will adopt its eventual state and value.
-	 */
-	resolve(value)
-	{
-		this[ControllerSymbol].resolve(value);
-	}
-
-	toPromise()
-	{
-		return Promise.resolve(this);
+/**
+ * Check if a function is a constructor without calling it
+ */
+export function isConstructor (fn: () => void) {
+	const fnProxy = new Proxy(fn, { construct() { return {}; } });
+	try {
+		new fnProxy();
+		return true;
+	} catch (e) {
+		return false;
 	}
 }
+
+function doNothing () {}

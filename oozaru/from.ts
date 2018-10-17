@@ -1,4 +1,4 @@
-/**
+/*
  *  Oozaru JavaScript game engine
  *  Copyright (c) 2016-2018, Fat Cerberus
  *  All rights reserved.
@@ -30,8 +30,70 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
+
+class FromQuery
+{
+	itemSource : {init() : void, next() : any}
+	constructor(source: {init() : void, next() : any})
+	{
+		this.itemSource = source;
+	}
+
+	[Symbol.iterator] (withKeys: boolean)
+	{
+		let source = this.itemSource;
+		source.init();
+		return {
+			next() {
+				const item = source.next();
+				return {
+					done : (item === null),
+					value : withKeys ? item : item.v
+				}
+			}
+		}
+	}
+
+	all        (...args) { return operatorPrefix(MapSource, allOp, this.itemSource, args); }
+	allIn      (...args) { return operatorPrefix(InSource, allOp, this.itemSource, args); }
+	any        (...args) { return operatorPrefix(MapSource, anyOp, this.itemSource, args); }
+	anyIn      (...args) { return operatorPrefix(InSource, anyOp, this.itemSource, args); }
+	anyIs      (...args) { return operatorPrefix(IsSource, anyOp, this.itemSource, args); }
+	ascending  (...args) { return operatorPrefix(OrderedSource(false), undefined, this.itemSource, args); }
+	besides    (...args) { return operatorPrefix(CallbackSource, undefined, this.itemSource, args); }
+	count      (...args) { return operatorPrefix(FilterSource, countOp, this.itemSource, args); }
+	descending (...args) { return operatorPrefix(OrderedSource(true), undefined, this.itemSource, args); }
+	each       (...args) { return operatorPrefix(CallbackSource, nullOp, this.itemSource, args); }
+	first      (...args) { return operatorPrefix(FilterSource, firstOp, this.itemSource, args); }
+	from       (...args) { return operatorPrefix(FromSource, undefined, this.itemSource, args); }
+	including  (...args) { return operatorPrefix(IncludeSource, undefined, this.itemSource, args); }
+	last       (...args) { return operatorPrefix(FilterSource, lastOp, this.itemSource, args); }
+	random     (...args) { return operatorPrefix(SampleSource(false), undefined, this.itemSource, args); }
+	reduce     (...args) { return operatorPrefix(ReduceSource, firstOp, this.itemSource, args); }
+	remove     (...args) { return operatorPrefix(FilterSource, removeOp, this.itemSource, args); }
+	sample     (...args) { return operatorPrefix(SampleSource(true), undefined, this.itemSource, args); }
+	select     (...args) { return operatorPrefix(MapSource, undefined, this.itemSource, args); }
+	shuffle    (...args) { return operatorPrefix(ShuffledSource, undefined, this.itemSource, args); }
+	skip       (...args) { return operatorPrefix(SkipSource, undefined, this.itemSource, args); }
+	take       (...args) { return operatorPrefix(TakeSource, undefined, this.itemSource, args); }
+	toArray    (...args) { return operatorPrefix(MapSource, collectOp, this.itemSource, args); }
+	update     (...args) { return operatorPrefix(MapSource, updateOp, this.itemSource, args); }
+	where      (...args) { return operatorPrefix(FilterSource, undefined, this.itemSource, args); }
+}
+
+function operatorPrefix(sourceType, op, thisSource, args) : FromQuery
+{
+	const newSource = new sourceType(thisSource, ...args);
+
+	// if it's a terminal operator, run the query.  otherwise construct
+	// a new FromQuery.  this allows LINQ-style composition.
+	return op !== undefined ? op(newSource)
+		: new FromQuery(newSource);
+}
+
+
 export default
-function from(...targets)
+function from(...targets: any) : FromQuery
 {
 	// for multiple targets, query against the list of targets and unroll with
 	// .from().
@@ -73,81 +135,6 @@ function fromObject(target)
 	let itemSource = new ObjectSource(Object(target));
 	return new FromQuery(itemSource);
 }
-
-function MAKEPOINT(sourceType, op)
-{
-	return function (...args) {
-		let thisSource = this.itemSource;
-		let newSource = new sourceType(thisSource, ...args);
-
-		// if it's a terminal operator, run the query.  otherwise construct
-		// a new FromQuery.  this allows LINQ-style composition.
-		return op !== undefined ? op(newSource)
-			: new FromQuery(newSource);
-	};
-}
-
-function PROPDESC(flags, valueOrGetter, setter)
-{
-	let desc = {
-		writable:     flags.indexOf('w') !== -1,
-		enumerable:   flags.indexOf('e') !== -1,
-		configurable: flags.indexOf('c') !== -1,
-	};
-	if (flags.indexOf('a') === -1) {
-		desc.value = valueOrGetter;
-	}
-	else {
-		desc.get = valueOrGetter;
-		desc.set = setter;
-	}
-	return desc;
-}
-
-function FromQuery(source)
-{
-	this.itemSource = source;
-}
-
-Object.defineProperties(FromQuery.prototype, {
-	[Symbol.iterator]:
-	PROPDESC('wc', function* enumerate(withKeys)
-	{
-		let source = this.itemSource;
-		let item;
-		source.init();
-		while ((item = source.next()))
-			yield withKeys ? item : item.v;
-	}),
-
-	// from() query operators.
-	// refer to the miniRT API reference to find out what each of these does.
-	all:        PROPDESC('wc', MAKEPOINT(MapSource, allOp)),
-	allIn:      PROPDESC('wc', MAKEPOINT(InSource, allOp)),
-	any:        PROPDESC('wc', MAKEPOINT(MapSource, anyOp)),
-	anyIn:      PROPDESC('wc', MAKEPOINT(InSource, anyOp)),
-	anyIs:      PROPDESC('wc', MAKEPOINT(IsSource, anyOp)),
-	ascending:  PROPDESC('wc', MAKEPOINT(OrderedSource(false))),
-	besides:    PROPDESC('wc', MAKEPOINT(CallbackSource)),
-	count:      PROPDESC('wc', MAKEPOINT(FilterSource, countOp)),
-	descending: PROPDESC('wc', MAKEPOINT(OrderedSource(true))),
-	each:       PROPDESC('wc', MAKEPOINT(CallbackSource, nullOp)),
-	first:      PROPDESC('wc', MAKEPOINT(FilterSource, firstOp)),
-	from:       PROPDESC('wc', MAKEPOINT(FromSource)),
-	including:  PROPDESC('wc', MAKEPOINT(IncludeSource)),
-	last:       PROPDESC('wc', MAKEPOINT(FilterSource, lastOp)),
-	random:     PROPDESC('wc', MAKEPOINT(SampleSource(false))),
-	reduce:     PROPDESC('wc', MAKEPOINT(ReduceSource, firstOp)),
-	remove:     PROPDESC('wc', MAKEPOINT(FilterSource, removeOp)),
-	sample:     PROPDESC('wc', MAKEPOINT(SampleSource(true))),
-	select:     PROPDESC('wc', MAKEPOINT(MapSource)),
-	shuffle:    PROPDESC('wc', MAKEPOINT(ShuffledSource)),
-	skip:       PROPDESC('wc', MAKEPOINT(SkipSource)),
-	take:       PROPDESC('wc', MAKEPOINT(TakeSource)),
-	toArray:    PROPDESC('wc', MAKEPOINT(MapSource, collectOp)),
-	update:     PROPDESC('wc', MAKEPOINT(MapSource, updateOp)),
-	where:      PROPDESC('wc', MAKEPOINT(FilterSource)),
-});
 
 function ArraySource(target)
 {
