@@ -1,2 +1,4 @@
 node_modules
 built
+.vscode
+.DS_Store
