@@ -204,15 +204,7 @@ class Pegasus extends null
 			value: window,
 		});
 
-		global.ShapeType = Object.freeze({
-			Fan: 0,
-			Lines: 1,
-			LineLoop: 2,
-			LineStrip: 3,
-			Points: 4,
-			Triangles: 5,
-			TriStrip: 6,
-		});
+		global.ShapeType = galileo.ShapeType;
 
 		global.Sphere = Sphere;
 		global.Color = Color;
@@ -292,10 +284,9 @@ class Sphere extends null
 
 	static sleep(numFrames)
 	{
-		let resolver;
-		let promise = new Promise(resolve => resolver = resolve);
-		Dispatch.later(numFrames, () => resolver());
-		return promise;
+		return new Promise(resolve => {
+			s_eventLoop.addJob('update', resolve, false, numFrames);
+		});
 	}
 
 	static setResolution(width, height)
@@ -542,9 +533,9 @@ class Shape
 		let galShape = tag.shape;
 		let galShader = shader[kTag];
 		let galTexture = tag.texture[kTag].texture;
-		galSurface.drawHere();
-		galShader.apply(true);
-		galTexture.apply(0);
+		galSurface.activate();
+		galShader.activate(true);
+		galTexture.activate(0);
 		galShape.draw();
 	}
 }
@@ -689,11 +680,11 @@ class VertexList
 {
 	constructor(vertices)
 	{
-		// `new galileo.VBO()` expects an array as input, so if we only have a
+		// `VertexBuffer` constructor expects an array as input, so if we only have a
 		// non-array iterable we need to convert it first.
 		if (!Array.isArray(vertices))
 			vertices = [ ...vertices ];
 
-		this[kTag] = new galileo.VBO(vertices);
+		this[kTag] = new galileo.VertexBuffer(vertices);
 	}
 }

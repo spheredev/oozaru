@@ -50,6 +50,8 @@ class Galileo extends null
 		let vertSource = await (await fetch('shaders/default.vert.glsl')).text();
 		let fragSource = await (await fetch('shaders/default.frag.glsl')).text();
 		defaultShader = new Shader(vertSource, fragSource);
+
+		Surface.Screen.activate();
 	}
 }
 
@@ -74,7 +76,7 @@ class Color
 }
 
 export
-class IBO
+class IndexBuffer
 {
 	constructor(indices)
 	{
@@ -87,7 +89,7 @@ class IBO
 		this.length = indices.length;
 	}
 
-	apply()
+	activate()
 	{
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.hwBuffer);
 	}
@@ -154,15 +156,16 @@ class Shader
 		this.modelViewLoc = gl.getUniformLocation(hwShader, 'al_projview_matrix');
 		this.textureLoc = gl.getUniformLocation(hwShader, 'al_tex');
 		this.transform = new Transform();
-		this.transform.project2D(0, 0, screenCanvas.width, screenCanvas.height);
 	}
 
-	apply(useTexture, transform)
+	activate(useTexture)
 	{
 		if (activeShader !== this) {
 			gl.useProgram(this.hwShader);
 			activeShader = this;
 		}
+		this.transform.identity();
+		this.transform.ortho(0, 0, activeSurface.width, activeSurface.height);
 		gl.uniform1i(this.hasTextureLoc, useTexture ? 1 : 0);
 		gl.uniform1i(this.textureLoc, 0);
 		gl.uniformMatrix4fv(this.modelViewLoc, false, this.transform.matrix);
@@ -172,18 +175,15 @@ class Shader
 export
 class Shape
 {
-	constructor(vbo, ibo, type = ShapeType.TriStrip)
+	constructor(vertexBuffer, indexBuffer, type = ShapeType.TriStrip)
 	{
 		this.type = type;
-		this.vbo = vbo;
-		this.ibo = ibo;
+		this.vertices = vertexBuffer;
+		this.indices = indexBuffer;
 	}
 
 	draw()
 	{
-		this.vbo.apply();
-		if (this.ibo !== null)
-			this.ibo.apply();
 		let drawMode = this.type === ShapeType.Fan ? gl.TRIANGLE_FAN
 			: this.type === ShapeType.Lines ? gl.LINES
 			: this.type === ShapeType.LineLoop ? gl.LINE_LOOP
@@ -191,10 +191,14 @@ class Shape
 			: this.type === ShapeType.Points ? gl.POINTS
 			: this.type === ShapeType.TriStrip ? gl.TRIANGLE_STRIP
 			: gl.TRIANGLES;
-		if (this.ibo !== null)
-			gl.drawElements(drawMode, this.ibo.length, gl.UNSIGNED_SHORT, 0);
-		else
-			gl.drawArrays(drawMode, 0, this.vbo.length);
+		this.vertices.activate();
+		if (this.indices !== null) {
+			this.indices.activate();
+			gl.drawElements(drawMode, this.indices.length, gl.UNSIGNED_SHORT, 0);
+		}
+		else {
+			gl.drawArrays(drawMode, 0, this.vertices.length);
+		}
 	}
 }
 
@@ -239,7 +243,7 @@ class Surface
 			: screenCanvas.width;
 	}
 
-	drawHere()
+	activate()
 	{
 		if (activeSurface === this)
 			return;
@@ -270,7 +274,7 @@ class Texture
 		this.height = image.height;
 	}
 
-	apply(textureUnit = 0)
+	activate(textureUnit = 0)
 	{
 		gl.activeTexture(gl.TEXTURE0 + textureUnit);
 		gl.bindTexture(gl.TEXTURE_2D, this.hwTexture);
@@ -302,7 +306,7 @@ class Transform
 		]);
 	}
 
-	project2D(left, top, right, bottom, near = -1.0, far = 1.0)
+	ortho(left, top, right, bottom, near = -1.0, far = 1.0)
 	{
 		let sX = 2 / (right - left);
 		let sY = 2 / (top - bottom);
@@ -320,7 +324,7 @@ class Transform
 }
 
 export
-class VBO
+class VertexBuffer
 {
 	constructor(vertices)
 	{
@@ -358,7 +362,7 @@ class VBO
 		this.length = vertices.length;
 	}
 
-	apply()
+	activate()
 	{
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.hwBuffer);
 		gl.enableVertexAttribArray(0);
