@@ -1,11 +1,11 @@
 {
     "compilerOptions": {
         "checkJs": true,
-      /*  "noImplicitAny": true,
-        "strict" :true,*/
+        "strict" :true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "allowJs": true,
+        "removeComments": true,
         "lib":["es2018", "dom"],
         "target": "esnext",
         "module": "esnext",

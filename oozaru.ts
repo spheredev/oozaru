@@ -34,7 +34,7 @@ import Galileo from './oozaru/galileo.js';
 import Pegasus from './oozaru/pegasus.js';
 
 const
-	mainCanvas = document.getElementById('screen');
+	mainCanvas = <HTMLCanvasElement> document.getElementById('screen');
 
 main();
 
@@ -44,7 +44,7 @@ async function main()
 	Pegasus.initializeGlobals();
 	mainCanvas.onclick = () => {
 		mainCanvas.onclick = null;
-		let divElement = document.getElementById('prompt');
+		const divElement = <HTMLElement>document.getElementById('prompt');
 		divElement.innerHTML = "<i>launching Sphere game...</i>";
 		Pegasus.launchGame('../../game/');
 		divElement.innerHTML = "Sphere game launched!";

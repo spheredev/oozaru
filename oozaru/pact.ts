@@ -42,14 +42,18 @@ class Pact<T> extends Promise<T>
 	//get [Symbol.toStringTag]() { return 'Pact'; }
 	get [Symbol.species]() { return Promise; }
 
-	constructor(executor = null)
+	[ControllerSymbol] : { resolve : (value : any) => void, reject : (reason : any) => void }
+	constructor(executor? : (a? : any, b? : any) => any | undefined)
 	{
-		let promiseController;
+		let promiseController : { resolve : () => void, reject : () => void };
 		super((resolve, reject) => {
 			promiseController = { resolve, reject };
 			if (typeof executor === 'function')
+			{
 				return executor(resolve, reject);
+			}
 		});
+		//@ts-ignore
 		this[ControllerSymbol] = promiseController;
 	}
 

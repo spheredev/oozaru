@@ -1,4 +1,4 @@
-/**
+/*
  *  Oozaru JavaScript game engine
  *  Copyright (c) 2015-2018, Fat Cerberus
  *  All rights reserved.
@@ -30,11 +30,24 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import from from './from.js';
 import * as galileo from './galileo.js';
 
 let
 	nextJobID = 1;
+
+export enum JobType {
+	update,
+	render,
+	immediate
+}
+
+type Job = {
+	id : number,
+	type : JobType,
+	callback : () => any,
+	recurring : boolean,
+	timer : number
+}
 
 export default
 class EventLoop
@@ -49,9 +62,9 @@ class EventLoop
 		this.rafID = 0;
 	}
 
-	addJob(type, callback, recurring = false, delay = 0)
+	addJob(type : JobType, callback : () => any, recurring = false, delay = 0)
 	{
-		this.jobQueue.push({ id: nextJobID, type, callback, recurring, timer: delay });
+		this.jobQueue.push(<Job>{ id: nextJobID, type, callback, recurring, timer: delay });
 		return nextJobID++;
 	}
 
@@ -59,18 +72,23 @@ class EventLoop
 	{
 		this.rafID = requestAnimationFrame(t => this.animate(t));
 
-		this.runJobs('update');
+		this.runJobs(JobType.update);
 		galileo.Surface.Screen.activate();
 		galileo.Prim.clear();
-		this.runJobs('render');
-		this.runJobs('immediate');
+		this.runJobs(JobType.render);
+		this.runJobs(JobType.immediate);
 		++this.frameCount;
 	}
 
-	cancelJob(jobID)
+	cancelJob(jobID : number)
 	{
-		from.array(this.jobQueue)
-			.remove(it => it.id === jobID);
+		this.jobQueue.some ((job : Job, index, queue) => {
+			if (job.id === jobID) {
+				queue.splice(index, 1);
+				return true;
+			}
+			return false;
+		});
 	}
 
 	now()
@@ -78,15 +96,24 @@ class EventLoop
 		return this.frameCount;
 	}
 
-	runJobs(type)
+	runJobs(type : JobType)
 	{
-		let jobsToRun = from.array(this.jobQueue)
-			.where(it => it.type === type)
-			.where(it => it.recurring || it.timer-- <= 0);
-		for (const job of jobsToRun)
-			job.callback.call(undefined);
-		from.array(this.jobQueue)
-			.remove(it => !it.recurring && it.timer < 0);
+		const removals : number[] = [];
+		const queue = this.jobQueue;
+		queue.forEach ((job : Job, index) => {
+			if (job.type === type) {
+				if (job.recurring || job.timer-- <= 0) {
+					job.callback.call(undefined);
+					if (!job.recurring) {
+						removals.push(index);
+					}
+				}
+			}
+		});
+
+		removals.reverse().forEach((index) =>{
+			queue.splice(index, 1);
+		})
 	}
 
 	start()
@@ -100,6 +127,6 @@ class EventLoop
 			cancelAnimationFrame(this.rafID);
 		this.frameCount = 0;
 		this.jobQueue.length = 0;
-		this.rafID = null;
+		this.rafID = -1;
 	}
 }

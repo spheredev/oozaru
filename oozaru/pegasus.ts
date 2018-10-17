@@ -30,8 +30,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import EventLoop from './event-loop.js';
-import from from './from.js';
+import EventLoop, {JobType} from './event-loop.js';
 import * as galileo from './galileo.js';
 import * as util from './utility.js';
 
@@ -199,7 +198,7 @@ const
 
 let
 	s_eventLoop = new EventLoop(),
-	s_mainObject = undefined;
+	s_mainObject = <any> undefined;
 
 
 function declareGlobal (name: string, value:any, writable:boolean = false)
@@ -218,15 +217,7 @@ class Pegasus extends null
 	static initializeGlobals()
 	{
 		declareGlobal('global', window);
-		declareGlobal("ShapeType", Object.freeze({
-			Fan: 0,
-			Lines: 1,
-			LineLoop: 2,
-			LineStrip: 3,
-			Points: 4,
-			Triangles: 5,
-			TriStrip: 6,
-		}));
+		declareGlobal("ShapeType", galileo.ShapeType);
 
 		declareGlobal("Sphere", Sphere);
 		declareGlobal("Color", Color);
@@ -259,7 +250,7 @@ class Pegasus extends null
 		}
 	}
 
-	static async launchGame(dirName)
+	static async launchGame(dirName: string)
 	{
 		let fileName = `${dirName}/main.js`;
 		let main = await import(fileName);
@@ -301,14 +292,14 @@ class Sphere extends null
 		return s_eventLoop.now();
 	}
 
-	static sleep(numFrames)
+	static sleep(numFrames : number)
 	{
 		return new Promise(resolve => {
-            s_eventLoop.addJob('update', resolve, false, numFrames);
+            s_eventLoop.addJob(JobType.update, resolve, false, numFrames);
         });
 	}
 
-	static setResolution(width, height)
+	static setResolution(width : number, height: number)
 	{
 		galileo.Prim.rerez(width, height);
 	}
@@ -316,7 +307,7 @@ class Sphere extends null
 
 class Color
 {
-	static is(color1, color2)
+	static is(color1 : Color, color2 : Color)
 	{
 		let tag1 = color1[kTag];
 		let tag2 = color2[kTag];
@@ -325,7 +316,7 @@ class Color
 			&& tag1.b === tag2.b;
 	}
 	
-	static mix(color1, color2, w1 = 1.0, w2 = 1.0)
+	static mix(color1 : Color, color2 : Color, w1 = 1.0, w2 = 1.0)
 	{
 		let totalWeight = w1 + w2;
 		let tag1 = color1[kTag];
@@ -337,7 +328,7 @@ class Color
 		return new Color(r, g, b, a);
 	}
 
-	static of(name)
+	static of(name : string)
 	{
 		// parse 6-digit format (#rrggbb)
 		let matched = name.match(/^#?([0-9a-f]{6})$/i);
@@ -364,18 +355,19 @@ class Color
 
 		// see if `name` matches a predefined color (not case sensitive)
 		let toMatch = name.toUpperCase();
-		let color = from(COLOR_TABLE)
-			.where(it => it[1].toUpperCase() === toMatch)
-			.select(it => Color[it[1]])
-			.first();
-		if (color !== undefined)
-			return color;  // found a match!
+		for (const colorEntry of COLOR_TABLE) {
+			let name = colorEntry[1];
+			if (name.toUpperCase() === toMatch)
+				//@ts-ignore
+				return Color[name];  // use appropriate Color getter
+		}
 
 		// if we got here, none of the parsing attempts succeeded, so throw an error.
 		throw new RangeError(`Invalid color designation '${name}'`);
 	}
 
-	constructor(r, g, b, a = 1.0)
+	[kTag] : {r : number, g : number, b : number, a : number};
+	constructor(r : number, g : number, b : number, a = 1.0)
 	{
 		this[kTag] = { r, g, b, a };
 	}
@@ -431,7 +423,7 @@ class Color
 		return new Color(tag.r, tag.g, tag.b, tag.a);
 	}
 
-	fadeTo(alphaFactor)
+	fadeTo(alphaFactor : number)
 	{
 		let tag = this[kTag];
 		return new Color(tag.r, tag.g, tag.b, tag.a * alphaFactor);
@@ -440,34 +432,34 @@ class Color
 
 class Dispatch extends null
 {
-	static later(numFrames, callback)
+	static later(numFrames : number, callback : () => any)
 	{
-		let jobID = s_eventLoop.addJob('update', callback, false, numFrames);
+		let jobID = s_eventLoop.addJob(JobType.update, callback, false, numFrames);
 		return new JobToken(jobID);
 	}
 
-	static now(callback)
+	static now(callback : () => any)
 	{
-		let jobID = s_eventLoop.addJob('immediate', callback, false);
+		let jobID = s_eventLoop.addJob(JobType.immediate, callback, false);
 		return new JobToken(jobID);
 	}
 
-	static onRender(callback)
+	static onRender(callback : () => any)
 	{
-		let jobID = s_eventLoop.addJob('render', callback, true);
+		let jobID = s_eventLoop.addJob(JobType.render, callback, true);
 		return new JobToken(jobID);
 	}
 
-	static onUpdate(callback)
+	static onUpdate(callback : () => any)
 	{
-		let jobID = s_eventLoop.addJob('update', callback, true);
+		let jobID = s_eventLoop.addJob(JobType.update, callback, true);
 		return new JobToken(jobID);
 	}
 }
 
 class FS extends null
 {
-	static fullPath(pathName, baseDirName)
+	static fullPath(pathName : string, baseDirName : string)
 	{
 		return pathName;
 	}
@@ -477,7 +469,9 @@ class JobToken
 {
 	get [Symbol.toStringTag]() { return 'JobToken'; }
 
-	constructor(jobID)
+	[kTag] : number
+
+	constructor(jobID : number)
 	{
 		this[kTag] = jobID;
 	}
@@ -492,14 +486,25 @@ class JobToken
 class Mixer
 {
 	get volume() { return 1.0; }
-	set volume(value) {}
+	set volume(value : number) {}
 }
 
 class SSj extends null
 {
-	static log(object)
+	static log(object : any)
 	{
-		console.log(object);
+		if (typeof object === "string")
+		{
+			console.log(object);
+		}
+		else if (object instanceof Error)
+		{
+			console.log (object.message);
+		}
+		else
+		{
+			console.log (JSON.stringify(object));
+		}
 	}
 }
 
@@ -520,36 +525,38 @@ class Shader
 }
 
 type shapeTag = {
-	texture : Texture,
+	texture : Texture | null,
 	indexList : number[],
 	shape : galileo.Shape
 }
 
 class Shape
 {
-	constructor(...args)
+	[kTag] : shapeTag
+	constructor(...args : any[])
 	{
 		// function(type[, texture], vertexList[, indexList])
-
-		let tag : shapeTag = this[kTag] = {
-			texture : undefined,
-			indexList : undefined,
-			shape : undefined
-		};
 		if (args[1] instanceof Texture || args[1] === null) {
 			let vbo = args[2][kTag];
 			let ibo = null;
 			if (args[3] !== undefined)
 				ibo = args[3][kTag];
-			tag.shape = new galileo.Shape(vbo, ibo, args[0]);
-			tag.texture = args[1];
+			this[kTag] = {
+				shape : new galileo.Shape(vbo, ibo, args[0]),
+				texture : args[1],
+				indexList : []
+			}
 		}
 		else {
 			let vbo = args[2][kTag];
 			let ibo = null;
 			if (args[2] !== undefined)
 				ibo = args[2][kTag];
-			tag.shape = new galileo.Shape(vbo, ibo, args[0]);
+			this[kTag] = {
+				shape : new galileo.Shape(vbo, ibo, args[0]),
+				texture : null,
+				indexList : []
+			}
 		}
 	}
 
@@ -559,24 +566,29 @@ class Shape
 		let galSurface = surface[kTag].surface;
 		let galShape = tag.shape;
 		let galShader = shader[kTag];
-		let galTexture = tag.texture[kTag].texture;
 		galSurface.activate();
 		galShader.activate(true);
-		galTexture.activate(0);
+		if (tag.texture !== null) {
+			let galTexture = tag.texture[kTag].texture;
+			if (galTexture !== null)
+				galTexture.activate(0);
+		}
+
 		galShape.draw();
 	}
 }
 
 class Sound
 {
-	static async fromFile(fileName)
+	[kTag] : HTMLAudioElement
+	static async fromFile(fileName : string)
 	{
 		let audioElement = await util.loadSound(`game/${fileName}`);
 		audioElement.loop = true;
 		return new this(audioElement);
 	}
 
-	constructor(audioElement)
+	constructor(audioElement : HTMLAudioElement)
 	{
 		if (!(audioElement instanceof HTMLAudioElement))
 			throw new TypeError('HTMLAudioElement object expected here');
@@ -641,13 +653,16 @@ class Sound
 	{
 		let audioElement = this[kTag];
 		audioElement.pause();
-		audioElement.fastSeek(0.0);
+		audioElement.currentTime = 0;
+		//audioElement.fastSeek(0.0); - experimental future option
 	}
 }
 
 class Texture
 {
-	static async fromFile(fileName)
+	[kTag] : { texture : galileo.Texture };
+
+	static async fromFile(fileName : string)
 	{
 		let image = await util.loadImage(`game/${fileName}`);
 		let texture = Object.create(this.prototype);
@@ -668,7 +683,12 @@ class Texture
 
 class Surface extends Texture
 {
-	static get Screen()
+	[kTag] : {
+		texture : galileo.Texture,
+		surface : galileo.Surface
+	}
+	
+	static get Screen() : Surface
 	{
 		let galSurface = galileo.Surface.Screen;
 		let surface = Object.create(Surface.prototype);
@@ -697,6 +717,7 @@ class Surface extends Texture
 
 class Transform
 {
+	[kTag] : galileo.Transform;
 	constructor()
 	{
 		this[kTag] = new galileo.Transform();
@@ -705,13 +726,11 @@ class Transform
 
 class VertexList
 {
-	constructor(vertices)
+	[kTag] : galileo.VertexBuffer;
+	constructor(vertices : Iterable<{ x? : number, y? : number, z? : number, u? : number, v? : number, color? : { r: number, g : number, b : number, a : number}}>)
 	{
 		// `VertexBuffer` constructor expects an array as input, so if we only have a
 		// non-array iterable we need to convert it first.
-		if (!Array.isArray(vertices))
-			vertices = [ ...vertices ];
-
-		this[kTag] = new galileo.VertexBuffer(vertices);
+		this[kTag] = new galileo.VertexBuffer(Array.isArray(vertices) ? vertices : [... vertices]);
 	}
 }

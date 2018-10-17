@@ -1,4 +1,4 @@
-/**
+/*
  *  Oozaru JavaScript game engine
  *  Copyright (c) 2015-2018, Fat Cerberus
  *  All rights reserved.
@@ -79,9 +79,10 @@ async function loadSound(fileName: string)
 /**
  * Check if a function is a constructor without calling it
  */
-export function isConstructor (fn: () => void) {
+export function isConstructor (fn: any) {
 	const fnProxy = new Proxy(fn, { construct() { return {}; } });
 	try {
+		//@ts-ignore
 		new fnProxy();
 		return true;
 	} catch (e) {
