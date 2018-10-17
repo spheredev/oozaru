@@ -31,9 +31,10 @@
 **/
 
 let
+	activeShader = null,
+	activeSurface = null,
 	defaultShader,
 	gl = null,
-	lastShader = null,
 	screenCanvas;
 
 export default
@@ -53,8 +54,7 @@ class Galileo extends null
 }
 
 export
-const ShapeType =
-{
+const ShapeType = Object.freeze({
 	Fan: 0,
 	Lines: 1,
 	LineLoop: 2,
@@ -62,7 +62,16 @@ const ShapeType =
 	Points: 4,
 	Triangles: 5,
 	TriStrip: 6,
-};
+});
+
+export
+class Color
+{
+	constructor(r, g, b, a = 1.0)
+	{
+		this.data = { r, g, b, a };
+	}
+}
 
 export
 class IBO
@@ -77,33 +86,27 @@ class IBO
 		this.hwBuffer = hwBuffer;
 		this.length = indices.length;
 	}
+
+	apply()
+	{
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.hwBuffer);
+	}
 }
 
 export
-class Screen extends null
+class Prim extends null
 {
-	static get height()
-	{
-		return screenCanvas.height;
-	}
-
-	static get width()
-	{
-		return screenCanvas.width;
-	}
-
 	static clear()
 	{
-		gl.clear(gl.COLOR_BUFFER_BIT
-			| gl.DEPTH_BUFFER_BIT
-			| gl.STENCIL_BUFFER_BIT);
+		gl.clear(gl.COLOR_BUFFER_BIT);
 	}
 
-	static resize(width, height)
+	static rerez(width, height)
 	{
 		screenCanvas.width = width;
 		screenCanvas.height = height;
-		gl.viewport(0, 0, width, height);
+		if (activeSurface === Surface.Screen)
+			gl.viewport(0, 0, screenCanvas.width, screenCanvas.height);
 	}
 }
 
@@ -150,86 +153,102 @@ class Shader
 		this.hasTextureLoc = gl.getUniformLocation(hwShader, 'al_use_tex');
 		this.modelViewLoc = gl.getUniformLocation(hwShader, 'al_projview_matrix');
 		this.textureLoc = gl.getUniformLocation(hwShader, 'al_tex');
+		this.transform = new Transform();
+		this.transform.project2D(0, 0, screenCanvas.width, screenCanvas.height);
 	}
 
-	draw(type, vbo, texture = null, transform = null)
+	apply(useTexture, transform)
 	{
-		if (this.hwShader !== lastShader) {
+		if (activeShader !== this) {
 			gl.useProgram(this.hwShader);
-			lastShader = this.hwShader;
+			activeShader = this;
 		}
-		gl.bindBuffer(gl.ARRAY_BUFFER, vbo.hwBuffer);
-		gl.enableVertexAttribArray(0);
-		gl.enableVertexAttribArray(1);
-		gl.enableVertexAttribArray(2);
-		gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 40, 0);
-		gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 40, 16);
-		gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 40, 32);
-		gl.activeTexture(gl.TEXTURE0);
-		gl.bindTexture(gl.TEXTURE_2D, texture !== null ? texture.hwTexture : null);
-		gl.uniform1i(this.hasTextureLoc, texture !== null ? 1 : 0);
+		gl.uniform1i(this.hasTextureLoc, useTexture ? 1 : 0);
 		gl.uniform1i(this.textureLoc, 0);
-		if (transform !== null) {
-			gl.uniformMatrix4fv(this.modelViewLoc, false, transform.matrix);
-		}
-		else {
-			let sX = 2 / screenCanvas.width;
-			let sY = 2 / -screenCanvas.height;
-			let sZ = -2 / (1.0 - -1.0);
-			gl.uniformMatrix4fv(this.modelViewLoc, false, [
-				sX,  0.0,  0.0, 0.0,
-				0.0, sY,   0.0, 0.0,
-				0.0, 0.0,  sZ,  0.0,
-				-1.0, 1.0, 0.0, 1.0,
-			]);
-		}
-		let drawMode = type === ShapeType.Fan ? gl.TRIANGLE_FAN
-			: type === ShapeType.Lines ? gl.LINES
-			: type === ShapeType.LineLoop ? gl.LINE_LOOP
-			: type === ShapeType.LineStrip ? gl.LINE_STRIP
-			: type === ShapeType.Points ? gl.POINTS
-			: type === ShapeType.TriStrip ? gl.TRIANGLE_STRIP
-			: gl.TRIANGLES;
-		gl.drawArrays(drawMode, 0, vbo.length);
+		gl.uniformMatrix4fv(this.modelViewLoc, false, this.transform.matrix);
+	}
+}
+
+export
+class Shape
+{
+	constructor(vbo, ibo, type = ShapeType.TriStrip)
+	{
+		this.type = type;
+		this.vbo = vbo;
+		this.ibo = ibo;
 	}
 
-	drawIndexed(type, vbo, ibo, texture = null, transform = null)
+	draw()
 	{
-		if (this.hwShader !== lastShader) {
-			gl.useProgram(this.hwShader);
-			lastShader = this.hwShader;
-		}
-		gl.bindBuffer(gl.ARRAY_BUFFER, vbo.hwBuffer);
-		gl.enableVertexAttribArray(0);
-		gl.enableVertexAttribArray(1);
-		gl.enableVertexAttribArray(2);
-		gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 40, 0);
-		gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 40, 16);
-		gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 40, 32);
-		gl.activeTexture(gl.TEXTURE0);
-		gl.bindTexture(gl.TEXTURE_2D, texture !== null ? texture.hwTexture : null);
-		gl.uniform1i(this.hasTextureLoc, texture !== null ? 1 : 0);
-		gl.uniform1i(this.textureLoc, 0);
-		if (transform !== null) {
-			gl.uniformMatrix4fv(this.modelViewLoc, false, transform.matrix);
-		}
-		else {
-			gl.uniformMatrix4fv(this.modelViewLoc, false, [
-				1.0, 0.0, 0.0, 0.0,
-				0.0, 1.0, 0.0, 0.0,
-				0.0, 0.0, 1.0, 0.0,
-				0.0, 0.0, 0.0, 1.0,
-			]);
-		}
-		let drawMode = type === ShapeType.Fan ? gl.TRIANGLE_FAN
-			: type === ShapeType.Lines ? gl.LINES
-			: type === ShapeType.LineLoop ? gl.LINE_LOOP
-			: type === ShapeType.LineStrip ? gl.LINE_STRIP
-			: type === ShapeType.Points ? gl.POINTS
-			: type === ShapeType.TriStrip ? gl.TRIANGLE_STRIP
+		this.vbo.apply();
+		if (this.ibo !== null)
+			this.ibo.apply();
+		let drawMode = this.type === ShapeType.Fan ? gl.TRIANGLE_FAN
+			: this.type === ShapeType.Lines ? gl.LINES
+			: this.type === ShapeType.LineLoop ? gl.LINE_LOOP
+			: this.type === ShapeType.LineStrip ? gl.LINE_STRIP
+			: this.type === ShapeType.Points ? gl.POINTS
+			: this.type === ShapeType.TriStrip ? gl.TRIANGLE_STRIP
 			: gl.TRIANGLES;
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo.hwBuffer);
-		gl.drawElements(drawMode, ibo.length, gl.UNSIGNED_SHORT, 0);
+		if (this.ibo !== null)
+			gl.drawElements(drawMode, this.ibo.length, gl.UNSIGNED_SHORT, 0);
+		else
+			gl.drawArrays(drawMode, 0, this.vbo.length);
+	}
+}
+
+export
+class Surface
+{
+	static get Screen()
+	{
+		let screenSurface = Object.create(Surface.prototype);
+		screenSurface.frameBuffer = null;
+		Object.defineProperty(this, 'Screen', {
+			writable: false,
+			enumerable: false,
+			configurable: true,
+			value: screenSurface,
+		});
+		return screenSurface;
+	}
+
+	constructor(texture)
+	{
+		let frameBuffer = gl.createFramebuffer();
+		gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT,
+			gl.TEXTURE_2D, texture.hwTexture);
+
+		this.frameBuffer = frameBuffer;
+		this.texture = texture;
+	}
+
+	get height()
+	{
+		return this.frameBuffer !== null
+			? this.texture.height
+			: screenCanvas.height;
+	}
+
+	get width()
+	{
+		return this.frameBuffer !== null
+			? this.texture.width
+			: screenCanvas.width;
+	}
+
+	drawHere()
+	{
+		if (activeSurface === this)
+			return;
+		gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
+		if (this.frameBuffer !== null)
+			gl.viewport(0, 0, this.texture.width, this.texture.height);
+		else
+			gl.viewport(0, 0, screenCanvas.width, screenCanvas.height);
+		activeSurface = this;
 	}
 }
 
@@ -250,6 +269,12 @@ class Texture
 		this.width = image.width;
 		this.height = image.height;
 	}
+
+	apply(textureUnit = 0)
+	{
+		gl.activeTexture(gl.TEXTURE0 + textureUnit);
+		gl.bindTexture(gl.TEXTURE_2D, this.hwTexture);
+	}
 }
 
 export
@@ -261,6 +286,12 @@ class Transform
 		this.identity();
 	}
 
+	clone()
+	{
+		let dolly = new Transform();
+		dolly.matrix.set(this.matrix);
+	}
+
 	identity()
 	{
 		this.matrix.set([
@@ -268,6 +299,22 @@ class Transform
 			0.0, 1.0, 0.0, 0.0,
 			0.0, 0.0, 1.0, 0.0,
 			0.0, 0.0, 0.0, 1.0,
+		]);
+	}
+
+	project2D(left, top, right, bottom, near = -1.0, far = 1.0)
+	{
+		let sX = 2 / (right - left);
+		let sY = 2 / (top - bottom);
+		let sZ = -2 / (far - near);
+		let tX = -(right + left) / (right - left);
+		let tY = -(top + bottom) / (top - bottom);
+		let tZ = (far + near) / (far - near);
+		this.matrix.set([
+			sX,  0.0, 0.0, 0.0,
+			0.0, sY,  0.0, 0.0,
+			0.0, 0.0, sZ,  0.0,
+			tX,  tY,  tZ,  1.0,
 		]);
 	}
 }
@@ -309,5 +356,16 @@ class VBO
 
 		this.hwBuffer = hwBuffer;
 		this.length = vertices.length;
+	}
+
+	apply()
+	{
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.hwBuffer);
+		gl.enableVertexAttribArray(0);
+		gl.enableVertexAttribArray(1);
+		gl.enableVertexAttribArray(2);
+		gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 40, 0);
+		gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 40, 16);
+		gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 40, 32);
 	}
 }

@@ -300,19 +300,19 @@ class Sphere extends null
 
 	static setResolution(width, height)
 	{
-		galileo.Screen.resize(width, height);
+		galileo.Prim.rerez(width, height);
 	}
 }
 
 class Color
 {
-	static is(color, otherColor)
+	static is(color1, color2)
 	{
-		let tag1 = color[kTag];
-		let tag2 = otherColor[kTag];
-		return tag2.r === tag1.r
-			&& tag2.g === tag1.g
-			&& tag2.b === tag1.b;
+		let tag1 = color1[kTag];
+		let tag2 = color2[kTag];
+		return tag1.r === tag2.r
+			&& tag1.g === tag2.g
+			&& tag1.b === tag2.b;
 	}
 	
 	static mix(color1, color2, w1 = 1.0, w2 = 1.0)
@@ -519,36 +519,33 @@ class Shape
 		tag.texture = null;
 		tag.indexList = null;
 		if (args[1] instanceof Texture || args[1] === null) {
-			tag.type = args[0];
-			tag.texture = args[1];
-			tag.vertexList = args[2];
+			let vbo = args[2][kTag];
+			let ibo = null;
 			if (args[3] !== undefined)
-				tag.indexList = args[3];
+				ibo = args[3][kTag];
+			tag.shape = new galileo.Shape(vbo, ibo, args[0]);
+			tag.texture = args[1];
 		}
 		else {
-			tag.type = args[0];
-			tag.vertexList = args[1];
+			let vbo = args[2][kTag];
+			let ibo = null;
 			if (args[2] !== undefined)
-				tag.indexList = args[2];
+				ibo = args[2][kTag];
+			tag.shape = new galileo.Shape(vbo, ibo, args[0]);
 		}
 	}
 
-	draw(surface = null, transform = null)
+	draw(surface = Surface.Screen, shader = Shader.Default)
 	{
 		let tag = this[kTag];
-		if (transform !== null)
-			transform = transform[kTag];
-		let type = tag.type;
-		let vbo = tag.vertexList[kTag];
-		let texture = tag.texture !== null ? tag.texture[kTag] : null;
-		let shader = galileo.Shader.Default;
-		if (tag.indexList !== null) {
-			let ibo = tag.indexList[kTag];
-			shader.drawIndexed(type, vbo, ibo, texture, transform);
-		}
-		else {
-			shader.draw(type, vbo, texture, transform);
-		}
+		let galSurface = surface[kTag].surface;
+		let galShape = tag.shape;
+		let galShader = shader[kTag];
+		let galTexture = tag.texture[kTag].texture;
+		galSurface.drawHere();
+		galShader.apply(true);
+		galTexture.apply(0);
+		galShape.draw();
 	}
 }
 
@@ -636,18 +633,18 @@ class Texture
 	{
 		let image = await util.loadImage(`game/${fileName}`);
 		let texture = Object.create(this.prototype);
-		texture[kTag] = new galileo.Texture(image);
+		texture[kTag] = { texture: new galileo.Texture(image) };
 		return texture;
 	}
 
 	get height()
 	{
-		return this[kTag].height;
+		return this[kTag].texture.height;
 	}
 
 	get width()
 	{
-		return this[kTag].width;
+		return this[kTag].texture.width;
 	}
 }
 
@@ -655,7 +652,9 @@ class Surface extends Texture
 {
 	static get Screen()
 	{
-		let surface = new Surface();
+		let galSurface = galileo.Surface.Screen;
+		let surface = Object.create(Surface.prototype);
+		surface[kTag] = { surface: galSurface };
 		Object.defineProperty(this, 'Screen', {
 			writable: false,
 			enumerable: false,
@@ -667,12 +666,14 @@ class Surface extends Texture
 
 	get height()
 	{
-		return galileo.Screen.height;
+		let galSurface = this[kTag].surface;
+		return galSurface.height;
 	}
 
 	get width()
 	{
-		return galileo.Screen.width;
+		let galSurface = this[kTag].surface;
+		return galSurface.width;
 	}
 }
 
