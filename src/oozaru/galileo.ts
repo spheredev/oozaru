@@ -31,7 +31,7 @@
 **/
 
 let
-	activeShader : WebGLProgram | null = null,
+	activeShader : Shader | null = null,
 	activeSurface : Surface | null = null,
 	defaultShader : Shader,
 	gl : WebGLRenderingContext,
