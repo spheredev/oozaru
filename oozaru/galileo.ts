@@ -131,16 +131,21 @@ class Shader
 	}
 
 	hwShader : WebGLProgram;
-	hasTextureLoc : WebGLUniformLocation;
-	modelViewLoc : WebGLUniformLocation;
-	textureLoc : WebGLUniformLocation
-	transform : Transform
+	hasTextureLoc : WebGLUniformLocation | null;
+	modelViewLoc : WebGLUniformLocation | null;
+	textureLoc : WebGLUniformLocation | null;
+	transform : Transform;
 
 	constructor(vertexSource : string, fragmentSource : string)
 	{
-		let hwShader = <WebGLProgram> gl.createProgram();
+		const hwShader   = gl.createProgram();
+		const vertShader = gl.createShader(gl.VERTEX_SHADER);
+		const fragShader = gl.createShader(gl.FRAGMENT_SHADER);
 
-		let vertShader = <WebGLShader> gl.createShader(gl.VERTEX_SHADER);
+		if (hwShader === null || vertShader === null || fragShader === null) {
+			throw new Error ("WebGl error can not create Shader");
+		}
+
 		gl.shaderSource(vertShader, vertexSource);
 		gl.compileShader(vertShader);
 		if (!gl.getShaderParameter(vertShader, gl.COMPILE_STATUS)) {
@@ -148,7 +153,6 @@ class Shader
 			throw new Error(`Couldn't compile vertex shader...\n${message}`);
 		}
 
-		let fragShader = <WebGLShader> gl.createShader(gl.FRAGMENT_SHADER);
 		gl.shaderSource(fragShader, fragmentSource);
 		gl.compileShader(fragShader);
 		if (!gl.getShaderParameter(fragShader, gl.COMPILE_STATUS)) {
@@ -168,9 +172,9 @@ class Shader
 		}
 
 		this.hwShader = hwShader;
-		this.hasTextureLoc = <WebGLUniformLocation> gl.getUniformLocation(hwShader, 'al_use_tex');
-		this.modelViewLoc = <WebGLUniformLocation> gl.getUniformLocation(hwShader, 'al_projview_matrix');
-		this.textureLoc = <WebGLUniformLocation> gl.getUniformLocation(hwShader, 'al_tex');
+		this.hasTextureLoc = gl.getUniformLocation(hwShader, 'al_use_tex');
+		this.modelViewLoc = gl.getUniformLocation(hwShader, 'al_projview_matrix');
+		this.textureLoc = gl.getUniformLocation(hwShader, 'al_tex');
 		this.transform = new Transform();
 	}
 
@@ -238,17 +242,16 @@ class Surface
 		return screenSurface;
 	}
 
-	frameBuffer: WebGLBuffer;
+	frameBuffer: WebGLBuffer | null;
 	texture : Texture;
 
 	constructor(texture : Texture)
 	{
-		let frameBuffer = <WebGLBuffer> gl.createFramebuffer();
-		gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+		this.frameBuffer = gl.createFramebuffer();
+		gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
 		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
 			gl.TEXTURE_2D, texture.hwTexture, 0);
 
-		this.frameBuffer = frameBuffer;
 		this.texture = texture;
 	}
 
