@@ -34,7 +34,7 @@ let
 	activeShader = null,
 	activeSurface = null,
 	defaultShader,
-	gl = null,
+	gl,
 	screenCanvas;
 
 export default
@@ -42,14 +42,13 @@ class Galileo extends null
 {
 	static async initialize(canvas)
 	{
-		screenCanvas = canvas;
-		gl = screenCanvas.getContext('webgl');
-		gl.viewport(0, 0, canvas.width, canvas.height);
+		gl = canvas.getContext('webgl');
 		gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
 		const vertSource = await (await fetch('shaders/default.vert.glsl')).text();
 		const fragSource = await (await fetch('shaders/default.frag.glsl')).text();
 		defaultShader = new Shader(vertSource, fragSource);
+		screenCanvas = canvas;
 
 		Surface.Screen.activate();
 	}
@@ -139,7 +138,7 @@ class Shader
 			throw new Error(`Couldn't compile fragment shader...\n${message}`);
 		}
 
-		// link the shaders into a single program, check for errors
+		// link the individual shaders into a program, check for errors
 		gl.attachShader(program, vertShader);
 		gl.attachShader(program, fragShader);
 		gl.bindAttribLocation(program, 0, 'al_pos');

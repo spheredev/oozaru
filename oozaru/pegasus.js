@@ -184,12 +184,9 @@ const COLOR_TABLE =
 	[ 2, "StankyBean", 197, 162, 171, 255 ],
 ];
 
-const
-	kTag = Symbol("internal use");
-
 let
-	s_eventLoop = new EventLoop(),
-	s_mainObject = undefined;
+	eventLoop = new EventLoop(),
+	mainObject = undefined;
 
 export default
 class Pegasus extends null
@@ -203,25 +200,31 @@ class Pegasus extends null
 			value: window,
 		});
 
-		global.ShapeType = galileo.ShapeType;
+		// register Sphere v2 API globals
+		Object.assign(window, {
+			// enumerations
+			ShapeType: galileo.ShapeType,
 
-		global.Sphere = Sphere;
-		global.Color = Color;
-		global.Dispatch = Dispatch;
-		global.Mixer = Mixer;
-		global.SSj = SSj;
-		global.Shader = Shader;
-		global.Shape = Shape;
-		global.Sound = Sound;
-		global.Surface = Surface;
-		global.Texture = Texture;
-		global.Transform = Transform;
-		global.VertexList = VertexList;
+			// classes and namespaces
+			Sphere,
+			Color,
+			Dispatch,
+			IndexList,
+			Mixer,
+			SSj,
+			Shader,
+			Shape,
+			Sound,
+			Surface,
+			Texture,
+			Transform,
+			VertexList,
+		});
 
 		// register getters for predefined colors
 		for (const entry of COLOR_TABLE) {
-			let colorName = entry[1];
-			let r = entry[2] / 255.0,
+			const colorName = entry[1];
+			const r = entry[2] / 255.0,
 				g = entry[3] / 255.0,
 				b = entry[4] / 255.0,
 				a = entry[5] / 255.0;
@@ -237,19 +240,23 @@ class Pegasus extends null
 
 	static async launchGame(dirName)
 	{
-		let fileName = `${dirName}/main.js`;
-		let main = await import(fileName);
+		// load and execute the game's main module.  if it exports a startup
+		// function or class, call it.
+		const fileName = `${dirName}/main.js`;
+		const main = await import(fileName);
 		if (typeof main.default === 'function') {
 			if (main.default.constructor.name === 'AsyncFunction') {
 				main.default();
 			}
 			else {
-				s_mainObject = new main.default();
-				if (typeof s_mainObject.start === 'function')
-					s_mainObject.start();
+				mainObject = new main.default();
+				if (typeof mainObject.start === 'function')
+					mainObject.start();
 			}
 		}
-		s_eventLoop.start();
+
+		// start the Sphere v2 event loop
+		eventLoop.start();
 	}
 }
 
@@ -272,18 +279,18 @@ class Sphere extends null
 
 	static get main()
 	{
-		return s_mainObject;
+		return mainObject;
 	}
 
 	static now()
 	{
-		return s_eventLoop.now();
+		return eventLoop.now();
 	}
 
 	static sleep(numFrames)
 	{
 		return new Promise(resolve => {
-			s_eventLoop.addJob('update', resolve, false, numFrames);
+			eventLoop.addJob('update', resolve, false, numFrames);
 		});
 	}
 
@@ -297,22 +304,22 @@ class Color
 {
 	static is(color1, color2)
 	{
-		let tag1 = color1[kTag];
-		let tag2 = color2[kTag];
-		return tag1.r === tag2.r
-			&& tag1.g === tag2.g
-			&& tag1.b === tag2.b;
+		const zit1 = color1.zit;
+		const zit2 = color2.zit;
+		return zit1.r === zit2.r
+			&& zit1.g === zit2.g
+			&& zit1.b === zit2.b;
 	}
 
 	static mix(color1, color2, w1 = 1.0, w2 = 1.0)
 	{
-		let totalWeight = w1 + w2;
-		let tag1 = color1[kTag];
-		let tag2 = color2[kTag];
-		let r = (w1 * tag1.r + w2 * tag2.r) / totalWeight;
-		let g = (w1 * tag1.g + w2 * tag2.g) / totalWeight;
-		let b = (w1 * tag1.b + w2 * tag2.b) / totalWeight;
-		let a = (w1 * tag1.a + w2 * tag2.a) / totalWeight;
+		const totalWeight = w1 + w2;
+		const zit1 = color1.zit;
+		const zit2 = color2.zit;
+		const r = (w1 * zit1.r + w2 * zit2.r) / totalWeight;
+		const g = (w1 * zit1.g + w2 * zit2.g) / totalWeight;
+		const b = (w1 * zit1.b + w2 * zit2.b) / totalWeight;
+		const a = (w1 * zit1.a + w2 * zit2.a) / totalWeight;
 		return new Color(r, g, b, a);
 	}
 
@@ -321,7 +328,7 @@ class Color
 		// parse 6-digit format (#rrggbb)
 		let matched = name.match(/^#?([0-9a-f]{6})$/i);
 		if (matched) {
-			let m = matched[1];
+			const m = matched[1];
 			return new Color(
 				parseInt(m.substr(0, 2), 16) / 255.0,
 				parseInt(m.substr(2, 2), 16) / 255.0,
@@ -332,7 +339,7 @@ class Color
 		// parse 8-digit format (#aarrggbb)
 		matched = name.match(/^#?([0-9a-f]{8})$/i);
 		if (matched) {
-			let m = matched[1];
+			const m = matched[1];
 			return new Color(
 				parseInt(m.substr(2, 2), 16) / 255.0,
 				parseInt(m.substr(4, 2), 16) / 255.0,
@@ -342,9 +349,9 @@ class Color
 		}
 
 		// see if `name` matches a predefined color (not case sensitive)
-		let toMatch = name.toUpperCase();
+		const toMatch = name.toUpperCase();
 		for (const colorEntry of COLOR_TABLE) {
-			let name = colorEntry[1];
+			const name = colorEntry[1];
 			if (name.toUpperCase() === toMatch)
 				return Color[name];  // use appropriate Color getter
 		}
@@ -355,7 +362,7 @@ class Color
 
 	constructor(r, g, b, a = 1.0)
 	{
-		this[kTag] = { r, g, b, a };
+		this.zit = { r, g, b, a };
 	}
 
 	get name()
@@ -365,54 +372,53 @@ class Color
 
 	get r()
 	{
-		return this[kTag].r;
+		return this.zit.r;
 	}
 
 	get g()
 	{
-		return this[kTag].g;
+		return this.zit.g;
 	}
 
 	get b()
 	{
-		return this[kTag].b;
+		return this.zit.b;
 	}
 
 	get a()
 	{
-		return this[kTag].a;
+		return this.zit.a;
 	}
 
 	set r(value)
 	{
-		this[kTag].r = Math.min(Math.max(value, 0.0), 1.0);
+		this.zit.r = Math.min(Math.max(value, 0.0), 1.0);
 	}
 
 	set g(value)
 	{
-		this[kTag].g = Math.min(Math.max(value, 0.0), 1.0);
+		this.zit.g = Math.min(Math.max(value, 0.0), 1.0);
 	}
 
 	set b(value)
 	{
-		this[kTag].b = Math.min(Math.max(value, 0.0), 1.0);
+		this.zit.b = Math.min(Math.max(value, 0.0), 1.0);
 	}
 
 	set a(value)
 	{
-		this[kTag].a = Math.min(Math.max(value, 0.0), 1.0);
+		this.zit.a = Math.min(Math.max(value, 0.0), 1.0);
 	}
 
 	clone()
 	{
-		let tag = this[kTag];
-		return new Color(tag.r, tag.g, tag.b, tag.a);
+		return new Color(this.zit.r, this.zit.g, this.zit.b, this.zit.a);
 	}
 
 	fadeTo(alphaFactor)
 	{
-		let tag = this[kTag];
-		return new Color(tag.r, tag.g, tag.b, tag.a * alphaFactor);
+		return new Color(this.zit.r, this.zit.g, this.zit.b,
+			this.zit.a * alphaFactor);
 	}
 }
 
@@ -420,42 +426,50 @@ class Dispatch extends null
 {
 	static later(numFrames, callback)
 	{
-		let jobID = s_eventLoop.addJob('update', callback, false, numFrames);
+		const jobID = eventLoop.addJob('update', callback, false, numFrames);
 		return new JobToken(jobID);
 	}
 
 	static now(callback)
 	{
-		let jobID = s_eventLoop.addJob('immediate', callback, false);
+		const jobID = eventLoop.addJob('immediate', callback, false);
 		return new JobToken(jobID);
 	}
 
 	static onRender(callback)
 	{
-		let jobID = s_eventLoop.addJob('render', callback, true);
+		const jobID = eventLoop.addJob('render', callback, true);
 		return new JobToken(jobID);
 	}
 
 	static onUpdate(callback)
 	{
-		let jobID = s_eventLoop.addJob('update', callback, true);
+		const jobID = eventLoop.addJob('update', callback, true);
 		return new JobToken(jobID);
+	}
+}
+
+class IndexList
+{
+	constructor(indices)
+	{
+		if (!Array.isArray(indices))
+			indices = [ ...indices ];
+		const buffer = new galileo.IndexBuffer(indices);
+		this.zit = { buffer };
 	}
 }
 
 class JobToken
 {
-	get [Symbol.toStringTag]() { return 'JobToken'; }
-
 	constructor(jobID)
 	{
-		this[kTag] = jobID;
+		this.zit = { jobID };
 	}
 
 	cancel()
 	{
-		let jobID = this[kTag];
-		s_eventLoop.cancelJob(jobID);
+		eventLoop.cancelJob(this.zit.jobID);
 	}
 }
 
@@ -477,8 +491,9 @@ class Shader
 {
 	static get Default()
 	{
-		let shader = Object.create(this.prototype);
-		shader[kTag] = galileo.Shader.Default;
+		const program = galileo.Shader.Default;
+		const shader = Object.create(this.prototype);
+		shader.zit = { program };
 		Object.defineProperty(this, 'Default', {
 			writable: false,
 			enumerable: false,
@@ -495,33 +510,33 @@ class Shape
 	{
 		// function(type[, texture], vertexList[, indexList])
 
-		let tag = this[kTag] = {};
-		tag.texture = null;
-		tag.indexList = null;
+		const zit = this.zit = {};
+		zit.texture = null;
+		zit.indexList = null;
 		if (args[1] instanceof Texture || args[1] === null) {
-			let vbo = args[2][kTag];
+			const vbo = args[2].zit.buffer;
 			let ibo = null;
 			if (args[3] !== undefined)
-				ibo = args[3][kTag];
-			tag.shape = new galileo.Shape(vbo, ibo, args[0]);
-			tag.texture = args[1];
+				ibo = args[3].zit.buffer;
+			zit.shape = new galileo.Shape(vbo, ibo, args[0]);
+			zit.texture = args[1];
 		}
 		else {
-			let vbo = args[2][kTag];
+			const vbo = args[2].zit;
 			let ibo = null;
 			if (args[2] !== undefined)
-				ibo = args[2][kTag];
-			tag.shape = new galileo.Shape(vbo, ibo, args[0]);
+				ibo = args[2].zit;
+			zit.shape = new galileo.Shape(vbo, ibo, args[0]);
 		}
 	}
 
 	draw(surface = Surface.Screen, shader = Shader.Default)
 	{
-		let tag = this[kTag];
-		let galSurface = surface[kTag].surface;
-		let galShape = tag.shape;
-		let galShader = shader[kTag];
-		let galTexture = tag.texture[kTag].texture;
+		const zit = this.zit;
+		const galSurface = surface.zit.surface;
+		const galShape = zit.shape;
+		const galShader = shader.zit.program;
+		const galTexture = zit.texture.zit.texture;
 		galSurface.activate();
 		galShader.activate(true);
 		galTexture.activate(0);
@@ -533,7 +548,7 @@ class Sound
 {
 	static async fromFile(fileName)
 	{
-		let audioElement = await util.loadSound(`game/${fileName}`);
+		const audioElement = await util.loadSound(`game/${fileName}`);
 		audioElement.loop = true;
 		return new this(audioElement);
 	}
@@ -542,68 +557,58 @@ class Sound
 	{
 		if (!(audioElement instanceof HTMLAudioElement))
 			throw new TypeError('HTMLAudioElement object expected here');
-		this[kTag] = audioElement;
+		this.zit = { audio: audioElement };
 	}
 
 	get length()
 	{
-		let audioElement = this[kTag];
-		return audioElement.duration;
+		return this.zit.audio.duration;
 	}
 
 	get position()
 	{
-		let audioElement = this[kTag];
-		return audioElement.currentTime;
+		return this.zit.audio.currentTime;
 	}
 
 	get repeat()
 	{
-		let audioElement = this[kTag];
-		return audioElement.loop;
+		return this.zit.audio.loop;
 	}
 
 	get volume()
 	{
-		let audioElement = this[kTag];
-		return audioElement.volume;
+		return this.zit.audio.volume;
 	}
 
 	set position(value)
 	{
-		let audioElement = this[kTag];
-		audioElement.currentTime = value;
+		this.zit.audio.currentTime = value;
 	}
 
 	set repeat(value)
 	{
-		let audioElement = this[kTag];
-		audioElement.loop = value;
+		this.zit.audio.loop = value;
 	}
 
 	set volume(value)
 	{
-		let audioElement = this[kTag];
-		audioElement.volume = value;
+		this.zit.audio.volume = value;
 	}
 
 	pause()
 	{
-		let audioElement = this[kTag];
-		audioElement.pause();
+		this.zit.audio.pause();
 	}
 
 	play()
 	{
-		let audioElement = this[kTag];
-		audioElement.play();
+		this.zit.audio.play();
 	}
 
 	stop()
 	{
-		let audioElement = this[kTag];
-		audioElement.pause();
-		audioElement.fastSeek(0.0);
+		this.zit.audio.pause();
+		this.zit.audio.fastSeek(0.0);
 	}
 }
 
@@ -611,20 +616,20 @@ class Texture
 {
 	static async fromFile(fileName)
 	{
-		let image = await util.loadImage(`game/${fileName}`);
-		let texture = Object.create(this.prototype);
-		texture[kTag] = { texture: new galileo.Texture(image) };
+		const image = await util.loadImage(`game/${fileName}`);
+		const texture = Object.create(this.prototype);
+		texture.zit = { texture: new galileo.Texture(image) };
 		return texture;
 	}
 
 	get height()
 	{
-		return this[kTag].texture.height;
+		return this.zit.texture.height;
 	}
 
 	get width()
 	{
-		return this[kTag].texture.width;
+		return this.zit.texture.width;
 	}
 }
 
@@ -632,9 +637,9 @@ class Surface extends Texture
 {
 	static get Screen()
 	{
-		let galSurface = galileo.Surface.Screen;
-		let surface = Object.create(Surface.prototype);
-		surface[kTag] = { surface: galSurface };
+		const galSurface = galileo.Surface.Screen;
+		const surface = Object.create(Surface.prototype);
+		surface.zit = { surface: galSurface };
 		Object.defineProperty(this, 'Screen', {
 			writable: false,
 			enumerable: false,
@@ -646,14 +651,12 @@ class Surface extends Texture
 
 	get height()
 	{
-		let galSurface = this[kTag].surface;
-		return galSurface.height;
+		return this.zit.surface.height;
 	}
 
 	get width()
 	{
-		let galSurface = this[kTag].surface;
-		return galSurface.width;
+		return this.zit.surface.width;
 	}
 }
 
@@ -661,7 +664,8 @@ class Transform
 {
 	constructor()
 	{
-		this[kTag] = new galileo.Transform();
+		const matrix = new galileo.Transform();
+		this.zit = { matrix };
 	}
 }
 
@@ -669,11 +673,9 @@ class VertexList
 {
 	constructor(vertices)
 	{
-		// `VertexBuffer` constructor expects an array as input, so if we only have a
-		// non-array iterable we need to convert it first.
 		if (!Array.isArray(vertices))
 			vertices = [ ...vertices ];
-
-		this[kTag] = new galileo.VertexBuffer(vertices);
+		const buffer = new galileo.VertexBuffer(vertices);
+		this.zit = { buffer };
 	}
 }

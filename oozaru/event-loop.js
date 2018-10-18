@@ -40,74 +40,76 @@ class EventLoop
 {
 	constructor()
 	{
-		this.frameCount = 0;
-		this.jobQueue = [];
-		this.rafID = 0;
+		this.zit = {
+			frameCount: 0,
+			jobQueue: [],
+			rafID: 0,
+		};
 	}
 
 	addJob(type, callback, recurring = false, delay = 0)
 	{
-		this.jobQueue.push({ id: nextJobID, type, callback, recurring, timer: delay });
+		this.zit.jobQueue.push({ id: nextJobID, type, callback, recurring, timer: delay });
 		return nextJobID++;
 	}
 
 	animate(timestamp)
 	{
-		this.rafID = requestAnimationFrame(t => this.animate(t));
+		this.zit.rafID = requestAnimationFrame(t => this.animate(t));
 
 		this.runJobs('update');
 		galileo.Surface.Screen.activate();
 		galileo.Prim.clear();
 		this.runJobs('render');
 		this.runJobs('immediate');
-		++this.frameCount;
+		++this.zit.frameCount;
 	}
 
 	cancelJob(jobID)
 	{
 		let ptr = 0;
-		for (let i = 0, len = this.jobQueue.length; i < len; ++i) {
-			const job = this.jobQueue[i];
+		for (let i = 0, len = this.zit.jobQueue.length; i < len; ++i) {
+			const job = this.zit.jobQueue[i];
 			if (job.id === jobID)
 				continue;  // delete
-			this.jobQueue[ptr++] = job;
+			this.zit.jobQueue[ptr++] = job;
 		}
-		this.jobQueue.length = ptr;
+		this.zit.jobQueue.length = ptr;
 	}
 
 	now()
 	{
-		return this.frameCount;
+		return this.zit.frameCount;
 	}
 
 	runJobs(type)
 	{
-		for (let i = 0; i < this.jobQueue.length; ++i) {
-			const job = this.jobQueue[i];
+		for (let i = 0; i < this.zit.jobQueue.length; ++i) {
+			const job = this.zit.jobQueue[i];
 			if (job.type === type && (job.recurring || job.timer-- <= 0))
 				job.callback.call(undefined);
 		}
 		let ptr = 0;
-		for (let i = 0, len = this.jobQueue.length; i < len; ++i) {
-			const job = this.jobQueue[i];
+		for (let i = 0, len = this.zit.jobQueue.length; i < len; ++i) {
+			const job = this.zit.jobQueue[i];
 			if (!job.recurring && job.timer < 0)
 				continue;  // delete
-			this.jobQueue[ptr++] = job;
+			this.zit.jobQueue[ptr++] = job;
 		}
-		this.jobQueue.length = ptr;
+		this.zit.jobQueue.length = ptr;
 	}
 
 	start()
 	{
-		this.rafID = requestAnimationFrame(t => this.animate(t));
+		this.zit.rafID = requestAnimationFrame(t => this.animate(t));
 	}
 
 	stop()
 	{
-		if (this.rafID !== 0)
-			cancelAnimationFrame(this.rafID);
-		this.frameCount = 0;
-		this.jobQueue.length = 0;
-		this.rafID = 0;
+		if (this.zit.rafID !== 0)
+			cancelAnimationFrame(this.zit.rafID);
+		this.zit.frameCount = 0;
+		this.zit.jobQueue.length = 0;
+		this.zit.rafID = 0;
 	}
 }
