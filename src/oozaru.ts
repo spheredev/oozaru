@@ -30,26 +30,20 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-export
-function loadImage(fileName)
-{
-	return new Promise((resolve, reject) => {
-		const image = new Image();
-		image.onload = () => resolve(image);
-		image.onerror = () =>
-			reject(new Error(`Unable to load image file '${fileName}'`));
-		image.src = fileName;
-	});
-}
+import Galileo from './oozaru/galileo.js';
+import Pegasus from './oozaru/pegasus.js';
 
-export
-function loadSound(fileName)
+const mainCanvas = <HTMLCanvasElement>document.getElementById('screen');
+
+(async function main()
 {
-	return new Promise((resolve, reject) => {
-		const audio = new Audio();
-		audio.onloadedmetadata = () => resolve(audio);
-		audio.onerror = () =>
-			reject(new Error(`Unable to load audio file '${fileName}'`));
-		audio.src = fileName;
-	});
-}
+	await Galileo.initialize(mainCanvas);
+	Pegasus.initializeGlobals();
+	mainCanvas.onclick = () => {
+		mainCanvas.onclick = null;
+		const divElement = document.getElementById('prompt')!;
+		divElement.innerHTML = "<i>launching Sphere game...</i>";
+		Pegasus.launchGame('/../game/');
+		divElement.innerHTML = "Sphere game launched!";
+	};
+})();

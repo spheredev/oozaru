@@ -1,4 +1,4 @@
-/**
+/*
  *  Oozaru JavaScript game engine
  *  Copyright (c) 2015-2018, Fat Cerberus
  *  All rights reserved.
@@ -32,40 +32,55 @@
 
 import * as galileo from './galileo.js';
 
-let
-	nextJobID = 1;
+let nextJobID = 1;
+
+
+export enum JobType {
+	Update,
+	Render,
+	Immediate
+}
+
+type Job = {
+	id: number,
+	type : JobType,
+	callback : () => any,
+	recurring : boolean,
+	timer: number
+}
 
 export default
 class EventLoop
 {
-	constructor()
-	{
-		this.zit = {
-			frameCount: 0,
-			jobQueue: [],
-			rafID: 0,
-		};
+	zit : {
+		frameCount : number,
+		jobQueue : Job[],
+		rafID : number
+	} = {
+		frameCount : 0,
+		jobQueue : [],
+		rafID : 0
 	}
 
-	addJob(type, callback, recurring = false, delay = 0)
+	addJob(type: JobType, callback : () => any, recurring = false, delay = 0)
 	{
 		this.zit.jobQueue.push({ id: nextJobID, type, callback, recurring, timer: delay });
 		return nextJobID++;
 	}
 
-	animate(timestamp)
+	animate(timestamp : number)
 	{
 		this.zit.rafID = requestAnimationFrame(t => this.animate(t));
 
-		this.runJobs('update');
+		this.runJobs(JobType.Update);
 		galileo.Surface.Screen.activate();
 		galileo.Prim.clear();
-		this.runJobs('render');
-		this.runJobs('immediate');
+		this.runJobs(JobType.Render);
+		this.runJobs(JobType.Immediate);
 		++this.zit.frameCount;
 	}
 
-	cancelJob(jobID)
+	cancelJob(jobID : number)
 	{
 		let ptr = 0;
 		for (let i = 0, len = this.zit.jobQueue.length; i < len; ++i) {
@@ -82,7 +97,7 @@ class EventLoop
 		return this.zit.frameCount;
 	}
 
-	runJobs(type)
+	runJobs(type : JobType)
 	{
 		for (let i = 0; i < this.zit.jobQueue.length; ++i) {
 			const job = this.zit.jobQueue[i];
