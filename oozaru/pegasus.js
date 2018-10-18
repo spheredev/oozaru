@@ -31,7 +31,6 @@
 **/
 
 import EventLoop from './event-loop.js';
-import from from './from.js';
 import * as galileo from './galileo.js';
 import * as util from './utility.js';
 
@@ -209,7 +208,6 @@ class Pegasus extends null
 		global.Sphere = Sphere;
 		global.Color = Color;
 		global.Dispatch = Dispatch;
-		global.FS = FS;
 		global.Mixer = Mixer;
 		global.SSj = SSj;
 		global.Shader = Shader;
@@ -305,7 +303,7 @@ class Color
 			&& tag1.g === tag2.g
 			&& tag1.b === tag2.b;
 	}
-	
+
 	static mix(color1, color2, w1 = 1.0, w2 = 1.0)
 	{
 		let totalWeight = w1 + w2;
@@ -345,12 +343,11 @@ class Color
 
 		// see if `name` matches a predefined color (not case sensitive)
 		let toMatch = name.toUpperCase();
-		let color = from(COLOR_TABLE)
-			.where(it => it[1].toUpperCase() === toMatch)
-			.select(it => Color[it[1]])
-			.first();
-		if (color !== undefined)
-			return color;  // found a match!
+		for (const colorEntry of COLOR_TABLE) {
+			let name = colorEntry[1];
+			if (name.toUpperCase() === toMatch)
+				return Color[name];  // use appropriate Color getter
+		}
 
 		// if we got here, none of the parsing attempts succeeded, so throw an error.
 		throw new RangeError(`Invalid color designation '${name}'`);
@@ -365,7 +362,7 @@ class Color
 	{
 		throw new Error("Oops, not implemented!");
 	}
-	
+
 	get r()
 	{
 		return this[kTag].r;
@@ -443,14 +440,6 @@ class Dispatch extends null
 	{
 		let jobID = s_eventLoop.addJob('update', callback, true);
 		return new JobToken(jobID);
-	}
-}
-
-class FS extends null
-{
-	static fullPath(pathName, baseDirName)
-	{
-		return pathName;
 	}
 }
 
@@ -603,7 +592,7 @@ class Sound
 		let audioElement = this[kTag];
 		audioElement.pause();
 	}
-	
+
 	play()
 	{
 		let audioElement = this[kTag];

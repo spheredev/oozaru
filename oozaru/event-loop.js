@@ -30,7 +30,6 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import from from './from.js';
 import * as galileo from './galileo.js';
 
 let
@@ -43,7 +42,7 @@ class EventLoop
 	{
 		this.frameCount = 0;
 		this.jobQueue = [];
-		this.rafID = null;
+		this.rafID = 0;
 	}
 
 	addJob(type, callback, recurring = false, delay = 0)
@@ -52,7 +51,7 @@ class EventLoop
 		return nextJobID++;
 	}
 
-	animate()
+	animate(timestamp)
 	{
 		this.rafID = requestAnimationFrame(t => this.animate(t));
 
@@ -66,8 +65,14 @@ class EventLoop
 
 	cancelJob(jobID)
 	{
-		from.array(this.jobQueue)
-			.remove(it => it.id === jobID);
+		let ptr = 0;
+		for (let i = 0, len = this.jobQueue.length; i < len; ++i) {
+			let job = this.jobQueue[i];
+			if (job.id === jobID)
+				continue;
+			this.jobQueue[ptr++] = this.jobQueue[i];
+		}
+		this.jobQueue.length = ptr;
 	}
 
 	now()
@@ -77,13 +82,19 @@ class EventLoop
 
 	runJobs(type)
 	{
-		let jobsToRun = from.array(this.jobQueue)
-			.where(it => it.type === type)
-			.where(it => it.recurring || it.timer-- <= 0);
-		for (const job of jobsToRun)
-			job.callback.call(undefined);
-		from.array(this.jobQueue)
-			.remove(it => !it.recurring && it.timer < 0);
+		for (let i = 0; i < this.jobQueue.length; ++i) {
+			const job = this.jobQueue[i];
+			if (job.type === type && (job.recurring || job.timer-- <= 0))
+				job.callback.call(undefined);
+		}
+		let ptr = 0;
+		for (let i = 0, len = this.jobQueue.length; i < len; ++i) {
+			const job = this.jobQueue[i];
+			if (!job.recurring && job.timer < 0)
+				continue;
+			this.jobQueue[ptr++] = this.jobQueue[i];
+		}
+		this.jobQueue.length = ptr;
 	}
 
 	start()
@@ -93,10 +104,10 @@ class EventLoop
 
 	stop()
 	{
-		if (this.rafID !== null)
+		if (this.rafID !== 0)
 			cancelAnimationFrame(this.rafID);
 		this.frameCount = 0;
 		this.jobQueue.length = 0;
-		this.rafID = null;
+		this.rafID = 0;
 	}
 }

@@ -30,30 +30,26 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import Pact from './pact.js';
-
 export
-async function loadImage(fileName)
+function loadImage(fileName)
 {
-	let image = new Image();
-	let pact = new Pact();
-	image.onload = () => {
-		pact.resolve(image);
-	};
-	image.src = fileName;
-	await pact;
-	return image;
+	return new Promise((resolve, reject) => {
+		let image = new Image();
+		image.onload = () => resolve(image);
+		image.onerror = () =>
+			reject(new Error(`Unable to load image file '${fileName}'`));
+		image.src = fileName;
+	});
 }
 
 export
-async function loadSound(fileName)
+function loadSound(fileName)
 {
-	let sound = new Audio();
-	let pact = new Pact();
-	sound.onloadeddata = () => {
-		pact.resolve(sound);
-	};
-	sound.src = fileName;
-	await pact;
-	return sound;
+	return new Promise((resolve, reject) => {
+		let audio = new Audio();
+		audio.onloadedmetadata = () => resolve(audio);
+		audio.onerror = () =>
+			reject(new Error(`Unable to load audio file '${fileName}'`));
+		audio.src = fileName;
+	});
 }
