@@ -2,6 +2,8 @@
     "compilerOptions": {
         "checkJs": true,
         "strict" :true,
+        "strictNullChecks": true,
+        "strictFunctionTypes": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "allowJs": true,
