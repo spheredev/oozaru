@@ -67,10 +67,10 @@ class EventLoop
 	{
 		let ptr = 0;
 		for (let i = 0, len = this.jobQueue.length; i < len; ++i) {
-			let job = this.jobQueue[i];
+			const job = this.jobQueue[i];
 			if (job.id === jobID)
-				continue;
-			this.jobQueue[ptr++] = this.jobQueue[i];
+				continue;  // delete
+			this.jobQueue[ptr++] = job;
 		}
 		this.jobQueue.length = ptr;
 	}
@@ -91,8 +91,8 @@ class EventLoop
 		for (let i = 0, len = this.jobQueue.length; i < len; ++i) {
 			const job = this.jobQueue[i];
 			if (!job.recurring && job.timer < 0)
-				continue;
-			this.jobQueue[ptr++] = this.jobQueue[i];
+				continue;  // delete
+			this.jobQueue[ptr++] = job;
 		}
 		this.jobQueue.length = ptr;
 	}

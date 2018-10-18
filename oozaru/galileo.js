@@ -47,8 +47,8 @@ class Galileo extends null
 		gl.viewport(0, 0, canvas.width, canvas.height);
 		gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
-		let vertSource = await (await fetch('shaders/default.vert.glsl')).text();
-		let fragSource = await (await fetch('shaders/default.frag.glsl')).text();
+		const vertSource = await (await fetch('shaders/default.vert.glsl')).text();
+		const fragSource = await (await fetch('shaders/default.frag.glsl')).text();
 		defaultShader = new Shader(vertSource, fragSource);
 
 		Surface.Screen.activate();
@@ -80,10 +80,9 @@ class IndexBuffer
 {
 	constructor(indices)
 	{
-		let data = new Uint16Array(indices);
-		let hwBuffer = gl.createBuffer();
+		const hwBuffer = gl.createBuffer();
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, hwBuffer);
-		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
+		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
 
 		this.hwBuffer = hwBuffer;
 		this.length = indices.length;
@@ -122,46 +121,47 @@ class Shader
 
 	constructor(vertexSource, fragmentSource)
 	{
-		let hwShader = gl.createProgram();
+		const program = gl.createProgram(),
+			vertShader = gl.createShader(gl.VERTEX_SHADER),
+			fragShader = gl.createShader(gl.FRAGMENT_SHADER);
 
-		let vertShader = gl.createShader(gl.VERTEX_SHADER);
+		// compile vertex and fragment shaders and check for errors
 		gl.shaderSource(vertShader, vertexSource);
+		gl.shaderSource(fragShader, fragmentSource);
 		gl.compileShader(vertShader);
 		if (!gl.getShaderParameter(vertShader, gl.COMPILE_STATUS)) {
-			let message = gl.getShaderInfoLog(vertShader);
+			const message = gl.getShaderInfoLog(vertShader);
 			throw new Error(`Couldn't compile vertex shader...\n${message}`);
 		}
-
-		let fragShader = gl.createShader(gl.FRAGMENT_SHADER);
-		gl.shaderSource(fragShader, fragmentSource);
 		gl.compileShader(fragShader);
 		if (!gl.getShaderParameter(fragShader, gl.COMPILE_STATUS)) {
-			let message = gl.getShaderInfoLog(fragShader);
+			const message = gl.getShaderInfoLog(fragShader);
 			throw new Error(`Couldn't compile fragment shader...\n${message}`);
 		}
 
-		gl.attachShader(hwShader, vertShader);
-		gl.attachShader(hwShader, fragShader);
-		gl.bindAttribLocation(hwShader, 0, 'al_pos');
-		gl.bindAttribLocation(hwShader, 1, 'al_color');
-		gl.bindAttribLocation(hwShader, 2, 'al_texcoord');
-		gl.linkProgram(hwShader);
-		if (!gl.getProgramParameter(hwShader, gl.LINK_STATUS)) {
-			let message = gl.getProgramInfoLog(hwShader);
+		// link the shaders into a single program, check for errors
+		gl.attachShader(program, vertShader);
+		gl.attachShader(program, fragShader);
+		gl.bindAttribLocation(program, 0, 'al_pos');
+		gl.bindAttribLocation(program, 1, 'al_color');
+		gl.bindAttribLocation(program, 2, 'al_texcoord');
+		gl.linkProgram(program);
+		if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+			const message = gl.getProgramInfoLog(program);
 			throw new Error(`Couldn't link shader program...\n${message}`);
 		}
 
-		this.hwShader = hwShader;
-		this.hasTextureLoc = gl.getUniformLocation(hwShader, 'al_use_tex');
-		this.modelViewLoc = gl.getUniformLocation(hwShader, 'al_projview_matrix');
-		this.textureLoc = gl.getUniformLocation(hwShader, 'al_tex');
+		this.program = program;
+		this.hasTextureLoc = gl.getUniformLocation(program, 'al_use_tex');
+		this.modelViewLoc = gl.getUniformLocation(program, 'al_projview_matrix');
+		this.textureLoc = gl.getUniformLocation(program, 'al_tex');
 		this.transform = new Transform();
 	}
 
 	activate(useTexture)
 	{
 		if (activeShader !== this) {
-			gl.useProgram(this.hwShader);
+			gl.useProgram(this.program);
 			activeShader = this;
 		}
 		this.transform.identity();
@@ -184,7 +184,7 @@ class Shape
 
 	draw()
 	{
-		let drawMode = this.type === ShapeType.Fan ? gl.TRIANGLE_FAN
+		const drawMode = this.type === ShapeType.Fan ? gl.TRIANGLE_FAN
 			: this.type === ShapeType.Lines ? gl.LINES
 			: this.type === ShapeType.LineLoop ? gl.LINE_LOOP
 			: this.type === ShapeType.LineStrip ? gl.LINE_STRIP
@@ -207,7 +207,7 @@ class Surface
 {
 	static get Screen()
 	{
-		let screenSurface = Object.create(Surface.prototype);
+		const screenSurface = Object.create(Surface.prototype);
 		screenSurface.frameBuffer = null;
 		Object.defineProperty(this, 'Screen', {
 			writable: false,
@@ -220,7 +220,7 @@ class Surface
 
 	constructor(texture)
 	{
-		let frameBuffer = gl.createFramebuffer();
+		const frameBuffer = gl.createFramebuffer();
 		gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
 		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT,
 			gl.TEXTURE_2D, texture.hwTexture);
@@ -261,7 +261,7 @@ class Texture
 {
 	constructor(image)
 	{
-		let hwTexture = gl.createTexture();
+		const hwTexture = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, hwTexture);
 		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
@@ -292,7 +292,7 @@ class Transform
 
 	clone()
 	{
-		let dolly = new Transform();
+		const dolly = new Transform();
 		dolly.matrix.set(this.matrix);
 	}
 
@@ -308,12 +308,12 @@ class Transform
 
 	ortho(left, top, right, bottom, near = -1.0, far = 1.0)
 	{
-		let sX = 2 / (right - left);
-		let sY = 2 / (top - bottom);
-		let sZ = -2 / (far - near);
-		let tX = -(right + left) / (right - left);
-		let tY = -(top + bottom) / (top - bottom);
-		let tZ = (far + near) / (far - near);
+		const sX = 2 / (right - left);
+		const sY = 2 / (top - bottom);
+		const sZ = -2 / (far - near);
+		const tX = -(right + left) / (right - left);
+		const tY = -(top + bottom) / (top - bottom);
+		const tZ = (far + near) / (far - near);
 		this.matrix.set([
 			sX,  0.0, 0.0, 0.0,
 			0.0, sY,  0.0, 0.0,
@@ -328,9 +328,9 @@ class VertexBuffer
 {
 	constructor(vertices)
 	{
-		let data = new Float32Array(10 * vertices.length);
+		const data = new Float32Array(10 * vertices.length);
 		for (let i = 0, len = vertices.length; i < len; ++i) {
-			let vertex = vertices[i];
+			const vertex = vertices[i];
 			if (vertex.x !== undefined)
 				data[0 + i * 10] = vertex.x;
 			if (vertex.y !== undefined)
@@ -354,7 +354,7 @@ class VertexBuffer
 				data[9 + i * 10] = vertex.v;
 			}
 		}
-		let hwBuffer = gl.createBuffer();
+		const hwBuffer = gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, hwBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
 

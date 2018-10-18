@@ -34,7 +34,7 @@ export
 function loadImage(fileName)
 {
 	return new Promise((resolve, reject) => {
-		let image = new Image();
+		const image = new Image();
 		image.onload = () => resolve(image);
 		image.onerror = () =>
 			reject(new Error(`Unable to load image file '${fileName}'`));
@@ -46,7 +46,7 @@ export
 function loadSound(fileName)
 {
 	return new Promise((resolve, reject) => {
-		let audio = new Audio();
+		const audio = new Audio();
 		audio.onloadedmetadata = () => resolve(audio);
 		audio.onerror = () =>
 			reject(new Error(`Unable to load audio file '${fileName}'`));
