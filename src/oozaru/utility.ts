@@ -1,4 +1,4 @@
-/**
+/*
  *  Oozaru JavaScript game engine
  *  Copyright (c) 2015-2018, Fat Cerberus
  *  All rights reserved.
@@ -30,23 +30,53 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import Galileo from './oozaru/galileo.js';
-import Pegasus from './oozaru/pegasus.js';
-
-const
-	mainCanvas = document.getElementById('screen');
-
-main();
-
-async function main()
+export
+function loadImage(fileName : string) : Promise<HTMLImageElement>
 {
-	await Galileo.initialize(mainCanvas);
-	Pegasus.initializeGlobals();
-	mainCanvas.onclick = () => {
-		mainCanvas.onclick = null;
-		const divElement = document.getElementById('prompt');
-		divElement.innerHTML = "<i>launching Sphere game...</i>";
-		Pegasus.launchGame('/game/');
-		divElement.innerHTML = "Sphere game launched!";
-	};
+	return new Promise((resolve, reject) => {
+		const image = new Image();
+		image.onload = () => resolve(image);
+		image.onerror = () =>
+			reject(new Error(`Unable to load image file '${fileName}'`));
+		image.src = fileName;
+	});
+}
+
+export
+function loadSound(fileName : string) : Promise<HTMLAudioElement>
+{
+	return new Promise((resolve, reject) => {
+		const audio = new Audio();
+		audio.onloadedmetadata = () => resolve(audio);
+		audio.onerror = () =>
+			reject(new Error(`Unable to load audio file '${fileName}'`));
+		audio.src = fileName;
+	});
+}
+
+/**
+ * Check if a function is a constructor without calling it
+ */
+export function isConstructor (fn: () => void)
+{
+	const fnProxy = new Proxy(fn, { construct() { return {}; } });
+	try {
+		//@ts-ignore
+		new fnProxy();
+		return true;
+	} catch (e) {
+		return false;
+	}
+}
+
+export function failIfNull<T>(value: T | undefined | null): void
+{
+	if (!notUndefinedOrNull(value)) {
+		throw new Error ("Unexpected null or undefined - possibly out of memory or unsupported browser");
+	}
+}
+
+export function notUndefinedOrNull<T>(value: T | undefined | null): value is T
+{
+	return value !== undefined && value !== null;
 }

@@ -1,4 +1,4 @@
-/**
+/*
  *  Oozaru JavaScript game engine
  *  Copyright (c) 2015-2018, Fat Cerberus
  *  All rights reserved.
@@ -31,18 +31,25 @@
 **/
 
 let
-	activeShader = null,
-	activeSurface = null,
-	defaultShader,
-	gl,
-	screenCanvas;
+	activeShader : Shader | null = null,
+	activeSurface : Surface | null = null,
+	defaultShader : Shader,
+	gl : WebGLRenderingContext,
+	screenCanvas : HTMLCanvasElement;
+
+import * as util from "./utility.js";
+
 
 export default
 class Galileo extends null
 {
-	static async initialize(canvas)
+	static async initialize(canvas : HTMLCanvasElement)
 	{
-		gl = canvas.getContext('webgl');
+		const context = canvas.getContext('webgl');
+		if (context === null) {
+			throw new Error ("Failed to get webgl rendering context");
+		}
+		gl = context;
 		gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
 		const vertSource = await (await fetch('shaders/default.vert.glsl')).text();
@@ -55,20 +62,21 @@ class Galileo extends null
 }
 
 export
-const ShapeType = Object.freeze({
-	Fan: 0,
-	Lines: 1,
-	LineLoop: 2,
-	LineStrip: 3,
-	Points: 4,
-	Triangles: 5,
-	TriStrip: 6,
-});
+enum ShapeType {
+	Fan,
+	Lines,
+	LineLoop,
+	LineStrip,
+	Points,
+	Triangles,
+	TriStrip
+}
 
 export
 class Color
 {
-	constructor(r, g, b, a = 1.0)
+	data : { r : number, g : number, b : number, a : number }
+	constructor(r : number, g : number, b : number, a = 1.0)
 	{
 		this.data = { r, g, b, a };
 	}
@@ -77,13 +85,16 @@ class Color
 export
 class IndexBuffer
 {
-	constructor(indices)
+	hwBuffer : WebGLBuffer;
+	length : number;
+	constructor(indices : number[])
 	{
 		const hwBuffer = gl.createBuffer();
+		util.failIfNull(hwBuffer);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, hwBuffer);
 		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
 
-		this.hwBuffer = hwBuffer;
+		this.hwBuffer = hwBuffer!;
 		this.length = indices.length;
 	}
 
@@ -101,7 +112,7 @@ class Prim extends null
 		gl.clear(gl.COLOR_BUFFER_BIT);
 	}
 
-	static rerez(width, height)
+	static rerez(width : number, height : number)
 	{
 		screenCanvas.width = width;
 		screenCanvas.height = height;
@@ -118,11 +129,20 @@ class Shader
 		return defaultShader;
 	}
 
-	constructor(vertexSource, fragmentSource)
+	program : WebGLProgram;
+	hasTextureLoc : WebGLUniformLocation | null;
+	modelViewLoc : WebGLUniformLocation | null;
+	textureLoc : WebGLUniformLocation | null;
+	transform : Transform;
+	constructor(vertexSource : string, fragmentSource : string)
 	{
-		const program = gl.createProgram(),
-			vertShader = gl.createShader(gl.VERTEX_SHADER),
-			fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+		const program = gl.createProgram()!,
+			vertShader = gl.createShader(gl.VERTEX_SHADER)!,
+			fragShader = gl.createShader(gl.FRAGMENT_SHADER)!;
+		
+		util.failIfNull(program);
+		util.failIfNull(vertShader);
+		util.failIfNull(fragShader);
 
 		// compile vertex and fragment shaders and check for errors
 		gl.shaderSource(vertShader, vertexSource);
@@ -157,14 +177,15 @@ class Shader
 		this.transform = new Transform();
 	}
 
-	activate(useTexture)
+	activate(useTexture : boolean)
 	{
+		util.failIfNull(activeSurface);
 		if (activeShader !== this) {
 			gl.useProgram(this.program);
 			activeShader = this;
 		}
 		this.transform.identity();
-		this.transform.ortho(0, 0, activeSurface.width, activeSurface.height);
+		this.transform.ortho(0, 0, activeSurface!.width, activeSurface!.height);
 		gl.uniform1i(this.hasTextureLoc, useTexture ? 1 : 0);
 		gl.uniform1i(this.textureLoc, 0);
 		gl.uniformMatrix4fv(this.modelViewLoc, false, this.transform.matrix);
@@ -174,7 +195,10 @@ class Shader
 export
 class Shape
 {
-	constructor(vertexBuffer, indexBuffer, type = ShapeType.TriStrip)
+	type : ShapeType;
+	vertices: VertexBuffer;
+	indices : IndexBuffer | null;
+	constructor(vertexBuffer : VertexBuffer, indexBuffer : IndexBuffer | null, type = ShapeType.TriStrip)
 	{
 		this.type = type;
 		this.vertices = vertexBuffer;
@@ -204,10 +228,11 @@ class Shape
 export
 class Surface
 {
-	static get Screen()
+	static get Screen() : Surface
 	{
-		const screenSurface = Object.create(Surface.prototype);
+		const screenSurface : Surface = Object.create(Surface.prototype);
 		screenSurface.frameBuffer = null;
+		screenSurface.texture = null;
 		Object.defineProperty(this, 'Screen', {
 			writable: false,
 			enumerable: false,
@@ -217,12 +242,15 @@ class Surface
 		return screenSurface;
 	}
 
-	constructor(texture)
+	frameBuffer : WebGLFramebuffer | null;
+	texture : Texture | null;
+	constructor(texture : Texture)
 	{
-		const frameBuffer = gl.createFramebuffer();
+		const frameBuffer = gl.createFramebuffer()!;
+		util.failIfNull(frameBuffer);
 		gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
-		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT,
-			gl.TEXTURE_2D, texture.hwTexture);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
+			gl.TEXTURE_2D, texture.hwTexture, 0);
 
 		this.frameBuffer = frameBuffer;
 		this.texture = texture;
@@ -231,14 +259,14 @@ class Surface
 	get height()
 	{
 		return this.frameBuffer !== null
-			? this.texture.height
+			? this.texture!.height
 			: screenCanvas.height;
 	}
 
 	get width()
 	{
 		return this.frameBuffer !== null
-			? this.texture.width
+			? this.texture!.width
 			: screenCanvas.width;
 	}
 
@@ -248,7 +276,7 @@ class Surface
 			return;
 		gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
 		if (this.frameBuffer !== null)
-			gl.viewport(0, 0, this.texture.width, this.texture.height);
+			gl.viewport(0, 0, this.texture!.width, this.texture!.height);
 		else
 			gl.viewport(0, 0, screenCanvas.width, screenCanvas.height);
 		activeSurface = this;
@@ -258,10 +286,14 @@ class Surface
 export
 class Texture
 {
-	constructor(image)
+	hwTexture : WebGLTexture | null;
+	width : number;
+	height : number;
+	constructor(image : TexImageSource)
 	{
 		const hwTexture = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, hwTexture);
+		//@ts-ignore - Typescript has wrong definition for pixelStorei
 		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -283,6 +315,7 @@ class Texture
 export
 class Transform
 {
+	matrix : Float32Array;
 	constructor()
 	{
 		this.matrix = new Float32Array(4 * 4);
@@ -305,7 +338,7 @@ class Transform
 		]);
 	}
 
-	ortho(left, top, right, bottom, near = -1.0, far = 1.0)
+	ortho(left : number, top : number, right : number, bottom : number, near = -1.0, far = 1.0)
 	{
 		const sX = 2 / (right - left);
 		const sY = 2 / (top - bottom);
@@ -322,10 +355,26 @@ class Transform
 	}
 }
 
+
+type vertex = {
+	x? : number,
+	y? : number,
+	u? : number,
+	v? : number,
+	color? : {
+		r : number,
+		g : number,
+		b : number,
+		a : number
+	}
+}
+
 export
 class VertexBuffer
 {
-	constructor(vertices)
+	hwBuffer : WebGLBuffer;
+	length : number
+	constructor(vertices : vertex[])
 	{
 		const data = new Float32Array(10 * vertices.length);
 		for (let i = 0, len = vertices.length; i < len; ++i) {
@@ -354,10 +403,10 @@ class VertexBuffer
 			}
 		}
 		const hwBuffer = gl.createBuffer();
+		util.failIfNull(hwBuffer);
 		gl.bindBuffer(gl.ARRAY_BUFFER, hwBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
-
-		this.hwBuffer = hwBuffer;
+		this.hwBuffer = hwBuffer!;
 		this.length = vertices.length;
 	}
 

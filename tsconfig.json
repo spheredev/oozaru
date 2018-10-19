@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+        "checkJs": true,
+        "strict" :true,
+        "strictNullChecks": true,
+        "strictFunctionTypes": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "allowJs": true,
+        "removeComments": true,
+        "lib":["es2018", "dom"],
+        "target": "esnext",
+        "module": "esnext",
+        "sourceMap" : true,
+        "outDir": "built"
+    },
+    "exclude":[
+        "game","node_modules","built"
+    ],
+    "compileOnSave" : true
+}
