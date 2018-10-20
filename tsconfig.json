@@ -1,21 +1,23 @@
 {
+    "compileOnSave" : true,
     "compilerOptions": {
-        "checkJs": true,
-        "strict" :true,
-        "strictNullChecks": true,
-        "strictFunctionTypes": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "allowJs": true,
-        "removeComments": true,
-        "lib":["es2018", "dom"],
         "target": "esnext",
         "module": "esnext",
-        "sourceMap" : true,
-        "outDir": "built"
+        "lib": [ "esnext", "dom" ],
+        "outDir": "oozaru",
+        "noEmitOnError": false,
+        "noImplicitAny": true,
+        "noImplicitReturns": true,
+        "noImplicitThis": true,
+        "noUnusedLocals": true,
+        "removeComments": true,
+        "sourceMap": true,
+        "strictFunctionTypes": true,
+        "strictNullChecks": true,
+        "strictPropertyInitialization": true,
     },
-    "exclude":[
-        "game","node_modules","built"
+    "exclude": [
+        "oozaru/*",
+        "game/*",
     ],
-    "compileOnSave" : true
 }

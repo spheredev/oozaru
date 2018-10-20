@@ -34,97 +34,96 @@ import * as galileo from './galileo.js';
 
 let nextJobID = 1;
 
-
-export enum JobType {
-	Update,
-	Render,
-	Immediate
+interface Job
+{
+	jobID: number,
+	type: JobType,
+	callback: () => void,
+	recurring: boolean,
+	timer: number,
 }
 
-type Job = {
-	id: number,
-	type : JobType,
-	callback : () => any,
-	recurring : boolean,
-	timer: number
+export
+enum JobType
+{
+	Immediate,
+	Render,
+	Update,
 }
 
 export default
 class EventLoop
 {
-	zit : {
-		frameCount : number,
-		jobQueue : Job[],
-		rafID : number
-	} = {
-		frameCount : 0,
-		jobQueue : [],
-		rafID : 0
-	}
+	private frameCount = 0;
+	private jobQueue: Job[] = [];
+	private rafID = 0;
 
-	addJob(type: JobType, callback : () => any, recurring = false, delay = 0)
+	addJob(type: JobType, callback: () => void, recurring = false, delay = 0)
 	{
-		this.zit.jobQueue.push({ id: nextJobID, type, callback, recurring, timer: delay });
+		this.jobQueue.push({ jobID: nextJobID, type, callback, recurring, timer: delay });
 		return nextJobID++;
 	}
 
-	animate(timestamp : number)
+	animate(timestamp: number)
 	{
-		this.zit.rafID = requestAnimationFrame(t => this.animate(t));
+		this.rafID = requestAnimationFrame(t => this.animate(t));
 
 		this.runJobs(JobType.Update);
 		galileo.Surface.Screen.activate();
 		galileo.Prim.clear();
 		this.runJobs(JobType.Render);
 		this.runJobs(JobType.Immediate);
-		++this.zit.frameCount;
+		++this.frameCount;
 	}
 
-	cancelJob(jobID : number)
+	cancelJob(jobID: number)
 	{
 		let ptr = 0;
-		for (let i = 0, len = this.zit.jobQueue.length; i < len; ++i) {
-			const job = this.zit.jobQueue[i];
-			if (job.id === jobID)
+		for (let i = 0, len = this.jobQueue.length; i < len; ++i) {
+			const job = this.jobQueue[i];
+			if (job.jobID === jobID)
 				continue;  // delete
-			this.zit.jobQueue[ptr++] = job;
+			this.jobQueue[ptr++] = job;
 		}
-		this.zit.jobQueue.length = ptr;
+		this.jobQueue.length = ptr;
 	}
 
 	now()
 	{
-		return this.zit.frameCount;
+		return this.frameCount;
 	}
 
-	runJobs(type : JobType)
+	runJobs(type: JobType)
 	{
-		for (let i = 0; i < this.zit.jobQueue.length; ++i) {
-			const job = this.zit.jobQueue[i];
+		for (const job of this.jobQueue) {
+			const callback = job.callback;
 			if (job.type === type && (job.recurring || job.timer-- <= 0))
-				job.callback.call(undefined);
+				callback();
 		}
 		let ptr = 0;
-		for (let i = 0, len = this.zit.jobQueue.length; i < len; ++i) {
-			const job = this.zit.jobQueue[i];
+		for (let i = 0, len = this.jobQueue.length; i < len; ++i) {
+			const job = this.jobQueue[i];
 			if (!job.recurring && job.timer < 0)
 				continue;  // delete
-			this.zit.jobQueue[ptr++] = job;
+			this.jobQueue[ptr++] = job;
 		}
-		this.zit.jobQueue.length = ptr;
+		this.jobQueue.length = ptr;
 	}
 
 	start()
 	{
-		this.zit.rafID = requestAnimationFrame(t => this.animate(t));
+		if (this.rafID !== 0)  // already running?
+			return;
+
+		this.rafID = requestAnimationFrame(t => this.animate(t));
 	}
 
 	stop()
 	{
-		if (this.zit.rafID !== 0)
-			cancelAnimationFrame(this.zit.rafID);
-		this.zit.frameCount = 0;
-		this.zit.jobQueue.length = 0;
-		this.zit.rafID = 0;
+		if (this.rafID !== 0)
+			cancelAnimationFrame(this.rafID);
+		this.frameCount = 0;
+		this.jobQueue.length = 0;
+		this.rafID = 0;
 	}
 }

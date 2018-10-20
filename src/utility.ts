@@ -1,4 +1,4 @@
-/**
+/*
  *  Oozaru JavaScript game engine
  *  Copyright (c) 2015-2018, Fat Cerberus
  *  All rights reserved.
@@ -30,20 +30,39 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import Galileo from './oozaru/galileo.js';
-import Pegasus from './oozaru/pegasus.js';
-
-const mainCanvas = <HTMLCanvasElement>document.getElementById('screen');
-
-(async function main()
+export
+async function loadImageFile(fileName: string)
 {
-	await Galileo.initialize(mainCanvas);
-	Pegasus.initializeGlobals();
-	mainCanvas.onclick = () => {
-		mainCanvas.onclick = null;
-		const divElement = document.getElementById('prompt')!;
-		divElement.innerHTML = "<i>launching Sphere game...</i>";
-		Pegasus.launchGame('/../game/');
-		divElement.innerHTML = "Sphere game launched!";
-	};
-})();
+	return new Promise<HTMLImageElement>((resolve, reject) => {
+		const image = new Image();
+		image.onload = () => resolve(image);
+		image.onerror = () =>
+			reject(new Error(`Unable to load image file '${fileName}'`));
+		image.src = fileName;
+	});
+}
+
+export
+async function loadAudioFile(fileName: string)
+{
+	return new Promise<HTMLAudioElement>((resolve, reject) => {
+		const audio = new Audio();
+		audio.onloadedmetadata = () => resolve(audio);
+		audio.onerror = () =>
+			reject(new Error(`Unable to load audio file '${fileName}'`));
+		audio.src = fileName;
+	});
+}
+
+export
+function isConstructor(func: Function)
+{
+	const funcProxy = new Proxy(func, { construct() { return {}; } });
+	try {
+		Reflect.construct(funcProxy, []);
+		return true;
+	}
+	catch {
+		return false;
+	}
+}

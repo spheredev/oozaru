@@ -1,4 +1,4 @@
-/*
+/**
  *  Oozaru JavaScript game engine
  *  Copyright (c) 2015-2018, Fat Cerberus
  *  All rights reserved.
@@ -30,53 +30,23 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-export
-function loadImage(fileName : string) : Promise<HTMLImageElement>
-{
-	return new Promise((resolve, reject) => {
-		const image = new Image();
-		image.onload = () => resolve(image);
-		image.onerror = () =>
-			reject(new Error(`Unable to load image file '${fileName}'`));
-		image.src = fileName;
-	});
-}
+import Galileo from './galileo.js';
+import Pegasus from './pegasus.js';
 
-export
-function loadSound(fileName : string) : Promise<HTMLAudioElement>
-{
-	return new Promise((resolve, reject) => {
-		const audio = new Audio();
-		audio.onloadedmetadata = () => resolve(audio);
-		audio.onerror = () =>
-			reject(new Error(`Unable to load audio file '${fileName}'`));
-		audio.src = fileName;
-	});
-}
+const
+	mainCanvas = document.getElementById('screen') as HTMLCanvasElement
 
-/**
- * Check if a function is a constructor without calling it
- */
-export function isConstructor (fn: () => void)
-{
-	const fnProxy = new Proxy(fn, { construct() { return {}; } });
-	try {
-		//@ts-ignore
-		new fnProxy();
-		return true;
-	} catch (e) {
-		return false;
-	}
-}
+main();
 
-export function failIfNull<T>(value: T | undefined | null): void
+async function main()
 {
-	if (!notUndefinedOrNull(value)) {
-		throw new Error ("Unexpected null or undefined - possibly out of memory or unsupported browser");
-	}
-}
-
-export function notUndefinedOrNull<T>(value: T | undefined | null): value is T
-{
-	return value !== undefined && value !== null;
+	await Galileo.initialize(mainCanvas);
+	Pegasus.initializeGlobals();
+	mainCanvas.onclick = () => {
+		mainCanvas.onclick = null;
+		const headingDiv = document.getElementById('prompt') as HTMLDivElement;
+		headingDiv.innerHTML = "<i>launching Sphere game...</i>";
+		Pegasus.launchGame('/../game/');
+		headingDiv.innerHTML = "Sphere game launched!";
+	};
 }
