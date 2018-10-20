@@ -32,7 +32,7 @@
 
 let
 	activeShader : Shader | null = null,
-	activeSurface : Surface | null = null,
+	activeSurface : DrawTarget | null = null,
 	defaultShader : Shader,
 	gl : WebGLRenderingContext,
 	screenCanvas : HTMLCanvasElement;
@@ -85,7 +85,67 @@ class Galileo extends null
 		defaultShader = new Shader(vertSource, fragSource);
 		screenCanvas = canvas;
 
-		Surface.Screen.activate();
+		DrawTarget.Screen.activate();
+	}
+}
+
+export
+class DrawTarget
+{
+	frameBuffer: WebGLFramebuffer | null;
+	texture: Texture | null;
+
+	static get Screen()
+	{
+		const screenSurface = Object.create(DrawTarget.prototype) as DrawTarget;
+		screenSurface.frameBuffer = null;
+		screenSurface.texture = null;
+		Object.defineProperty(this, 'Screen', {
+			writable: false,
+			enumerable: false,
+			configurable: true,
+			value: screenSurface,
+		});
+		return screenSurface;
+	}
+
+	constructor(texture: Texture)
+	{
+		const frameBuffer = gl.createFramebuffer();
+		if (frameBuffer === null)
+			throw new Error(`Unable to create WebGL framebuffer object`);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
+			gl.TEXTURE_2D, texture.hwTexture, 0);
+
+		this.frameBuffer = frameBuffer;
+		this.texture = texture;
+	}
+
+	get height()
+	{
+		return this.texture !== null
+			? this.texture.height
+			: screenCanvas.height;
+	}
+
+	get width()
+	{
+		return this.texture !== null
+			? this.texture.width
+			: screenCanvas.width;
+	}
+
+	activate()
+	{
+		if (activeSurface === this)
+			return;
+		gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
+		if (this.texture !== null)
+			gl.viewport(0, 0, this.texture.width, this.texture.height);
+		else
+			gl.viewport(0, 0, screenCanvas.width, screenCanvas.height);
+		activeSurface = this;
 	}
 }
 
@@ -95,16 +155,17 @@ class IndexBuffer
 	hwBuffer: WebGLBuffer;
 	length: number;
 
-	constructor(indices : number[])
+	constructor(indices: Iterable<number>)
 	{
 		const hwBuffer = gl.createBuffer();
 		if (hwBuffer === null)
 			throw new Error(`Unable to create WebGL index buffer object`);
+		const values = new Uint16Array(indices);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, hwBuffer);
-		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, values, gl.STATIC_DRAW);
 
 		this.hwBuffer = hwBuffer;
-		this.length = indices.length;
+		this.length = values.length;
 	}
 
 	activate()
@@ -125,7 +186,7 @@ class Prim extends null
 	{
 		screenCanvas.width = width;
 		screenCanvas.height = height;
-		if (activeSurface === Surface.Screen)
+		if (activeSurface === DrawTarget.Screen)
 			gl.viewport(0, 0, screenCanvas.width, screenCanvas.height);
 	}
 }
@@ -231,66 +292,6 @@ class Shape
 		else {
 			gl.drawArrays(drawMode, 0, this.vertices.length);
 		}
-	}
-}
-
-export
-class Surface
-{
-	frameBuffer: WebGLFramebuffer | null;
-	texture: Texture | null;
-
-	static get Screen()
-	{
-		const screenSurface = Object.create(Surface.prototype) as Surface;
-		screenSurface.frameBuffer = null;
-		screenSurface.texture = null;
-		Object.defineProperty(this, 'Screen', {
-			writable: false,
-			enumerable: false,
-			configurable: true,
-			value: screenSurface,
-		});
-		return screenSurface;
-	}
-
-	constructor(texture: Texture)
-	{
-		const frameBuffer = gl.createFramebuffer();
-		if (frameBuffer === null)
-			throw new Error(`Unable to create WebGL framebuffer object`);
-		gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
-		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
-			gl.TEXTURE_2D, texture.hwTexture, 0);
-
-		this.frameBuffer = frameBuffer;
-		this.texture = texture;
-	}
-
-	get height()
-	{
-		return this.texture !== null
-			? this.texture.height
-			: screenCanvas.height;
-	}
-
-	get width()
-	{
-		return this.texture !== null
-			? this.texture.width
-			: screenCanvas.width;
-	}
-
-	activate()
-	{
-		if (activeSurface === this)
-			return;
-		gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
-		if (this.texture !== null)
-			gl.viewport(0, 0, this.texture.width, this.texture.height);
-		else
-			gl.viewport(0, 0, screenCanvas.width, screenCanvas.height);
-		activeSurface = this;
 	}
 }
 

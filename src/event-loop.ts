@@ -69,7 +69,7 @@ class EventLoop
 		this.rafID = requestAnimationFrame(t => this.animate(t));
 
 		this.runJobs(JobType.Update);
-		galileo.Surface.Screen.activate();
+		galileo.DrawTarget.Screen.activate();
 		galileo.Prim.clear();
 		this.runJobs(JobType.Render);
 		this.runJobs(JobType.Immediate);

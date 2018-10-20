@@ -34,6 +34,16 @@ import EventLoop, {JobType} from './event-loop.js';
 import * as galileo from './galileo.js';
 import * as util from './utility.js';
 
+interface Vertex
+{
+	x: number,
+	y: number,
+	z?: number,
+	u?: number,
+	v?: number,
+	color?: Color
+}
+
 const
 	eventLoop = new EventLoop();
 let
@@ -329,15 +339,12 @@ class Color
 		for (let colorName in Color) {
 			if (colorName.toUpperCase() === toMatch) {
 				try {
-					let temp : any = (<any>Color)[colorName];
-					if (temp instanceof Color) {
-						return temp;
-					}
-					break;
+					let propValue = (Color as any)[colorName];
+					if (propValue instanceof Color)
+						return propValue;
 				}
-				catch {
-					break;
-				}
+				catch {}
+				break;
 			}
 		}
 
@@ -345,8 +352,8 @@ class Color
 		throw new RangeError(`Invalid color designation '${name}'`);
 	}
 
-	zit : { r : number, g : number, b : number, a  : number}
-	constructor(r : number, g : number, b : number, a = 1.0)
+	zit: { r: number, g: number, b: number, a: number };
+	constructor(r: number, g: number, b: number, a = 1.0)
 	{
 		this.zit = { r, g, b, a };
 	}
@@ -403,7 +410,8 @@ class Color
 
 	fadeTo(alphaFactor : number)
 	{
-		return new Color(this.zit.r, this.zit.g, this.zit.b,
+		return new Color(
+			this.zit.r, this.zit.g, this.zit.b,
 			this.zit.a * alphaFactor);
 	}
 }
@@ -437,33 +445,31 @@ class Dispatch extends null
 
 class IndexList
 {
-	zit : { buffer : galileo.IndexBuffer }
-	constructor(indices : Iterable<number>)
+	buffer: galileo.IndexBuffer;
+	constructor(indices: Iterable<number>)
 	{
-		const buffer = new galileo.IndexBuffer(Array.isArray(indices) ? indices : [ ...indices ]);
-		this.zit = { buffer };
+		this.buffer = new galileo.IndexBuffer(indices);
 	}
 }
 
 class JobToken
 {
-	zit : { jobID : number}
-	constructor(jobID : number)
+	jobID: number;
+
+	constructor(jobID: number)
 	{
-		this.zit = { jobID };
+		this.jobID = jobID;
 	}
 
 	cancel()
 	{
-		eventLoop.cancelJob(this.zit.jobID);
+		eventLoop.cancelJob(this.jobID);
 	}
 }
 
 class Mixer
 {
-	zit = {
-		volume : 1.0
-	}
+	zit = { volume: 1.0 };
 
 	get volume() { return this.zit.volume; }
 	set volume(value : number) { this.zit.volume = value; }
@@ -471,7 +477,7 @@ class Mixer
 
 class SSj extends null
 {
-	static log(object : any)
+	static log(object: any)
 	{
 		console.log(object);
 	}
@@ -481,9 +487,8 @@ class Shader
 {
 	static get Default()
 	{
-		const program = galileo.Shader.Default;
-		const shader = Object.create(this.prototype);
-		shader.zit = { program };
+		const shader = Object.create(this.prototype) as Shader;
+		shader.program = galileo.Shader.Default;
 		Object.defineProperty(this, 'Default', {
 			writable: false,
 			enumerable: false,
@@ -492,173 +497,164 @@ class Shader
 		});
 		return shader;
 	}
+
+	program: galileo.Shader;
+
+	constructor()
+	{
+		this.program = galileo.Shader.Default;
+	}
 }
 
 class Shape
 {
-	zit : {
-		texture : Texture | null,
-		indexList : IndexList | null,
-		shape : galileo.Shape
-	}
+	texture: Texture | null;
+	indexList: IndexList | null;
+	shape: galileo.Shape;
 
-	constructor(type : galileo.ShapeType, texture : Texture | null, vbo : VertexList, indexList? : IndexList | null)
-	constructor(type : galileo.ShapeType, vbo : VertexList, indexList? : IndexList | null)
-	constructor(arg0 : galileo.ShapeType, arg1 : Texture | VertexList | null, arg2 : VertexList | IndexList | null = null, arg3 : IndexList | null = null)
+	constructor(type: galileo.ShapeType, texture: Texture | null, vbo: VertexList, indexList?: IndexList | null)
+	constructor(type: galileo.ShapeType, vbo: VertexList, indexList?: IndexList | null)
+	constructor(arg0: galileo.ShapeType, arg1: Texture | VertexList | null, arg2: VertexList | IndexList | null = null, arg3: IndexList | null = null)
 	{
-		// function(type[, texture], vertexList[, indexList])
 		if (arg2 instanceof VertexList) {
-			const vbo = arg2.zit.buffer;
-			const ibo = arg3 !== null ? arg3.zit.buffer : null;
-
-			if (!(arg1 instanceof Texture) && arg1 != undefined) {
+			if (!(arg1 instanceof Texture) && arg1 != undefined)
 				throw new Error ("Expected Texture or null as second parameter to new Shape");
-			}
-
-			this.zit = {
-				shape : new galileo.Shape(vbo, ibo, arg0),
-				texture : arg1,
-				indexList : arg3
-			}
+			const vbo = arg2.buffer;
+			const ibo = arg3 !== null ? arg3.buffer : null;
+			this.shape = new galileo.Shape(vbo, ibo, arg0);
+			this.texture = arg1;
+			this.indexList = arg3;
 		}
 		else {
-			if (!(arg1 instanceof VertexList)) {
+			if (!(arg1 instanceof VertexList))
 				throw new Error ("Expected VertexList or Texture as second parameter to new Shape");
-			}
-
-			let vbo = arg1.zit.buffer;
-			const ibo = arg2 !== null ? arg2.zit.buffer : null;
-			this.zit = {
-				shape : new galileo.Shape(vbo, ibo, arg0),
-				texture : null,
-				indexList : arg2
-			}
+			let vbo = arg1.buffer;
+			const ibo = arg2 !== null ? arg2.buffer : null;
+			this.shape = new galileo.Shape(vbo, ibo, arg0);
+			this.texture = null;
+			this.indexList = arg2;
 		}
 	}
 
 	draw(surface = Surface.Screen, shader = Shader.Default)
 	{
-		const galSurface = surface.zit.surface;
-		const galShape = this.zit.shape;
-		const galShader = shader.zit.program;
-		galSurface.activate();
-		galShader.activate(true);
-		if (this.zit.texture !== null) {
-			const galTexture = this.zit.texture.zit.texture;
-			galTexture.activate(0);
-		}
-		galShape.draw();
+		surface.drawTarget.activate();
+		shader.program.activate(true);
+		if (this.texture !== null)
+			this.texture.texture.activate(0);
+		this.shape.draw();
 	}
 }
 
 class Sound
 {
-	static async fromFile(fileName : string)
+	static async fromFile(fileName: string)
 	{
 		const audioElement = await util.loadAudioFile(`game/${fileName}`);
 		audioElement.loop = true;
 		return new this(audioElement);
 	}
 
-	zit : { audio : HTMLAudioElement }
+	audio: HTMLAudioElement;
 
-	constructor(audioElement : HTMLAudioElement)
+	constructor(audioElement: HTMLAudioElement)
 	{
-		if (!(audioElement instanceof HTMLAudioElement))
-			throw new TypeError('HTMLAudioElement object expected here');
-		this.zit = { audio: audioElement };
+		this.audio = audioElement;
 	}
 
 	get length()
 	{
-		return this.zit.audio.duration;
+		return this.audio.duration;
 	}
 
 	get position()
 	{
-		return this.zit.audio.currentTime;
+		return this.audio.currentTime;
 	}
 
 	get repeat()
 	{
-		return this.zit.audio.loop;
+		return this.audio.loop;
 	}
 
 	get volume()
 	{
-		return this.zit.audio.volume;
+		return this.audio.volume;
 	}
 
 	set position(value)
 	{
-		this.zit.audio.currentTime = value;
+		this.audio.currentTime = value;
 	}
 
 	set repeat(value)
 	{
-		this.zit.audio.loop = value;
+		this.audio.loop = value;
 	}
 
 	set volume(value)
 	{
-		this.zit.audio.volume = value;
+		this.audio.volume = value;
 	}
 
 	pause()
 	{
-		this.zit.audio.pause();
+		this.audio.pause();
 	}
 
 	play()
 	{
-		this.zit.audio.play();
+		this.audio.play();
 	}
 
 	stop()
 	{
-		this.zit.audio.pause();
-		this.zit.audio.currentTime = 0.0;
+		this.audio.pause();
+		this.audio.currentTime = 0.0;
 	}
 }
 
 class Texture
 {
-	zit : { surface : galileo.Surface | null, texture : galileo.Texture }
-
-	constructor (image : HTMLImageElement)
-	{
-		this.zit = { texture : new galileo.Texture(image), surface : null }
-	}
-
 	static async fromFile(fileName : string)
 	{
 		const image = await util.loadImageFile(`game/${fileName}`);
 		return new this (image);
 	}
 
+	texture: galileo.Texture;
+	constructor(image: HTMLImageElement)
+	{
+		this.texture = new galileo.Texture(image);
+	}
+
 	get height()
 	{
-		return this.zit.texture.height;
+		return this.texture.height;
 	}
 
 	get width()
 	{
-		return this.zit.texture.width;
+		return this.texture.width;
 	}
 }
 
 class Surface extends Texture
 {
-	constructor (image : HTMLImageElement)
+	drawTarget: galileo.DrawTarget;
+
+	constructor(image: HTMLImageElement)
 	{
 		super(image);
-		this.zit.surface = new galileo.Surface(this.zit.texture);
+
+		this.drawTarget = new galileo.DrawTarget(this.texture);
 	}
+
 	static get Screen()
 	{
-		const galSurface = galileo.Surface.Screen;
-		const surface = Object.create(Surface.prototype);
-		surface.zit = { surface: galSurface };
+		const galSurface = galileo.DrawTarget.Screen;
+		const surface = Object.create(Surface.prototype) as Surface;
+		surface.drawTarget = galSurface;
 		Object.defineProperty(this, 'Screen', {
 			writable: false,
 			enumerable: false,
@@ -670,39 +666,29 @@ class Surface extends Texture
 
 	get height()
 	{
-		return this.zit.surface!.height;
+		return this.drawTarget.height;
 	}
 
 	get width()
 	{
-		return this.zit.surface!.width;
+		return this.drawTarget.width;
 	}
 }
 
 class Transform
 {
-	zit : { matrix : galileo.Transform }
+	matrix: galileo.Transform;
 	constructor()
 	{
-		const matrix = new galileo.Transform();
-		this.zit = { matrix };
+		this.matrix = new galileo.Transform();
 	}
-}
-
-type vertex = {
-	x? : number,
-	y? : number,
-	u? : number,
-	v? : number,
-	color? : Color
 }
 
 class VertexList
 {
-	zit : { buffer : galileo.VertexBuffer }
-	constructor(vertices : Iterable<vertex>)
+	buffer: galileo.VertexBuffer;
+	constructor(vertices: Iterable<Vertex>)
 	{
-		const buffer = new galileo.VertexBuffer(Array.isArray(vertices) ? vertices : [ ...vertices ]);
-		this.zit = { buffer };
+		this.buffer = new galileo.VertexBuffer([ ...vertices ]);
 	}
 }
