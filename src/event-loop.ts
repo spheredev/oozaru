@@ -36,11 +36,12 @@ let nextJobID = 1;
 
 interface Job
 {
-	jobID: number,
-	type: JobType,
-	callback: () => void,
-	recurring: boolean,
-	timer: number,
+	jobID: number;
+	type: JobType;
+	callback: () => void;
+	recurring: boolean;
+	running: boolean;
+	timer: number;
 }
 
 export
@@ -62,7 +63,15 @@ class EventLoop
 	addJob(type: JobType, callback: () => void, recurring: true): number;
 	addJob(type: JobType, callback: () => void, recurring = false, delay = 0)
 	{
-		this.jobQueue.push({ jobID: nextJobID, type, callback, recurring, timer: delay });
+		let newJob = {
+			jobID: nextJobID,
+			type,
+			callback,
+			recurring,
+			running: false,
+			timer: delay,
+		};
+		this.jobQueue.push(newJob);
 		return nextJobID++;
 	}
 
@@ -99,8 +108,14 @@ class EventLoop
 	{
 		for (const job of this.jobQueue) {
 			const callback = job.callback;
-			if (job.type === type && (job.recurring || job.timer-- <= 0))
-				callback();
+			if (job.type === type && !job.running && (job.recurring || job.timer-- <= 0)) {
+				job.running = true;
+				new Promise<void>(resolve => {
+					resolve(callback());
+				}).then(() => {
+					job.running = false;
+				});
+			}
 		}
 		let ptr = 0;
 		for (let i = 0, len = this.jobQueue.length; i < len; ++i) {
