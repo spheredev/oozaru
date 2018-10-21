@@ -58,6 +58,8 @@ class EventLoop
 	private jobQueue: Job[] = [];
 	private rafID = 0;
 
+	addJob(type: JobType, callback: () => void, recurring?: false, delay?: number): number;
+	addJob(type: JobType, callback: () => void, recurring: true): number;
 	addJob(type: JobType, callback: () => void, recurring = false, delay = 0)
 	{
 		this.jobQueue.push({ jobID: nextJobID, type, callback, recurring, timer: delay });

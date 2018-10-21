@@ -46,7 +46,7 @@ async function main()
 		mainCanvas.onclick = null;
 		const headingDiv = document.getElementById('prompt') as HTMLDivElement;
 		headingDiv.innerHTML = "<i>launching Sphere game...</i>";
-		Pegasus.launchGame('/../game/');
+		Pegasus.launchGame('/game/');
 		headingDiv.innerHTML = "Sphere game launched!";
 	};
 }

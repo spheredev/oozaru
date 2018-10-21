@@ -30,12 +30,11 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-let
-	activeShader : Shader | null = null,
-	activeSurface : DrawTarget | null = null,
-	defaultShader : Shader,
-	gl : WebGLRenderingContext,
-	screenCanvas : HTMLCanvasElement;
+let activeShader: Shader | null = null;
+let activeDrawTarget: DrawTarget | null = null;
+let defaultShader: Shader;
+let gl: WebGLRenderingContext;
+let screenCanvas: HTMLCanvasElement;
 
 export
 interface RGBA
@@ -55,7 +54,7 @@ enum ShapeType
 	LineStrip,
 	Points,
 	Triangles,
-	TriStrip
+	TriStrip,
 }
 
 export
@@ -74,10 +73,10 @@ class Galileo extends null
 {
 	static async initialize(canvas: HTMLCanvasElement)
 	{
-		const glContext = canvas.getContext('webgl');
-		if (glContext === null)
+		const webGLContext = canvas.getContext('webgl');
+		if (webGLContext === null)
 			throw new Error(`Unable to acquire WebGL rendering context`);
-		gl = glContext;
+		gl = webGLContext;
 		gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
 		const vertSource = await (await fetch('shaders/default.vert.glsl')).text();
@@ -138,14 +137,14 @@ class DrawTarget
 
 	activate()
 	{
-		if (activeSurface === this)
+		if (activeDrawTarget === this)
 			return;
 		gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
 		if (this.texture !== null)
 			gl.viewport(0, 0, this.texture.width, this.texture.height);
 		else
 			gl.viewport(0, 0, screenCanvas.width, screenCanvas.height);
-		activeSurface = this;
+		activeDrawTarget = this;
 	}
 }
 
@@ -175,6 +174,50 @@ class IndexBuffer
 }
 
 export
+class Matrix
+{
+	values: Float32Array;
+
+	constructor()
+	{
+		this.values = new Float32Array(4 * 4);
+		this.identity();
+	}
+
+	clone()
+	{
+		const dolly = new Matrix();
+		dolly.values.set(this.values);
+	}
+
+	identity()
+	{
+		this.values.set([
+			1.0, 0.0, 0.0, 0.0,
+			0.0, 1.0, 0.0, 0.0,
+			0.0, 0.0, 1.0, 0.0,
+			0.0, 0.0, 0.0, 1.0,
+		]);
+	}
+
+	ortho(left: number, top: number, right: number, bottom: number, near = -1.0, far = 1.0)
+	{
+		const sX = 2 / (right - left);
+		const sY = 2 / (top - bottom);
+		const sZ = -2 / (far - near);
+		const tX = -(right + left) / (right - left);
+		const tY = -(top + bottom) / (top - bottom);
+		const tZ = (far + near) / (far - near);
+		this.values.set([
+			sX,  0.0, 0.0, 0.0,
+			0.0, sY,  0.0, 0.0,
+			0.0, 0.0, sZ,  0.0,
+			tX,  tY,  tZ,  1.0,
+		]);
+	}
+}
+
+export
 class Prim extends null
 {
 	static clear()
@@ -186,7 +229,7 @@ class Prim extends null
 	{
 		screenCanvas.width = width;
 		screenCanvas.height = height;
-		if (activeSurface === DrawTarget.Screen)
+		if (activeDrawTarget === DrawTarget.Screen)
 			gl.viewport(0, 0, screenCanvas.width, screenCanvas.height);
 	}
 }
@@ -198,7 +241,7 @@ class Shader
 	hasTextureLoc: WebGLUniformLocation | null;
 	modelViewLoc: WebGLUniformLocation | null;
 	textureLoc: WebGLUniformLocation | null;
-	transform: Transform;
+	transform: Matrix;
 
 	static get Default()
 	{
@@ -243,7 +286,7 @@ class Shader
 		this.hasTextureLoc = gl.getUniformLocation(program, 'al_use_tex');
 		this.modelViewLoc = gl.getUniformLocation(program, 'al_projview_matrix');
 		this.textureLoc = gl.getUniformLocation(program, 'al_tex');
-		this.transform = new Transform();
+		this.transform = new Matrix();
 	}
 
 	activate(useTexture: boolean)
@@ -253,11 +296,11 @@ class Shader
 			activeShader = this;
 		}
 		this.transform.identity();
-		if (activeSurface !== null)
-			this.transform.ortho(0, 0, activeSurface.width, activeSurface.height);
+		if (activeDrawTarget !== null)
+			this.transform.ortho(0, 0, activeDrawTarget.width, activeDrawTarget.height);
 		gl.uniform1i(this.hasTextureLoc, useTexture ? 1 : 0);
 		gl.uniform1i(this.textureLoc, 0);
-		gl.uniformMatrix4fv(this.modelViewLoc, false, this.transform.matrix);
+		gl.uniformMatrix4fv(this.modelViewLoc, false, this.transform.values);
 	}
 }
 
@@ -268,7 +311,7 @@ class Shape
 	vertices: VertexBuffer;
 	indices: IndexBuffer | null;
 
-	constructor(vertexBuffer: VertexBuffer, indexBuffer: IndexBuffer | null, type = ShapeType.TriStrip)
+	constructor(vertexBuffer: VertexBuffer, indexBuffer: IndexBuffer | null, type: ShapeType)
 	{
 		this.type = type;
 		this.vertices = vertexBuffer;
@@ -324,50 +367,6 @@ class Texture
 	{
 		gl.activeTexture(gl.TEXTURE0 + textureUnit);
 		gl.bindTexture(gl.TEXTURE_2D, this.hwTexture);
-	}
-}
-
-export
-class Transform
-{
-	matrix: Float32Array;
-
-	constructor()
-	{
-		this.matrix = new Float32Array(4 * 4);
-		this.identity();
-	}
-
-	clone()
-	{
-		const dolly = new Transform();
-		dolly.matrix.set(this.matrix);
-	}
-
-	identity()
-	{
-		this.matrix.set([
-			1.0, 0.0, 0.0, 0.0,
-			0.0, 1.0, 0.0, 0.0,
-			0.0, 0.0, 1.0, 0.0,
-			0.0, 0.0, 0.0, 1.0,
-		]);
-	}
-
-	ortho(left: number, top: number, right: number, bottom: number, near = -1.0, far = 1.0)
-	{
-		const sX = 2 / (right - left);
-		const sY = 2 / (top - bottom);
-		const sZ = -2 / (far - near);
-		const tX = -(right + left) / (right - left);
-		const tY = -(top + bottom) / (top - bottom);
-		const tZ = (far + near) / (far - near);
-		this.matrix.set([
-			sX,  0.0, 0.0, 0.0,
-			0.0, sY,  0.0, 0.0,
-			0.0, 0.0, sZ,  0.0,
-			tX,  tY,  tZ,  1.0,
-		]);
 	}
 }
 
