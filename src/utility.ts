@@ -66,3 +66,11 @@ function isConstructor(func: Function)
 		return false;
 	}
 }
+
+export
+function promiseTry<T>(callback: () => T)
+{
+	return new Promise<T>(resolve => {
+		resolve(callback());
+	});
+}

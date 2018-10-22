@@ -31,6 +31,7 @@
 **/
 
 import * as galileo from './galileo.js';
+import * as util from './utility.js';
 
 let nextJobID = 1;
 
@@ -55,7 +56,7 @@ enum JobType
 export default
 class EventLoop
 {
-	private frameCount = 0;
+	private frameCount = -1;
 	private jobQueue: Job[] = [];
 	private rafID = 0;
 
@@ -79,12 +80,12 @@ class EventLoop
 	{
 		this.rafID = requestAnimationFrame(t => this.animate(t));
 
+		++this.frameCount;
 		this.runJobs(JobType.Update);
 		galileo.DrawTarget.Screen.activate();
 		galileo.Prim.clear();
 		this.runJobs(JobType.Render);
 		this.runJobs(JobType.Immediate);
-		++this.frameCount;
 	}
 
 	cancelJob(jobID: number)
@@ -101,20 +102,16 @@ class EventLoop
 
 	now()
 	{
-		return this.frameCount;
+		return Math.max(this.frameCount, 0);
 	}
 
 	runJobs(type: JobType)
 	{
 		for (const job of this.jobQueue) {
-			const callback = job.callback;
 			if (job.type === type && !job.running && (job.recurring || job.timer-- <= 0)) {
 				job.running = true;
-				new Promise<void>(resolve => {
-					resolve(callback());
-				}).then(() => {
-					job.running = false;
-				});
+				util.promiseTry(job.callback)
+					.then(() => job.running = false);
 			}
 		}
 		let ptr = 0;
