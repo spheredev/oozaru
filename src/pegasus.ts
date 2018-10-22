@@ -599,6 +599,7 @@ class Shape
 	{
 		surface.drawTarget.activate();
 		shader.program.activate(this.texture !== null);
+		shader.program.project(surface.projection);
 		shader.program.transform(transform.matrix);
 		if (this.texture !== null)
 			this.texture.texture.activate(0);
@@ -703,19 +704,24 @@ class Texture
 class Surface extends Texture
 {
 	drawTarget: galileo.DrawTarget;
+	projection: galileo.Matrix;
 
 	constructor(image: HTMLImageElement)
 	{
 		super(image);
 
 		this.drawTarget = new galileo.DrawTarget(this.texture);
+		this.projection = galileo.Matrix.Identity
+			.ortho(0, 0, this.drawTarget.width, this.drawTarget.height);
 	}
 
 	static get Screen()
 	{
-		const galSurface = galileo.DrawTarget.Screen;
+		const drawTarget = galileo.DrawTarget.Screen;
 		const surface = Object.create(Surface.prototype) as Surface;
-		surface.drawTarget = galSurface;
+		surface.drawTarget = drawTarget;
+		surface.projection = galileo.Matrix.Identity
+			.ortho(0, 0, drawTarget.width, drawTarget.height);
 		Object.defineProperty(this, 'Screen', {
 			writable: false,
 			enumerable: false,
@@ -758,7 +764,7 @@ class Transform
 		this.matrix.ortho(left, top, right, bottom, near, far);
 		return this;
 	}
-	
+
 	scale(sX: number, sY: number, sZ = 1.0)
 	{
 		this.matrix.scale(sX, sY, sZ);

@@ -20,7 +20,8 @@ async function main()
 		{ x: w, y: h, u: 1.0, v: 0.0, color: Color.Blue },
 	]);
 	let shape = new Shape(ShapeType.TriStrip, texture, vbo);
+	let transform = new Transform().translate(10, 10);
 	Dispatch.onRender(() => {
-		shape.draw();
+		shape.draw(Surface.Screen, transform);
 	});
 }

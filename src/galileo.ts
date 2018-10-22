@@ -182,7 +182,7 @@ class Matrix
 	{
 		return new this().identity();
 	}
-	
+
 	constructor()
 	{
 		this.values = new Float32Array(4 * 4);
@@ -281,7 +281,7 @@ class Matrix
 
 		return this;
 	}
-	
+
 	translate(tX: number, tY: number, tZ = 0.0)
 	{
 		this.values[12]	+= tX;
