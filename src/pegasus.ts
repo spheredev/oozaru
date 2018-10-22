@@ -577,7 +577,7 @@ class Shape
 	{
 		if (arg2 instanceof VertexList) {
 			if (!(arg1 instanceof Texture) && arg1 != undefined)
-				throw new Error ("Expected Texture or null as second parameter to new Shape");
+				throw new Error("Expected Texture or null as second parameter to new Shape");
 			const vbo = arg2.buffer;
 			const ibo = arg3 !== null ? arg3.buffer : null;
 			this.shape = new galileo.Shape(vbo, ibo, arg0);
@@ -586,7 +586,7 @@ class Shape
 		}
 		else {
 			if (!(arg1 instanceof VertexList))
-				throw new Error ("Expected VertexList or Texture as second parameter to new Shape");
+				throw new Error("Expected VertexList or Texture as second parameter to new Shape");
 			let vbo = arg1.buffer;
 			const ibo = arg2 !== null ? arg2.buffer : null;
 			this.shape = new galileo.Shape(vbo, ibo, arg0);
@@ -598,7 +598,8 @@ class Shape
 	draw(surface = Surface.Screen, transform = Transform.Identity, shader = Shader.Default)
 	{
 		surface.drawTarget.activate();
-		shader.program.activate(true);
+		shader.program.activate(this.texture !== null);
+		shader.program.transform(transform.matrix);
 		if (this.texture !== null)
 			this.texture.texture.activate(0);
 		this.shape.draw();
@@ -675,13 +676,14 @@ class Sound
 
 class Texture
 {
+	texture: galileo.Texture;
+
 	static async fromFile(fileName: string)
 	{
 		const image = await util.loadImageFile(`game/${fileName}`);
-		return new this (image);
+		return new this(image);
 	}
 
-	texture: galileo.Texture;
 	constructor(image: HTMLImageElement)
 	{
 		this.texture = new galileo.Texture(image);
@@ -748,6 +750,25 @@ class Transform
 	constructor()
 	{
 		this.matrix = new galileo.Matrix();
+		this.matrix.identity();
+	}
+
+	project2D(left: number, top: number, right: number, bottom: number, near = -1.0, far = 1.0)
+	{
+		this.matrix.ortho(left, top, right, bottom, near, far);
+		return this;
+	}
+	
+	scale(sX: number, sY: number, sZ = 1.0)
+	{
+		this.matrix.scale(sX, sY, sZ);
+		return this;
+	}
+
+	translate(tX: number, tY: number, tZ = 0.0)
+	{
+		this.matrix.translate(tX, tY, tZ);
+		return this;
 	}
 }
 

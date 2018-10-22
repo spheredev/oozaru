@@ -178,16 +178,58 @@ class Matrix
 {
 	values: Float32Array;
 
+	static get Identity()
+	{
+		return new this().identity();
+	}
+	
 	constructor()
 	{
 		this.values = new Float32Array(4 * 4);
-		this.identity();
 	}
 
 	clone()
 	{
 		const dolly = new Matrix();
 		dolly.values.set(this.values);
+		return dolly;
+	}
+
+	composeWith(other: Matrix)
+	{
+		let m1 = this.values;
+		let m2 = other.values;
+
+		let a00 = m1[0], a01 = m1[1], a02 = m1[2], a03 = m1[3];
+		let a10 = m1[4], a11 = m1[5], a12 = m1[6], a13 = m1[7];
+		let a20 = m1[8], a21 = m1[9], a22 = m1[10], a23 = m1[11];
+		let a30 = m1[12], a31 = m1[13], a32 = m1[14], a33 = m1[15];
+
+		let b0  = m2[0], b1 = m2[1], b2 = m2[2], b3 = m2[3];
+		m1[0] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
+		m1[1] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
+		m1[2] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
+		m1[3] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
+
+		b0 = m2[4]; b1 = m2[5]; b2 = m2[6]; b3 = m2[7];
+		m1[4] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
+		m1[5] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
+		m1[6] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
+		m1[7] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
+
+		b0 = m2[8]; b1 = m2[9]; b2 = m2[10]; b3 = m2[11];
+		m1[8] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
+		m1[9] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
+		m1[10] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
+		m1[11] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
+
+		b0 = m2[12]; b1 = m2[13]; b2 = m2[14]; b3 = m2[15];
+		m1[12] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
+		m1[13] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
+		m1[14] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
+		m1[15] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
+
+		return this;
 	}
 
 	identity()
@@ -198,6 +240,8 @@ class Matrix
 			0.0, 0.0, 1.0, 0.0,
 			0.0, 0.0, 0.0, 1.0,
 		]);
+
+		return this;
 	}
 
 	ortho(left: number, top: number, right: number, bottom: number, near = -1.0, far = 1.0)
@@ -214,6 +258,36 @@ class Matrix
 			0.0, 0.0, sZ,  0.0,
 			tX,  tY,  tZ,  1.0,
 		]);
+
+		return this;
+	}
+
+	scale(sX: number, sY: number, sZ = 1.0)
+	{
+		this.values[0] *= sX;
+		this.values[4] *= sX;
+		this.values[8] *= sX;
+		this.values[12] *= sX;
+
+		this.values[1] *= sY;
+		this.values[5] *= sY;
+		this.values[9] *= sY;
+		this.values[13] *= sY;
+
+		this.values[2] *= sZ;
+		this.values[6] *= sZ;
+		this.values[10] *= sZ;
+		this.values[14] *= sZ;
+
+		return this;
+	}
+	
+	translate(tX: number, tY: number, tZ = 0.0)
+	{
+		this.values[12]	+= tX;
+		this.values[13] += tY;
+		this.values[14] += tZ;
+		return this;
 	}
 }
 
@@ -241,7 +315,8 @@ class Shader
 	hasTextureLoc: WebGLUniformLocation | null;
 	modelViewLoc: WebGLUniformLocation | null;
 	textureLoc: WebGLUniformLocation | null;
-	transform: Matrix;
+	modelView: Matrix;
+	projection: Matrix;
 
 	static get Default()
 	{
@@ -286,21 +361,41 @@ class Shader
 		this.hasTextureLoc = gl.getUniformLocation(program, 'al_use_tex');
 		this.modelViewLoc = gl.getUniformLocation(program, 'al_projview_matrix');
 		this.textureLoc = gl.getUniformLocation(program, 'al_tex');
-		this.transform = new Matrix();
+		this.projection = Matrix.Identity;
+		this.modelView = Matrix.Identity;
 	}
 
 	activate(useTexture: boolean)
 	{
 		if (activeShader !== this) {
+			let transformation = this.projection.clone()
+				.composeWith(this.modelView);
 			gl.useProgram(this.program);
+			gl.uniformMatrix4fv(this.modelViewLoc, false, transformation.values);
+			gl.uniform1i(this.textureLoc, 0);
 			activeShader = this;
 		}
-		this.transform.identity();
-		if (activeDrawTarget !== null)
-			this.transform.ortho(0, 0, activeDrawTarget.width, activeDrawTarget.height);
 		gl.uniform1i(this.hasTextureLoc, useTexture ? 1 : 0);
-		gl.uniform1i(this.textureLoc, 0);
-		gl.uniformMatrix4fv(this.modelViewLoc, false, this.transform.values);
+	}
+
+	project(matrix: Matrix)
+	{
+		this.projection = matrix.clone();
+		if (activeShader === this) {
+			let transformation = this.projection.clone()
+				.composeWith(this.modelView);
+			gl.uniformMatrix4fv(this.modelViewLoc, false, transformation.values);
+		}
+	}
+
+	transform(matrix: Matrix)
+	{
+		this.modelView = matrix.clone();
+		if (activeShader === this) {
+			let transformation = this.projection.clone()
+				.composeWith(this.modelView);
+			gl.uniformMatrix4fv(this.modelViewLoc, false, transformation.values);
+		}
 	}
 }
 
