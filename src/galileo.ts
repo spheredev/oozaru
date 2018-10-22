@@ -351,7 +351,7 @@ class Texture
 		if (hwTexture === null)
 			throw new Error(`Unable to create WebGL texture object`);
 		gl.bindTexture(gl.TEXTURE_2D, hwTexture);
-		// @ts-ignore - TypeScript has the wrong signature for `gl.pixelStorei()`
+		// @ts-ignore: TypeScript has the wrong signature for `gl.pixelStorei()`
 		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);

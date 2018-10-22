@@ -58,33 +58,33 @@ class EventLoop
 {
 	private frameCount = -1;
 	private jobQueue: Job[] = [];
+	private rafCallback = this.animate.bind(this);
 	private rafID = 0;
 
 	addJob(type: JobType, callback: () => void, recurring?: false, delay?: number): number;
 	addJob(type: JobType, callback: () => void, recurring: true): number;
 	addJob(type: JobType, callback: () => void, recurring = false, delay = 0)
 	{
-		let newJob = {
+		this.jobQueue.push({
 			jobID: nextJobID,
 			type,
 			callback,
 			recurring,
 			running: false,
 			timer: delay,
-		};
-		this.jobQueue.push(newJob);
+		});
 		return nextJobID++;
 	}
 
 	animate(timestamp: number)
 	{
-		this.rafID = requestAnimationFrame(t => this.animate(t));
+		this.rafID = requestAnimationFrame(this.rafCallback);
 
 		++this.frameCount;
-		this.runJobs(JobType.Update);
 		galileo.DrawTarget.Screen.activate();
 		galileo.Prim.clear();
 		this.runJobs(JobType.Render);
+		this.runJobs(JobType.Update);
 		this.runJobs(JobType.Immediate);
 	}
 
@@ -129,7 +129,7 @@ class EventLoop
 		if (this.rafID !== 0)  // already running?
 			return;
 
-		this.rafID = requestAnimationFrame(t => this.animate(t));
+		this.rafID = requestAnimationFrame(this.rafCallback);
 	}
 
 	stop()

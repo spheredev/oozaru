@@ -428,7 +428,7 @@ class Dispatch extends null
 	{
 		throw new Error(`API not implemented`);
 	}
-	
+
 	static later(numFrames: number, callback: () => void)
 	{
 		const jobID = eventLoop.addJob(JobType.Update, callback, false, numFrames);
@@ -457,6 +457,7 @@ class Dispatch extends null
 class IndexList
 {
 	buffer: galileo.IndexBuffer;
+
 	constructor(indices: Iterable<number>)
 	{
 		this.buffer = new galileo.IndexBuffer(indices);
@@ -496,21 +497,40 @@ class Mixer
 class Model
 {
 	private shapes: Shape[];
-	private shader: Shader;
-	private transform: Transform;
-	
+	private shader_: Shader;
+	private transform_: Transform;
+
 	constructor(shapes: Iterable<Shape>, shader = Shader.Default)
 	{
 		this.shapes = [ ...shapes ];
-		this.shader = shader;
-		this.transform = new Transform();
+		this.shader_ = shader;
+		this.transform_ = new Transform();
+	}
+
+	get shader()
+	{
+		return this.shader_;
+	}
+
+	set shader(value)
+	{
+		this.shader_ = value;
+	}
+
+	get transform()
+	{
+		return this.transform_;
+	}
+
+	set transform(value)
+	{
+		this.transform_ = value;
 	}
 
 	draw(surface = Surface.Screen)
 	{
-		for (const shape of this.shapes) {
-			shape.draw(surface, this.transform, this.shader);
-		}
+		for (const shape of this.shapes)
+			shape.draw(surface, this.transform_, this.shader_);
 	}
 }
 
@@ -724,7 +744,7 @@ class Transform
 		transform.matrix.identity();
 		return transform;
 	}
-	
+
 	constructor()
 	{
 		this.matrix = new galileo.Matrix();
