@@ -40,14 +40,6 @@ interface JobOptions
 	priority?: number;
 }
 
-interface Rectangle
-{
-	x: number;
-	y: number;
-	w: number;
-	h: number;
-}
-
 interface Vertex
 {
 	x: number,

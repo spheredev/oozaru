@@ -37,6 +37,12 @@ let gl: WebGLRenderingContext;
 let screenCanvas: HTMLCanvasElement;
 
 export
+interface LengthIs16
+{
+	length: 16;
+}
+
+export
 interface RGBA
 {
 	r: number;
@@ -217,9 +223,12 @@ class Matrix
 		return new this().identity();
 	}
 
-	constructor()
+	constructor(values?: ArrayLike<number>)
 	{
-		this.values = new Float32Array(4 * 4);
+		if (values !== undefined)
+			this.values = new Float32Array(values);
+		else
+			this.values = new Float32Array(4 * 4);
 	}
 
 	clone()
@@ -231,37 +240,39 @@ class Matrix
 
 	composeWith(other: Matrix)
 	{
-		let m1 = this.values;
-		let m2 = other.values;
+		const m1 = this.values;
+		const m2 = other.values;
 
-		let a00 = m1[0], a01 = m1[1], a02 = m1[2], a03 = m1[3];
-		let a10 = m1[4], a11 = m1[5], a12 = m1[6], a13 = m1[7];
-		let a20 = m1[8], a21 = m1[9], a22 = m1[10], a23 = m1[11];
-		let a30 = m1[12], a31 = m1[13], a32 = m1[14], a33 = m1[15];
+		// pre-multiply (i.e. other * this).  this emulates the way Allegro's `al_compose_transform()`
+		// function works--that is, transformations are logically applied in the order they are specified,
+		// rather than reversed as in classic OpenGL.
+		const a00  = m2[0], a01 = m2[1], a02 = m2[2], a03 = m2[3];
+		const a10  = m2[4], a11 = m2[5], a12 = m2[6], a13 = m2[7];
+		const a20  = m2[8], a21 = m2[9], a22 = m2[10], a23 = m2[11];
+		const a30  = m2[12], a31 = m2[13], a32 = m2[14], a33 = m2[15];
+		const b00 = m1[0], b01 = m1[1], b02 = m1[2], b03 = m1[3];
+		const b10 = m1[4], b11 = m1[5], b12 = m1[6], b13 = m1[7];
+		const b20 = m1[8], b21 = m1[9], b22 = m1[10], b23 = m1[11];
+		const b30 = m1[12], b31 = m1[13], b32 = m1[14], b33 = m1[15];
 
-		let b0  = m2[0], b1 = m2[1], b2 = m2[2], b3 = m2[3];
-		m1[0] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
-		m1[1] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
-		m1[2] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
-		m1[3] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
-
-		b0 = m2[4]; b1 = m2[5]; b2 = m2[6]; b3 = m2[7];
-		m1[4] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
-		m1[5] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
-		m1[6] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
-		m1[7] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
-
-		b0 = m2[8]; b1 = m2[9]; b2 = m2[10]; b3 = m2[11];
-		m1[8] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
-		m1[9] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
-		m1[10] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
-		m1[11] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
-
-		b0 = m2[12]; b1 = m2[13]; b2 = m2[14]; b3 = m2[15];
-		m1[12] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
-		m1[13] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
-		m1[14] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
-		m1[15] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
+		// multiply the matrices together.  funny story: I still don't understand how this
+		// works.  but it does, so...
+		m1[0] = b00 * a00 + b01 * a10 + b02 * a20 + b03 * a30;
+		m1[1] = b00 * a01 + b01 * a11 + b02 * a21 + b03 * a31;
+		m1[2] = b00 * a02 + b01 * a12 + b02 * a22 + b03 * a32;
+		m1[3] = b00 * a03 + b01 * a13 + b02 * a23 + b03 * a33;
+		m1[4] = b10 * a00 + b11 * a10 + b12 * a20 + b13 * a30;
+		m1[5] = b10 * a01 + b11 * a11 + b12 * a21 + b13 * a31;
+		m1[6] = b10 * a02 + b11 * a12 + b12 * a22 + b13 * a32;
+		m1[7] = b10 * a03 + b11 * a13 + b12 * a23 + b13 * a33;
+		m1[8] = b20 * a00 + b21 * a10 + b22 * a20 + b23 * a30;
+		m1[9] = b20 * a01 + b21 * a11 + b22 * a21 + b23 * a31;
+		m1[10] = b20 * a02 + b21 * a12 + b22 * a22 + b23 * a32;
+		m1[11] = b20 * a03 + b21 * a13 + b22 * a23 + b23 * a33;
+		m1[12] = b30 * a00 + b31 * a10 + b32 * a20 + b33 * a30;
+		m1[13] = b30 * a01 + b31 * a11 + b32 * a21 + b33 * a31;
+		m1[14] = b30 * a02 + b31 * a12 + b32 * a22 + b33 * a32;
+		m1[15] = b30 * a03 + b31 * a13 + b32 * a23 + b33 * a33;
 
 		return this;
 	}
@@ -280,20 +291,21 @@ class Matrix
 
 	ortho(left: number, top: number, right: number, bottom: number, near = -1.0, far = 1.0)
 	{
-		const sX = 2 / (right - left);
-		const sY = 2 / (top - bottom);
-		const sZ = -2 / (far - near);
-		const tX = -(right + left) / (right - left);
-		const tY = -(top + bottom) / (top - bottom);
-		const tZ = (far + near) / (far - near);
-		this.values.set([
-			sX,  0.0, 0.0, 0.0,
-			0.0, sY,  0.0, 0.0,
-			0.0, 0.0, sZ,  0.0,
-			tX,  tY,  tZ,  1.0,
-		]);
+		const deltaX = right - left;
+		const deltaY = top - bottom;
+		const deltaZ = far - near;
 
-		return this;
+		const orthoMatrix = new Matrix();
+		const values = orthoMatrix.values;
+		values[0] = 2.0 / deltaX;
+		values[5] = 2.0 / deltaY;
+		values[10] = 2.0 / deltaZ;
+		values[15] = 1.0;
+		values[12] = -(right + left) / deltaX;
+		values[13] = -(top + bottom) / deltaY;
+		values[14] = -(far + near) / deltaZ;
+
+		return this.composeWith(orthoMatrix);
 	}
 
 	scale(sX: number, sY: number, sZ = 1.0)
@@ -404,8 +416,8 @@ class Shader
 	activate(useTexture: boolean)
 	{
 		if (activeShader !== this) {
-			let transformation = this.projection.clone()
-				.composeWith(this.modelView);
+			let transformation = this.modelView.clone()
+				.composeWith(this.projection);
 			gl.useProgram(this.program);
 			gl.uniformMatrix4fv(this.modelViewLoc, false, transformation.values);
 			gl.uniform1i(this.textureLoc, 0);
@@ -418,8 +430,8 @@ class Shader
 	{
 		this.projection = matrix.clone();
 		if (activeShader === this) {
-			let transformation = this.projection.clone()
-				.composeWith(this.modelView);
+			let transformation = this.modelView.clone()
+				.composeWith(this.projection);
 			gl.uniformMatrix4fv(this.modelViewLoc, false, transformation.values);
 		}
 	}
@@ -428,8 +440,8 @@ class Shader
 	{
 		this.modelView = matrix.clone();
 		if (activeShader === this) {
-			let transformation = this.projection.clone()
-				.composeWith(this.modelView);
+			let transformation = this.modelView.clone()
+				.composeWith(this.projection);
 			gl.uniformMatrix4fv(this.modelViewLoc, false, transformation.values);
 		}
 	}

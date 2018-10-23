@@ -1,3 +1,5 @@
+import Prim from './lib/prim.js';
+
 export default
 async function main()
 {
@@ -20,9 +22,10 @@ async function main()
 		{ x: w, y: h, u: 1.0, v: 0.0, color: Color.Blue },
 	]);
 	let shape = new Shape(ShapeType.TriStrip, texture, vbo);
-	let transform = Transform.Identity;
+	let transform = new Transform().translate(20, 20);
 	Dispatch.onRender(() => {
 		Surface.Screen.clipTo(10, 10, 300, 220);
+		Prim.fill(Surface.Screen, Color.DarkGreen);
 		shape.draw(Surface.Screen, transform);
 	});
 }
