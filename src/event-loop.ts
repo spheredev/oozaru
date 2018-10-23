@@ -82,6 +82,7 @@ class EventLoop
 
 		++this.frameCount;
 		galileo.DrawTarget.Screen.activate();
+		galileo.DrawTarget.Screen.unclip();
 		galileo.Prim.clear();
 		this.runJobs(JobType.Render);
 		this.runJobs(JobType.Update);

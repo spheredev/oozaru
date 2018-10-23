@@ -46,6 +46,15 @@ interface RGBA
 }
 
 export
+interface Rectangle
+{
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+}
+
+export
 enum ShapeType
 {
 	Fan,
@@ -78,6 +87,7 @@ class Galileo extends null
 			throw new Error(`Unable to acquire WebGL rendering context`);
 		gl = webGLContext;
 		gl.clearColor(0.0, 0.0, 0.0, 1.0);
+		gl.enable(gl.SCISSOR_TEST);
 
 		const vertSource = await (await fetch('shaders/default.vert.glsl')).text();
 		const fragSource = await (await fetch('shaders/default.frag.glsl')).text();
@@ -91,12 +101,14 @@ class Galileo extends null
 export
 class DrawTarget
 {
+	clipBox: Rectangle;
 	frameBuffer: WebGLFramebuffer | null;
 	texture: Texture | null;
 
 	static get Screen()
 	{
 		const screenSurface = Object.create(DrawTarget.prototype) as DrawTarget;
+		screenSurface.clipBox = { x: 0, y: 0, w: screenCanvas.width, h: screenCanvas.height };
 		screenSurface.frameBuffer = null;
 		screenSurface.texture = null;
 		Object.defineProperty(this, 'Screen', {
@@ -117,6 +129,7 @@ class DrawTarget
 		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
 			gl.TEXTURE_2D, texture.hwTexture, 0);
 
+		this.clipBox = { x: 0, y: 0, w: texture.width, h: texture.height };
 		this.frameBuffer = frameBuffer;
 		this.texture = texture;
 	}
@@ -144,7 +157,28 @@ class DrawTarget
 			gl.viewport(0, 0, this.texture.width, this.texture.height);
 		else
 			gl.viewport(0, 0, screenCanvas.width, screenCanvas.height);
+		gl.scissor(this.clipBox.x, this.clipBox.y, this.clipBox.w, this.clipBox.h);
 		activeDrawTarget = this;
+	}
+
+	clipTo(x: number, y: number, width: number, height: number)
+	{
+		this.clipBox.x = x;
+		this.clipBox.y = y;
+		this.clipBox.w = width;
+		this.clipBox.h = height;
+		if (this === activeDrawTarget)
+			gl.scissor(x, y, width, height);
+	}
+
+	unclip()
+	{
+		this.clipBox.x = 0;
+		this.clipBox.y = 0;
+		this.clipBox.w = this.width;
+		this.clipBox.h = this.height;
+		if (this === activeDrawTarget)
+			gl.scissor(0, 0, this.width, this.height);
 	}
 }
 
@@ -296,7 +330,9 @@ class Prim extends null
 {
 	static clear()
 	{
+		gl.disable(gl.SCISSOR_TEST);
 		gl.clear(gl.COLOR_BUFFER_BIT);
+		gl.enable(gl.SCISSOR_TEST);
 	}
 
 	static rerez(width: number, height: number)

@@ -40,6 +40,14 @@ interface JobOptions
 	priority?: number;
 }
 
+interface Rectangle
+{
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+}
+
 interface Vertex
 {
 	x: number,
@@ -756,6 +764,11 @@ class Surface extends Texture
 	set transform(value)
 	{
 		this.projection = value;
+	}
+
+	clipTo(x: number, y: number, width: number, height: number)
+	{
+		this.drawTarget.clipTo(x, y, width, height);
 	}
 }
 
