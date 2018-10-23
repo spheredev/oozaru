@@ -529,8 +529,15 @@ class Model
 
 	draw(surface = Surface.Screen)
 	{
-		for (const shape of this.shapes)
+		surface.drawTarget.activate();
+		this.shader_.program.project(surface.projection.matrix);
+		this.shader_.program.transform(this.transform_.matrix);
+		for (const shape of this.shapes) {
+			this.shader_.program.activate(shape.texture !== null);
+			if (shape.texture !== null)
+				shape.texture.texture.activate(0);
 			shape.draw(surface, this.transform_, this.shader_);
+		}
 	}
 }
 
@@ -599,7 +606,7 @@ class Shape
 	{
 		surface.drawTarget.activate();
 		shader.program.activate(this.texture !== null);
-		shader.program.project(surface.projection);
+		shader.program.project(surface.projection.matrix);
 		shader.program.transform(transform.matrix);
 		if (this.texture !== null)
 			this.texture.texture.activate(0);
@@ -704,15 +711,15 @@ class Texture
 class Surface extends Texture
 {
 	drawTarget: galileo.DrawTarget;
-	projection: galileo.Matrix;
+	projection: Transform;
 
 	constructor(image: HTMLImageElement)
 	{
 		super(image);
 
 		this.drawTarget = new galileo.DrawTarget(this.texture);
-		this.projection = galileo.Matrix.Identity
-			.ortho(0, 0, this.drawTarget.width, this.drawTarget.height);
+		this.projection = new Transform()
+			.project2D(0, 0, this.drawTarget.width, this.drawTarget.height);
 	}
 
 	static get Screen()
@@ -720,8 +727,8 @@ class Surface extends Texture
 		const drawTarget = galileo.DrawTarget.Screen;
 		const surface = Object.create(Surface.prototype) as Surface;
 		surface.drawTarget = drawTarget;
-		surface.projection = galileo.Matrix.Identity
-			.ortho(0, 0, drawTarget.width, drawTarget.height);
+		surface.projection = new Transform()
+			.project2D(0, 0, drawTarget.width, drawTarget.height);
 		Object.defineProperty(this, 'Screen', {
 			writable: false,
 			enumerable: false,
@@ -736,9 +743,19 @@ class Surface extends Texture
 		return this.drawTarget.height;
 	}
 
+	get transform()
+	{
+		return this.projection;
+	}
+
 	get width()
 	{
 		return this.drawTarget.width;
+	}
+
+	set transform(value)
+	{
+		this.projection = value;
 	}
 }
 
