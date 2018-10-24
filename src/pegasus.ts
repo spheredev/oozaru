@@ -808,6 +808,14 @@ class Transform
 
 	rotate(angle: number, vX = 0.0, vY = 0.0, vZ = 1.0)
 	{
+		// normalize the rotation axis vector
+		const axisLength = Math.sqrt(vX * vX + vY * vY + vZ * vZ);
+		if (axisLength !== 1.0) {
+			vX = Math.abs(vX / axisLength);
+			vY = Math.abs(vY / axisLength);
+			vZ = Math.abs(vZ / axisLength);
+		}
+
 		// convert degrees to radians
 		const theta = angle * Math.PI / 180.0;
 

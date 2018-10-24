@@ -25,7 +25,7 @@ async function main()
 	let transform = new Transform()
 		.translate(-160, -120)
 		.scale(0.75, 0.75)
-		.rotate(15)
+		.rotate(15, 0.0, 0.0, 2.0)  // normalized, should still be a 15-degree rotation
 		.translate(160, 120);
 	Dispatch.onRender(() => {
 		shape.draw(Surface.Screen, transform);
