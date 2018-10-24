@@ -536,7 +536,7 @@ class Model
 			this.shader_.program.activate(shape.texture !== null);
 			if (shape.texture !== null)
 				shape.texture.texture.activate(0);
-			shape.draw(surface, this.transform_, this.shader_);
+			shape.shape.draw();
 		}
 	}
 }
@@ -771,7 +771,6 @@ class Transform
 	static get Identity()
 	{
 		let transform = new this();
-		transform.matrix.identity();
 		return transform;
 	}
 
@@ -781,9 +780,38 @@ class Transform
 		this.matrix.identity();
 	}
 
+	compose(transform: Transform)
+	{
+		this.matrix.composeWith(transform.matrix);
+		return this;
+	}
+
+	identity()
+	{
+		this.matrix.identity();
+		return this;
+	}
+
 	project2D(left: number, top: number, right: number, bottom: number, near = -1.0, far = 1.0)
 	{
 		this.matrix.ortho(left, top, right, bottom, near, far);
+		return this;
+	}
+
+	project3D(fov: number, aspect: number, near: number, far: number)
+	{
+		const fh = Math.tan(fov * Math.PI / 360.0) * near;
+		const fw = fh * aspect;
+		this.matrix.perspective(-fw, -fh, fw, fh, near, far);
+		return this;
+	}
+
+	rotate(angle: number, vX = 0.0, vY = 0.0, vZ = 1.0)
+	{
+		// convert degrees to radians
+		const theta = angle * Math.PI / 180.0;
+
+		this.matrix.rotate(theta, vX, vY, vZ);
 		return this;
 	}
 

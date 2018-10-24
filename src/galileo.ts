@@ -295,8 +295,8 @@ class Matrix
 		const deltaY = top - bottom;
 		const deltaZ = far - near;
 
-		const orthoMatrix = new Matrix();
-		const values = orthoMatrix.values;
+		const projection = new Matrix();
+		const values = projection.values;
 		values[0] = 2.0 / deltaX;
 		values[5] = 2.0 / deltaY;
 		values[10] = 2.0 / deltaZ;
@@ -305,7 +305,49 @@ class Matrix
 		values[13] = -(top + bottom) / deltaY;
 		values[14] = -(far + near) / deltaZ;
 
-		return this.composeWith(orthoMatrix);
+		return this.composeWith(projection);
+	}
+
+	perspective(left: number, top: number, right: number, bottom: number, near: number, far: number)
+	{
+		const deltaX = right - left;
+		const deltaY = top - bottom;
+		const deltaZ = far - near;
+
+		const projection = new Matrix();
+		const values = projection.values;
+		values[0] = 2.0 * near / deltaX;
+		values[5] = 2.0 * near / deltaY;
+		values[8] = (right + left) / deltaX;
+		values[9] = (top + bottom) / deltaY;
+		values[10] = -(far + near) / deltaZ;
+		values[11] = -1.0;
+		values[14] = -2.0 * far * near / deltaZ;
+		values[15] = 0.0;
+
+		return this.composeWith(projection);
+	}
+
+	rotate(theta: number, vX: number, vY: number, vZ: number)
+	{
+		const cos = Math.cos(theta);
+		const sin = Math.sin(theta);
+		const siv = 1.0 - cos;
+
+		const rotation = new Matrix();
+		const values = rotation.values;
+		values[0] = (siv * vX * vX) + cos;
+		values[1] = (siv * vX * vY) + (vZ * sin);
+		values[2] = (siv * vX * vZ) - (vY * sin);
+		values[4] = (siv * vX * vY) - (vZ * sin);
+		values[5] = (siv * vY * vY) + cos;
+		values[6] = (siv * vZ * vY) + (vX * sin);
+		values[8] = (siv * vX * vZ) + (vY * sin);
+		values[9] = (siv * vY * vZ) - (vX * sin);
+		values[10] = (siv * vZ * vZ) + cos;
+		values[15] = 1.0;
+
+		return this.composeWith(rotation);
 	}
 
 	scale(sX: number, sY: number, sZ = 1.0)

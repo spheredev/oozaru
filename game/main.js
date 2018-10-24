@@ -22,10 +22,12 @@ async function main()
 		{ x: w, y: h, u: 1.0, v: 0.0, color: Color.Blue },
 	]);
 	let shape = new Shape(ShapeType.TriStrip, texture, vbo);
-	let transform = new Transform().translate(20, 20);
+	let transform = new Transform()
+		.translate(-160, -120)
+		.scale(0.75, 0.75)
+		.rotate(15)
+		.translate(160, 120);
 	Dispatch.onRender(() => {
-		Surface.Screen.clipTo(10, 10, 300, 220);
-		Prim.fill(Surface.Screen, Color.DarkGreen);
 		shape.draw(Surface.Screen, transform);
 	});
 }
