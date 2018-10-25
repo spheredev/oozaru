@@ -30,11 +30,6 @@ class Showcase extends Thread
 		this.comboTimer = 0;
 		this.hp = 812;
 		this.isHidden = false;
-	}
-
-	async on_startUp()
-	{
-		this.wallpaper = await Texture.fromFile('/images/justSaiyan.png');
 
 		// construct a new HP gauge and make it visible
 		this.lifeBar = new HPGauge(160, 10, 150, 12, {
@@ -45,6 +40,11 @@ class Showcase extends Thread
 			priority:   1,
 		});
 		this.lifeBar.show();
+	}
+
+	async on_startUp()
+	{
+		this.wallpaper = await Texture.fromFile('/images/justSaiyan.png');
 	}
 
 	on_update()

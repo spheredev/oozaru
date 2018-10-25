@@ -40,6 +40,7 @@ interface Job
 	jobID: number;
 	type: JobType;
 	callback: () => void;
+	priority: number;
 	recurring: boolean;
 	running: boolean;
 	timer: number;
@@ -60,19 +61,30 @@ class EventLoop
 	private jobQueue: Job[] = [];
 	private rafCallback = this.animate.bind(this);
 	private rafID = 0;
+	private sortNeeded = false;
 
 	addJob(type: JobType, callback: () => void, recurring?: false, delay?: number): number;
-	addJob(type: JobType, callback: () => void, recurring: true): number;
-	addJob(type: JobType, callback: () => void, recurring = false, delay = 0)
+	addJob(type: JobType, callback: () => void, recurring: true, priority?: number): number;
+	addJob(type: JobType, callback: () => void, recurring = false, delayOrPriority = 0)
 	{
+		const timer = !recurring ? delayOrPriority : 0;
+		let priority = recurring ? delayOrPriority : 0.0;
+
+		// note: priority is inverted for render jobs so that the highest-priority render
+		//       gets done last ("painter's algorithm").
+		if (type === JobType.Render)
+			priority = -(priority);
+
 		this.jobQueue.push({
 			jobID: nextJobID,
 			type,
 			callback,
+			priority,
 			recurring,
 			running: false,
-			timer: delay,
+			timer,
 		});
+		this.sortNeeded = true;
 		return nextJobID++;
 	}
 
@@ -108,6 +120,14 @@ class EventLoop
 
 	runJobs(type: JobType)
 	{
+		if (this.sortNeeded) {
+			this.jobQueue.sort((a, b) => {
+				const delta = b.priority - a.priority;
+				const fifoDelta = a.jobID - b.jobID;
+				return delta !== 0 ? delta : fifoDelta;
+			});
+			this.sortNeeded = false;
+		}
 		for (const job of this.jobQueue) {
 			if (job.type === type && !job.running && (job.recurring || job.timer-- <= 0)) {
 				job.running = true;

@@ -576,15 +576,15 @@ class Dispatch extends null
 		return new JobToken(jobID);
 	}
 
-	static onRender(callback: () => void, options?: JobOptions)
+	static onRender(callback: () => void, options: JobOptions = {})
 	{
-		const jobID = eventLoop.addJob(JobType.Render, callback, true);
+		const jobID = eventLoop.addJob(JobType.Render, callback, true, options.priority);
 		return new JobToken(jobID);
 	}
 
-	static onUpdate(callback: () => void, options?: JobOptions)
+	static onUpdate(callback: () => void, options: JobOptions = {})
 	{
-		const jobID = eventLoop.addJob(JobType.Update, callback, true);
+		const jobID = eventLoop.addJob(JobType.Update, callback, true, options.priority);
 		return new JobToken(jobID);
 	}
 }
