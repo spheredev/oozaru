@@ -1,8 +1,1 @@
-{
-	"version": 2,
-	"name": "Oozaru Proof of Concept",
-	"author": "Fat Cerberus",
-	"summary": "Play this game to get eaten by the pig.",
-	"resolution": "320x240",
-	"main": "main.js"
-}
+{"version":2,"apiLevel":1,"name":"kh2Bar Showcase","author":"Fat Cerberus","resolution":"320x240","main":"@/bin/main.js","$COMPILER":"Cell 5.3a2","$SOURCES":{"@/bin/kh2Bar.mjs":"src/kh2Bar.mjs","@/bin/main.mjs":"src/main.mjs","@/images/justSaiyan.png":"images/justSaiyan.png"}}

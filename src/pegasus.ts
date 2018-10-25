@@ -198,6 +198,7 @@ class Pegasus extends null
 			Color,
 			Dispatch,
 			IndexList,
+			Joystick,
 			Keyboard,
 			Mixer,
 			Model,
@@ -218,7 +219,7 @@ class Pegasus extends null
 	{
 		// load and execute the game's main module.  if it exports a startup
 		// function or class, call it.
-		const fileName = `${dirName}/main.js`;
+		const fileName = `${dirName}/bin/main.js`;
 		const main = await import(fileName);
 		if (util.isConstructor(main.default)) {
 			mainObject = new main.default() as object;
@@ -248,6 +249,15 @@ class Sphere extends null
 	static get Version()
 	{
 		return 2;
+	}
+
+	static get frameRate()
+	{
+		return 60;
+	}
+
+	static set frameRate(_value)
+	{
 	}
 
 	static get main()
@@ -601,6 +611,14 @@ class JobToken
 	cancel()
 	{
 		eventLoop.cancelJob(this.jobID);
+	}
+}
+
+class Joystick
+{
+	static getDevices()
+	{
+		return [] as Joystick[];
 	}
 }
 
