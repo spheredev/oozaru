@@ -76,7 +76,7 @@ class EventLoop
 		return nextJobID++;
 	}
 
-	animate(timestamp: number)
+	animate(_timestamp: number)
 	{
 		this.rafID = requestAnimationFrame(this.rafCallback);
 

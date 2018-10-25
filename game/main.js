@@ -29,5 +29,6 @@ async function main()
 		.translate(160, 120);
 	Dispatch.onRender(() => {
 		shape.draw(Surface.Screen, transform);
+		Prim.fill(Surface.Screen, Color.Magenta.fadeTo(0.25));
 	});
 }

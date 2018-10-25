@@ -778,6 +778,8 @@ class Shape
 		}
 		else {
 			galileo.Shader.Default.activate(false);
+			galileo.Shader.Default.project(surface.projection.matrix);
+			galileo.Shader.Default.transform(galileo.Matrix.Identity);
 			scratchVBO.upload(arg1);
 			if (arg2 !== null) {
 				scratchIBO.upload(arg2 as Iterable<number>);

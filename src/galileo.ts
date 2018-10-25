@@ -37,12 +37,6 @@ let gl: WebGLRenderingContext;
 let screenCanvas: HTMLCanvasElement;
 
 export
-interface LengthIs16
-{
-	length: 16;
-}
-
-export
 interface RGBA
 {
 	r: number;
@@ -88,11 +82,14 @@ class Galileo extends null
 {
 	static async initialize(canvas: HTMLCanvasElement)
 	{
-		const webGLContext = canvas.getContext('webgl');
+		const webGLContext = canvas.getContext('webgl', { alpha: false });
 		if (webGLContext === null)
 			throw new Error(`Unable to acquire WebGL rendering context`);
 		gl = webGLContext;
+		gl.blendEquation(gl.FUNC_ADD);
+		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 		gl.clearColor(0.0, 0.0, 0.0, 1.0);
+		gl.enable(gl.BLEND);
 		gl.enable(gl.SCISSOR_TEST);
 
 		const vertSource = await (await fetch('shaders/default.vert.glsl')).text();
@@ -107,14 +104,14 @@ class Galileo extends null
 export
 class DrawTarget
 {
-	clipBox: Rectangle;
+	clipping: Rectangle;
 	frameBuffer: WebGLFramebuffer | null;
 	texture: Texture | null;
 
 	static get Screen()
 	{
 		const screenSurface = Object.create(DrawTarget.prototype) as DrawTarget;
-		screenSurface.clipBox = { x: 0, y: 0, w: screenCanvas.width, h: screenCanvas.height };
+		screenSurface.clipping = { x: 0, y: 0, w: screenCanvas.width, h: screenCanvas.height };
 		screenSurface.frameBuffer = null;
 		screenSurface.texture = null;
 		Object.defineProperty(this, 'Screen', {
@@ -135,7 +132,7 @@ class DrawTarget
 		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
 			gl.TEXTURE_2D, texture.hwTexture, 0);
 
-		this.clipBox = { x: 0, y: 0, w: texture.width, h: texture.height };
+		this.clipping = { x: 0, y: 0, w: texture.width, h: texture.height };
 		this.frameBuffer = frameBuffer;
 		this.texture = texture;
 	}
@@ -163,26 +160,26 @@ class DrawTarget
 			gl.viewport(0, 0, this.texture.width, this.texture.height);
 		else
 			gl.viewport(0, 0, screenCanvas.width, screenCanvas.height);
-		gl.scissor(this.clipBox.x, this.clipBox.y, this.clipBox.w, this.clipBox.h);
+		gl.scissor(this.clipping.x, this.clipping.y, this.clipping.w, this.clipping.h);
 		activeDrawTarget = this;
 	}
 
 	clipTo(x: number, y: number, width: number, height: number)
 	{
-		this.clipBox.x = x;
-		this.clipBox.y = y;
-		this.clipBox.w = width;
-		this.clipBox.h = height;
+		this.clipping.x = x;
+		this.clipping.y = y;
+		this.clipping.w = width;
+		this.clipping.h = height;
 		if (this === activeDrawTarget)
 			gl.scissor(x, y, width, height);
 	}
 
 	unclip()
 	{
-		this.clipBox.x = 0;
-		this.clipBox.y = 0;
-		this.clipBox.w = this.width;
-		this.clipBox.h = this.height;
+		this.clipping.x = 0;
+		this.clipping.y = 0;
+		this.clipping.w = this.width;
+		this.clipping.h = this.height;
 		if (this === activeDrawTarget)
 			gl.scissor(0, 0, this.width, this.height);
 	}
@@ -217,11 +214,12 @@ class IndexBuffer
 			gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, values);
 		}
 		else {
+			gl.deleteBuffer(this.hwBuffer);
 			this.hwBuffer = gl.createBuffer();
 			if (this.hwBuffer === null)
 				throw new Error(`Unable to create WebGL index buffer object`);
 			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.hwBuffer);
-			gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, values, gl.STATIC_DRAW);
+			gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, values, this.streamable ? gl.STREAM_DRAW : gl.STATIC_DRAW);
 			this.length = values.length;
 			this.maxItems = this.length;
 		}
