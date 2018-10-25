@@ -58,8 +58,7 @@ interface Vertex
 }
 
 const eventLoop = new EventLoop();
-const scratchVBO = new galileo.VertexBuffer();
-const scratchIBO = new galileo.IndexBuffer();
+const tempVBO = new galileo.VertexBuffer();
 
 let mainObject: { [x: string]: any } | undefined;
 
@@ -756,9 +755,9 @@ class Shape
 	indexList: IndexList | null;
 	shape: galileo.Shape;
 
-	static drawImmediate(surface: Surface, type: galileo.ShapeType, texture: Texture | null, vertices: ArrayLike<Vertex>, indices?: Iterable<number> | null): void
-	static drawImmediate(surface: Surface, type: galileo.ShapeType, vertices: ArrayLike<Vertex>, indices?: Iterable<number> | null): void
-	static drawImmediate(surface: Surface, type: galileo.ShapeType, arg1: Texture | ArrayLike<Vertex> | null, arg2: ArrayLike<Vertex> | Iterable<number> | null = null, arg3: Iterable<number> | null = null)
+	static drawImmediate(surface: Surface, type: galileo.ShapeType, texture: Texture | null, vertices: ArrayLike<Vertex>): void
+	static drawImmediate(surface: Surface, type: galileo.ShapeType, vertices: ArrayLike<Vertex>): void
+	static drawImmediate(surface: Surface, type: galileo.ShapeType, arg1: Texture | ArrayLike<Vertex> | null, arg2?: ArrayLike<Vertex>)
 	{
 		surface.drawTarget.activate();
 		if (arg1 instanceof Texture || arg1 === null) {
@@ -767,27 +766,15 @@ class Shape
 			galileo.Shader.Default.transform(galileo.Matrix.Identity);
 			if (arg1 !== null)
 				arg1.texture.activate(0);
-			scratchVBO.upload(arg2 as ArrayLike<Vertex>);
-			if (arg3 !== null) {
-				scratchIBO.upload(arg3);
-				galileo.Shape.draw(scratchVBO, scratchIBO, type);
-			}
-			else {
-				galileo.Shape.draw(scratchVBO, null, type);
-			}
+			tempVBO.upload(arg2 as ArrayLike<Vertex>);
+			galileo.Shape.draw(tempVBO, null, type);
 		}
 		else {
 			galileo.Shader.Default.activate(false);
 			galileo.Shader.Default.project(surface.projection.matrix);
 			galileo.Shader.Default.transform(galileo.Matrix.Identity);
-			scratchVBO.upload(arg1);
-			if (arg2 !== null) {
-				scratchIBO.upload(arg2 as Iterable<number>);
-				galileo.Shape.draw(scratchVBO, scratchIBO, type);
-			}
-			else {
-				galileo.Shape.draw(scratchVBO, null, type);
-			}
+			tempVBO.upload(arg1);
+			galileo.Shape.draw(tempVBO, null, type);
 		}
 	}
 

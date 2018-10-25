@@ -256,9 +256,9 @@ class Matrix
 		const m1 = this.values;
 		const m2 = other.values;
 
-		// pre-multiply (i.e. other * this).  this emulates the way Allegro's `al_compose_transform()`
-		// function works--that is, transformations are logically applied in the order they are specified,
-		// rather than reversed as in classic OpenGL.
+		// multiply from the left (i.e. `other * this`).  this emulates the way Allegro's
+		// `al_compose_transform()` function works--that is, transformations are logically applied in
+		// the order they're specified, rather than reversed as in classic OpenGL.
 		const a00  = m2[0], a01 = m2[1], a02 = m2[2], a03 = m2[3];
 		const a10  = m2[4], a11 = m2[5], a12 = m2[6], a13 = m2[7];
 		const a20  = m2[8], a21 = m2[9], a22 = m2[10], a23 = m2[11];
