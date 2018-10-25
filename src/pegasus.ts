@@ -40,6 +40,13 @@ interface JobOptions
 	priority?: number;
 }
 
+interface MouseEvent
+{
+	key: MouseKey;
+	x: number;
+	y: number;
+}
+
 interface Vertex
 {
 	x: number,
@@ -51,8 +58,122 @@ interface Vertex
 }
 
 const eventLoop = new EventLoop();
+const scratchVBO = new galileo.VertexBuffer();
+const scratchIBO = new galileo.IndexBuffer();
 
 let mainObject: { [x: string]: any } | undefined;
+
+enum Key
+{
+	Alt,
+	AltGr,
+	Apostrophe,
+	Backslash,
+	Backspace,
+	CapsLock,
+	CloseBrace,
+	Comma,
+	Delete,
+	Down,
+	End,
+	Enter,
+	Equals,
+	Escape,
+	F1,
+	F2,
+	F3,
+	F4,
+	F5,
+	F6,
+	F7,
+	F8,
+	F9,
+	F10,
+	F11,
+	F12,
+	Home,
+	Hyphen,
+	Insert,
+	LCtrl,
+	LShift,
+	Left,
+	NumLock,
+	OpenBrace,
+	PageDown,
+	PageUp,
+	Period,
+	RCtrl,
+	RShift,
+	Right,
+	ScrollLock,
+	Semicolon,
+	Slahs,
+	Space,
+	Tab,
+	Tilde,
+	Up,
+	A,
+	B,
+	C,
+	D,
+	E,
+	F,
+	G,
+	H,
+	I,
+	J,
+	K,
+	L,
+	M,
+	N,
+	O,
+	P,
+	Q,
+	R,
+	S,
+	T,
+	U,
+	V,
+	W,
+	X,
+	Y,
+	Z,
+	D1,
+	D2,
+	D3,
+	D4,
+	D5,
+	D6,
+	D7,
+	D8,
+	D9,
+	D0,
+	NumPad1,
+	NumPad2,
+	NumPad3,
+	NumPad4,
+	NumPad5,
+	NumPad6,
+	NumPad7,
+	NumPad8,
+	NumPad9,
+	NumPad0,
+	NumPadEnter,
+	Add,
+	Decimal,
+	Divide,
+	Multiply,
+	Subtract,
+}
+
+enum MouseKey
+{
+	Left,
+	Middle,
+	Right,
+	WheelUp,
+	WheelDown,
+}
 
 export default
 class Pegasus extends null
@@ -69,6 +190,8 @@ class Pegasus extends null
 		// register Sphere v2 API globals
 		Object.assign(window, {
 			// enumerations
+			Key,
+			MouseKey,
 			ShapeType: galileo.ShapeType,
 
 			// classes and namespaces
@@ -76,8 +199,11 @@ class Pegasus extends null
 			Color,
 			Dispatch,
 			IndexList,
+			Keyboard,
 			Mixer,
 			Model,
+			Mouse,
+			RNG,
 			SSj,
 			Shader,
 			Shape,
@@ -479,6 +605,24 @@ class JobToken
 	}
 }
 
+class Keyboard
+{
+	static get Default()
+	{
+		return new this();
+	}
+
+	getKey(): Key | null
+	{
+		return null;
+	}
+
+	isPressed(key: Key)
+	{
+		return false;
+	}
+}
+
 class Mixer
 {
 	zit = { volume: 1.0 };
@@ -541,6 +685,40 @@ class Model
 	}
 }
 
+class Mouse
+{
+	static get Default()
+	{
+		return new this();
+	}
+
+	getEvent(): MouseEvent | null
+	{
+		return null;
+	}
+
+	isPressed(key: MouseKey)
+	{
+		return false;
+	}
+}
+
+class RNG
+{
+	constructor()
+	{
+
+	}
+
+	next()
+	{
+		return {
+			done: false,
+			value: Math.random(),
+		};
+	}
+}
+
 class SSj extends null
 {
 	static log(object: any)
@@ -577,6 +755,39 @@ class Shape
 	texture: Texture | null;
 	indexList: IndexList | null;
 	shape: galileo.Shape;
+
+	static drawImmediate(surface: Surface, type: galileo.ShapeType, texture: Texture | null, vertices: ArrayLike<Vertex>, indices?: Iterable<number> | null): void
+	static drawImmediate(surface: Surface, type: galileo.ShapeType, vertices: ArrayLike<Vertex>, indices?: Iterable<number> | null): void
+	static drawImmediate(surface: Surface, type: galileo.ShapeType, arg1: Texture | ArrayLike<Vertex> | null, arg2: ArrayLike<Vertex> | Iterable<number> | null = null, arg3: Iterable<number> | null = null)
+	{
+		surface.drawTarget.activate();
+		if (arg1 instanceof Texture || arg1 === null) {
+			galileo.Shader.Default.activate(arg1 !== null);
+			galileo.Shader.Default.project(surface.projection.matrix);
+			galileo.Shader.Default.transform(galileo.Matrix.Identity);
+			if (arg1 !== null)
+				arg1.texture.activate(0);
+			scratchVBO.upload(arg2 as ArrayLike<Vertex>);
+			if (arg3 !== null) {
+				scratchIBO.upload(arg3);
+				galileo.Shape.draw(scratchVBO, scratchIBO, type);
+			}
+			else {
+				galileo.Shape.draw(scratchVBO, null, type);
+			}
+		}
+		else {
+			galileo.Shader.Default.activate(false);
+			scratchVBO.upload(arg1);
+			if (arg2 !== null) {
+				scratchIBO.upload(arg2 as Iterable<number>);
+				galileo.Shape.draw(scratchVBO, scratchIBO, type);
+			}
+			else {
+				galileo.Shape.draw(scratchVBO, null, type);
+			}
+		}
+	}
 
 	constructor(type: galileo.ShapeType, texture: Texture | null, vbo: VertexList, indexList?: IndexList | null)
 	constructor(type: galileo.ShapeType, vbo: VertexList, indexList?: IndexList | null)
@@ -692,9 +903,20 @@ class Texture
 		return new this(image);
 	}
 
-	constructor(image: HTMLImageElement)
+	constructor(width: number, height: number, content?: ArrayBufferView | Color);
+	constructor(image: HTMLImageElement);
+	constructor(...args: [ any, any?, any? ])
 	{
-		this.texture = new galileo.Texture(image);
+		if (args[0] instanceof HTMLImageElement) {
+			const image = args[0];
+			this.texture = new galileo.Texture(image);
+		}
+		else {
+			const width: number = args[0];
+			const height: number = args[1];
+			const content: ArrayBufferView | Color | undefined = args[2];
+			this.texture = new galileo.Texture(width, height, content);
+		}
 	}
 
 	get height()
@@ -713,15 +935,6 @@ class Surface extends Texture
 	drawTarget: galileo.DrawTarget;
 	projection: Transform;
 
-	constructor(image: HTMLImageElement)
-	{
-		super(image);
-
-		this.drawTarget = new galileo.DrawTarget(this.texture);
-		this.projection = new Transform()
-			.project2D(0, 0, this.drawTarget.width, this.drawTarget.height);
-	}
-
 	static get Screen()
 	{
 		const drawTarget = galileo.DrawTarget.Screen;
@@ -736,6 +949,17 @@ class Surface extends Texture
 			value: surface,
 		});
 		return surface;
+	}
+
+	constructor(width: number, height: number, content?: ArrayBufferView | Color);
+	constructor(image: HTMLImageElement);
+	constructor(...args: [ any, any?, any? ])
+	{
+		super(...args);
+
+		this.drawTarget = new galileo.DrawTarget(this.texture);
+		this.projection = new Transform()
+			.project2D(0, 0, this.drawTarget.width, this.drawTarget.height);
 	}
 
 	get height()
@@ -839,6 +1063,7 @@ class Transform
 class VertexList
 {
 	buffer: galileo.VertexBuffer;
+
 	constructor(vertices: Iterable<Vertex>)
 	{
 		this.buffer = new galileo.VertexBuffer([ ...vertices ]);

@@ -191,25 +191,40 @@ class DrawTarget
 export
 class IndexBuffer
 {
-	hwBuffer: WebGLBuffer;
-	length: number;
+	hwBuffer: WebGLBuffer | null = null;
+	length: number = 0;
+	maxItems: number = 0;
+	streamable: boolean;
 
-	constructor(indices: Iterable<number>)
+	constructor(indices?: Iterable<number>)
 	{
-		const hwBuffer = gl.createBuffer();
-		if (hwBuffer === null)
-			throw new Error(`Unable to create WebGL index buffer object`);
-		const values = new Uint16Array(indices);
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, hwBuffer);
-		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, values, gl.STATIC_DRAW);
-
-		this.hwBuffer = hwBuffer;
-		this.length = values.length;
+		this.streamable = indices === undefined;
+		if (indices !== undefined)
+			this.upload(indices);
 	}
 
 	activate()
 	{
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.hwBuffer);
+	}
+
+	upload(indices: Iterable<number>)
+	{
+		const values = new Uint16Array(indices);
+		this.length = values.length;
+		if (this.length <= this.maxItems && this.hwBuffer !== null) {
+			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.hwBuffer);
+			gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, values);
+		}
+		else {
+			this.hwBuffer = gl.createBuffer();
+			if (this.hwBuffer === null)
+				throw new Error(`Unable to create WebGL index buffer object`);
+			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.hwBuffer);
+			gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, values, gl.STATIC_DRAW);
+			this.length = values.length;
+			this.maxItems = this.length;
+		}
 	}
 }
 
@@ -496,6 +511,25 @@ class Shape
 	vertices: VertexBuffer;
 	indices: IndexBuffer | null;
 
+	static draw(vertexBuffer: VertexBuffer, indexBuffer: IndexBuffer | null, type: ShapeType)
+	{
+		const drawMode = type === ShapeType.Fan ? gl.TRIANGLE_FAN
+			: type === ShapeType.Lines ? gl.LINES
+			: type === ShapeType.LineLoop ? gl.LINE_LOOP
+			: type === ShapeType.LineStrip ? gl.LINE_STRIP
+			: type === ShapeType.Points ? gl.POINTS
+			: type === ShapeType.TriStrip ? gl.TRIANGLE_STRIP
+			: gl.TRIANGLES;
+		vertexBuffer.activate();
+		if (indexBuffer !== null) {
+			indexBuffer.activate();
+			gl.drawElements(drawMode, indexBuffer.length, gl.UNSIGNED_SHORT, 0);
+		}
+		else {
+			gl.drawArrays(drawMode, 0, vertexBuffer.length);
+		}
+	}
+
 	constructor(vertexBuffer: VertexBuffer, indexBuffer: IndexBuffer | null, type: ShapeType)
 	{
 		this.type = type;
@@ -505,21 +539,7 @@ class Shape
 
 	draw()
 	{
-		const drawMode = this.type === ShapeType.Fan ? gl.TRIANGLE_FAN
-			: this.type === ShapeType.Lines ? gl.LINES
-			: this.type === ShapeType.LineLoop ? gl.LINE_LOOP
-			: this.type === ShapeType.LineStrip ? gl.LINE_STRIP
-			: this.type === ShapeType.Points ? gl.POINTS
-			: this.type === ShapeType.TriStrip ? gl.TRIANGLE_STRIP
-			: gl.TRIANGLES;
-		this.vertices.activate();
-		if (this.indices !== null) {
-			this.indices.activate();
-			gl.drawElements(drawMode, this.indices.length, gl.UNSIGNED_SHORT, 0);
-		}
-		else {
-			gl.drawArrays(drawMode, 0, this.vertices.length);
-		}
+		Shape.draw(this.vertices, this.indices, this.type);
 	}
 }
 
@@ -530,22 +550,42 @@ class Texture
 	width: number;
 	height: number;
 
-	constructor(image: TexImageSource)
+	constructor(image: HTMLImageElement);
+	constructor(width: number, height: number, content?: ArrayBufferView | RGBA);
+	constructor(arg1: HTMLImageElement | number, arg2?: number, arg3?: ArrayBufferView | RGBA)
 	{
 		const hwTexture = gl.createTexture();
 		if (hwTexture === null)
 			throw new Error(`Unable to create WebGL texture object`);
-		gl.bindTexture(gl.TEXTURE_2D, hwTexture);
+		this.hwTexture = hwTexture;
+		gl.bindTexture(gl.TEXTURE_2D, this.hwTexture);
 		// @ts-ignore: TypeScript has the wrong signature for `gl.pixelStorei()`
 		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+		if (arg1 instanceof HTMLImageElement) {
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, arg1);
+			this.width = arg1.width;
+			this.height = arg1.height;
+		}
+		else {
+			this.width = arg1;
+			this.height = arg2 as number;
+			if (ArrayBuffer.isView(arg3)) {
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.width, this.height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+					new Uint8Array(arg3.buffer));
+			}
+			else {
+				let pixels = new Uint32Array(this.width * this.height);
+				if (arg3 !== undefined)
+					pixels.fill((arg3.a * 255 << 24) + (arg3.b * 255 << 16) + (arg3.g * 255 << 8) + (arg3.r * 255));
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.width, this.height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+					new Uint8Array(pixels.buffer));
+			}
+		}
+
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-		this.hwTexture = hwTexture;
-		this.width = image.width;
-		this.height = image.height;
 	}
 
 	activate(textureUnit = 0)
@@ -558,10 +598,30 @@ class Texture
 export
 class VertexBuffer
 {
-	hwBuffer: WebGLBuffer;
-	length: number;
+	hwBuffer: WebGLBuffer | null = null;
+	length: number = 0;
+	maxItems: number = 0;
+	streamable: boolean;
 
-	constructor(vertices: ArrayLike<Vertex>)
+	constructor(vertices?: ArrayLike<Vertex>)
+	{
+		this.streamable = vertices === undefined;
+		if (vertices !== undefined)
+			this.upload(vertices);
+	}
+
+	activate()
+	{
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.hwBuffer);
+		gl.enableVertexAttribArray(0);
+		gl.enableVertexAttribArray(1);
+		gl.enableVertexAttribArray(2);
+		gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 40, 0);
+		gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 40, 16);
+		gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 40, 32);
+	}
+
+	upload(vertices: ArrayLike<Vertex>)
 	{
 		const data = new Float32Array(10 * vertices.length);
 		for (let i = 0, len = vertices.length; i < len; ++i) {
@@ -588,23 +648,19 @@ class VertexBuffer
 				data[9 + i * 10] = vertex.v;
 			}
 		}
-		const hwBuffer = gl.createBuffer();
-		if (hwBuffer === null)
-			throw new Error(`Unable to create WebGL vertex buffer object`);
-		gl.bindBuffer(gl.ARRAY_BUFFER, hwBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
-		this.hwBuffer = hwBuffer;
 		this.length = vertices.length;
-	}
-
-	activate()
-	{
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.hwBuffer);
-		gl.enableVertexAttribArray(0);
-		gl.enableVertexAttribArray(1);
-		gl.enableVertexAttribArray(2);
-		gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 40, 0);
-		gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 40, 16);
-		gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 40, 32);
+		if (this.length <= this.maxItems && this.hwBuffer != null) {
+			gl.bindBuffer(gl.ARRAY_BUFFER, this.hwBuffer);
+			gl.bufferSubData(gl.ARRAY_BUFFER, 0, data);
+		}
+		else {
+			gl.deleteBuffer(this.hwBuffer);
+			this.hwBuffer = gl.createBuffer();
+			if (this.hwBuffer === null)
+				throw new Error(`Unable to create WebGL vertex buffer object`);
+			gl.bindBuffer(gl.ARRAY_BUFFER, this.hwBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, data, this.streamable ? gl.STREAM_DRAW : gl.STATIC_DRAW);
+			this.maxItems = this.length;
+		}
 	}
 }
