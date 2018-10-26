@@ -69,6 +69,15 @@ class BufferStream
 		this.ptr = value;
 	}
 
+	readBytes(numBytes: number): Uint8Array
+	{
+		if (this.ptr + numBytes > this.bytes.length)
+			throw new Error(`Unable to read ${numBytes} bytes from stream`);
+		const bytes = this.bytes.slice(this.ptr, this.ptr + numBytes);
+		this.ptr += numBytes;
+		return bytes;
+	}
+
 	readInt8()
 	{
 		if (this.ptr + 1 > this.bytes.length)
@@ -119,6 +128,77 @@ class BufferStream
 	{
 		const length = this.readUint32(littleEndian);
 		return this.readString(length);
+	}
+
+	readStruct(manifest: { [x: string]: string })
+	{
+		let retval: { [x: string]: any } = {};
+		for (const key of Object.keys(manifest)) {
+			let valueType = manifest[key];
+			const matches = valueType.match(/(string|reserve)\/([0-9]*)/);
+			let numBytes = 0;
+			if (matches !== null) {
+				valueType = matches[1];
+				numBytes = parseInt(matches[2], 10);
+			}
+			switch (valueType) {
+				case 'int8': case 'int8-be': case 'int8-le':
+					retval[key] = this.readInt8();
+					break;
+				case 'int16': case 'int16-be':
+					retval[key] = this.readInt16();
+					break;
+				case 'int16-le':
+					retval[key] = this.readInt16(true);
+					break;
+				case 'int32': case 'int32-be':
+					retval[key] = this.readInt32();
+					break;
+				case 'int32-le':
+					retval[key] = this.readInt32(true);
+					break;
+				case 'reserve':
+					retval[key] = null;
+					this.skipAhead(numBytes);
+					break;
+				case 'string':
+					retval[key] = this.readString(numBytes);
+					break;
+				case 'string-8':
+					retval[key] = this.readStringU8();
+					break;
+				case 'string-16': case 'string-16-be':
+					retval[key] = this.readStringU16();
+					break;
+				case 'string-16-le':
+					retval[key] = this.readStringU16(true);
+					break;
+				case 'string-32': case 'string-32-be':
+					retval[key] = this.readStringU32();
+					break;
+				case 'string-32-le':
+					retval[key] = this.readStringU32(true);
+					break;
+				case 'uint8': case 'uint8-be': case 'uint8-le':
+					retval[key] = this.readUint8();
+					break;
+				case 'uint16': case 'uint16-be':
+					retval[key] = this.readUint16();
+					break;
+				case 'uint16-le':
+					retval[key] = this.readUint16(true);
+					break;
+				case 'uint32': case 'uint32-be':
+					retval[key] = this.readUint32();
+					break;
+				case 'uint32-le':
+					retval[key] = this.readUint32(true);
+					break;
+				default:
+					throw new RangeError(`Unknown readStruct() value type '${valueType}'`);
+			}
+		}
+		return retval;
 	}
 
 	readUint8()

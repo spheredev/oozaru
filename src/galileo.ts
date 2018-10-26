@@ -30,6 +30,14 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
+import BufferStream from './buffer-stream.js';
+
+interface Glyph
+{
+	pixelData: Uint8Array;
+	width: number;
+}
+
 let activeShader: Shader | null = null;
 let activeDrawTarget: DrawTarget | null = null;
 let defaultShader: Shader;
@@ -182,6 +190,86 @@ class DrawTarget
 		this.clipping.h = this.height;
 		if (this === activeDrawTarget)
 			gl.scissor(0, 0, this.width, this.height);
+	}
+}
+
+export
+class Font
+{
+	private glyphs: Glyph[] = [];
+	private lineHeight = 0;
+	private numGlyphs = 0;
+
+	constructor(rfnData: BufferSource)
+	{
+		let stream = new BufferStream(rfnData);
+		let rfn = stream.readStruct({
+			signature: 'string/4',
+			version:   'uint16-le',
+			numChars:  'uint16-le',
+			reserved:  'reserve/248',
+		});
+		for (let i = 0; i < rfn.numChars; ++i) {
+			let charInfo = stream.readStruct({
+				width:    'uint16-le',
+				height:   'uint16-le',
+				reserved: 'reserve/28',
+			});
+			this.lineHeight = Math.max(this.lineHeight, charInfo.height);
+			const pixelData = stream.readBytes(charInfo.width * charInfo.height * 4);
+			this.glyphs.push({
+				width: charInfo.width,
+				pixelData,
+			});
+		}
+		this.numGlyphs = rfn.numChars;
+		console.log(this);
+	}
+
+	get height()
+	{
+		return this.lineHeight;
+	}
+
+	draw(text: string)
+	{
+		let cp: number | undefined;
+		let ptr = 0;
+		while ((cp = text.codePointAt(ptr++)) !== undefined) {
+			if (cp > 0xFFFF)  // surrogate pair?
+				++ptr;
+			cp = cp == 0x20AC ? 128
+				: cp == 0x201A ? 130
+				: cp == 0x0192 ? 131
+				: cp == 0x201E ? 132
+				: cp == 0x2026 ? 133
+				: cp == 0x2020 ? 134
+				: cp == 0x2021 ? 135
+				: cp == 0x02C6 ? 136
+				: cp == 0x2030 ? 137
+				: cp == 0x0160 ? 138
+				: cp == 0x2039 ? 139
+				: cp == 0x0152 ? 140
+				: cp == 0x017D ? 142
+				: cp == 0x2018 ? 145
+				: cp == 0x2019 ? 146
+				: cp == 0x201C ? 147
+				: cp == 0x201D ? 148
+				: cp == 0x2022 ? 149
+				: cp == 0x2013 ? 150
+				: cp == 0x2014 ? 151
+				: cp == 0x02DC ? 152
+				: cp == 0x2122 ? 153
+				: cp == 0x0161 ? 154
+				: cp == 0x203A ? 155
+				: cp == 0x0153 ? 156
+				: cp == 0x017E ? 158
+				: cp == 0x0178 ? 159
+				: cp;
+			if (cp >= this.numGlyphs)
+				cp = 0x1A;
+			const glyph = this.glyphs[cp];
+		}
 	}
 }
 

@@ -31,18 +31,6 @@
 **/
 
 export
-async function loadImageFile(fileName: string)
-{
-	return new Promise<HTMLImageElement>((resolve, reject) => {
-		const image = new Image();
-		image.onload = () => resolve(image);
-		image.onerror = () =>
-			reject(new Error(`Unable to load image file '${fileName}'`));
-		image.src = fileName;
-	});
-}
-
-export
 async function loadAudioFile(fileName: string)
 {
 	return new Promise<HTMLAudioElement>((resolve, reject) => {
@@ -51,6 +39,25 @@ async function loadAudioFile(fileName: string)
 		audio.onerror = () =>
 			reject(new Error(`Unable to load audio file '${fileName}'`));
 		audio.src = fileName;
+	});
+}
+
+export
+async function loadFileRaw(fileName: string)
+{
+	const fileRequest = await fetch(fileName);
+	return fileRequest.arrayBuffer();
+}
+
+export
+async function loadImageFile(fileName: string)
+{
+	return new Promise<HTMLImageElement>((resolve, reject) => {
+		const image = new Image();
+		image.onload = () => resolve(image);
+		image.onerror = () =>
+			reject(new Error(`Unable to load image file '${fileName}'`));
+		image.src = fileName;
 	});
 }
 

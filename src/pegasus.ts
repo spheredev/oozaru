@@ -197,6 +197,7 @@ class Pegasus extends null
 			Sphere,
 			Color,
 			Dispatch,
+			Font,
 			IndexList,
 			Joystick,
 			Keyboard,
@@ -217,6 +218,8 @@ class Pegasus extends null
 
 	static async launchGame(dirName: string)
 	{
+		await Font.fromFile('system.rfn');
+
 		// load and execute the game's main module.  if it exports a startup
 		// function or class, call it.
 		const fileName = `${dirName}/bin/main.js`;
@@ -586,6 +589,15 @@ class Dispatch extends null
 	{
 		const jobID = eventLoop.addJob(JobType.Update, callback, true, options.priority);
 		return new JobToken(jobID);
+	}
+}
+
+class Font
+{
+	static async fromFile(fileName: string)
+	{
+		const rfnData = await util.loadFileRaw(fileName);
+		new galileo.Font(rfnData);
 	}
 }
 
