@@ -36,12 +36,14 @@ interface Glyph
 {
 	pixelData: Uint8Array;
 	width: number;
+	height: number;
 }
 
 let activeShader: Shader | null = null;
 let activeDrawTarget: DrawTarget | null = null;
 let defaultShader: Shader;
 let gl: WebGLRenderingContext;
+let immediateVBO: VertexBuffer;
 let screenCanvas: HTMLCanvasElement;
 
 export
@@ -99,6 +101,8 @@ class Galileo extends null
 		gl.clearColor(0.0, 0.0, 0.0, 1.0);
 		gl.enable(gl.BLEND);
 		gl.enable(gl.SCISSOR_TEST);
+
+		immediateVBO = new VertexBuffer();
 
 		const vertSource = await (await fetch('shaders/default.vert.glsl')).text();
 		const fragSource = await (await fetch('shaders/default.frag.glsl')).text();
@@ -196,6 +200,7 @@ class DrawTarget
 export
 class Font
 {
+	atlas: Texture;
 	private glyphs: Glyph[] = [];
 	private lineHeight = 0;
 	private numGlyphs = 0;
@@ -203,27 +208,37 @@ class Font
 	constructor(rfnData: BufferSource)
 	{
 		let stream = new BufferStream(rfnData);
+		let maxWidth = 0;
 		let rfn = stream.readStruct({
 			signature: 'string/4',
 			version:   'uint16-le',
-			numChars:  'uint16-le',
+			numGlyphs: 'uint16-le',
 			reserved:  'reserve/248',
 		});
-		for (let i = 0; i < rfn.numChars; ++i) {
+		for (let i = 0; i < rfn.numGlyphs; ++i) {
 			let charInfo = stream.readStruct({
 				width:    'uint16-le',
 				height:   'uint16-le',
 				reserved: 'reserve/28',
 			});
 			this.lineHeight = Math.max(this.lineHeight, charInfo.height);
+			maxWidth = Math.max(maxWidth, charInfo.width);
 			const pixelData = stream.readBytes(charInfo.width * charInfo.height * 4);
 			this.glyphs.push({
 				width: charInfo.width,
+				height: charInfo.height,
 				pixelData,
 			});
 		}
-		this.numGlyphs = rfn.numChars;
-		console.log(this);
+		const numAcross = Math.ceil(Math.sqrt(rfn.numGlyphs));
+		this.atlas = new Texture(numAcross * maxWidth, numAcross * this.lineHeight);
+		this.numGlyphs = rfn.numGlyphs;
+		for (let i = 0; i < this.numGlyphs; ++i) {
+			const glyph = this.glyphs[i];
+			const x = i % numAcross * maxWidth;
+			const y = Math.floor(i / numAcross) * this.lineHeight;
+			this.atlas.upload(glyph.pixelData, x, y, glyph.width, glyph.height);
+		}
 	}
 
 	get height()
@@ -490,6 +505,31 @@ class Prim extends null
 		gl.enable(gl.SCISSOR_TEST);
 	}
 
+	static draw(vertexBuffer: VertexBuffer, indexBuffer: IndexBuffer | null, type: ShapeType)
+	{
+		const drawMode = type === ShapeType.Fan ? gl.TRIANGLE_FAN
+			: type === ShapeType.Lines ? gl.LINES
+			: type === ShapeType.LineLoop ? gl.LINE_LOOP
+			: type === ShapeType.LineStrip ? gl.LINE_STRIP
+			: type === ShapeType.Points ? gl.POINTS
+			: type === ShapeType.TriStrip ? gl.TRIANGLE_STRIP
+			: gl.TRIANGLES;
+		vertexBuffer.activate();
+		if (indexBuffer !== null) {
+			indexBuffer.activate();
+			gl.drawElements(drawMode, indexBuffer.length, gl.UNSIGNED_SHORT, 0);
+		}
+		else {
+			gl.drawArrays(drawMode, 0, vertexBuffer.length);
+		}
+	}
+
+	static drawImmediate(vertices: ArrayLike<Vertex>, type: ShapeType)
+	{
+		immediateVBO.upload(vertices);
+		Prim.draw(immediateVBO, null, type);
+	}
+
 	static rerez(width: number, height: number)
 	{
 		screenCanvas.width = width;
@@ -597,25 +637,6 @@ class Shape
 	vertices: VertexBuffer;
 	indices: IndexBuffer | null;
 
-	static draw(vertexBuffer: VertexBuffer, indexBuffer: IndexBuffer | null, type: ShapeType)
-	{
-		const drawMode = type === ShapeType.Fan ? gl.TRIANGLE_FAN
-			: type === ShapeType.Lines ? gl.LINES
-			: type === ShapeType.LineLoop ? gl.LINE_LOOP
-			: type === ShapeType.LineStrip ? gl.LINE_STRIP
-			: type === ShapeType.Points ? gl.POINTS
-			: type === ShapeType.TriStrip ? gl.TRIANGLE_STRIP
-			: gl.TRIANGLES;
-		vertexBuffer.activate();
-		if (indexBuffer !== null) {
-			indexBuffer.activate();
-			gl.drawElements(drawMode, indexBuffer.length, gl.UNSIGNED_SHORT, 0);
-		}
-		else {
-			gl.drawArrays(drawMode, 0, vertexBuffer.length);
-		}
-	}
-
 	constructor(vertexBuffer: VertexBuffer, indexBuffer: IndexBuffer | null, type: ShapeType)
 	{
 		this.type = type;
@@ -625,7 +646,7 @@ class Shape
 
 	draw()
 	{
-		Shape.draw(this.vertices, this.indices, this.type);
+		Prim.draw(this.vertices, this.indices, this.type);
 	}
 }
 
@@ -678,6 +699,15 @@ class Texture
 	{
 		gl.activeTexture(gl.TEXTURE0 + textureUnit);
 		gl.bindTexture(gl.TEXTURE_2D, this.hwTexture);
+	}
+
+	upload(content: BufferSource, x = 0, y = 0, width = this.width, height = this.height)
+	{
+		const pixelData = ArrayBuffer.isView(content)
+			? new Uint8Array(content.buffer)
+			: new Uint8Array(content);
+		gl.bindTexture(gl.TEXTURE_2D, this.hwTexture);
+		gl.texSubImage2D(gl.TEXTURE_2D, 0, x, this.width - y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
 	}
 }
 

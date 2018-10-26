@@ -58,7 +58,6 @@ interface Vertex
 }
 
 const eventLoop = new EventLoop();
-const tempVBO = new galileo.VertexBuffer();
 
 let mainObject: { [x: string]: any } | undefined;
 
@@ -197,7 +196,6 @@ class Pegasus extends null
 			Sphere,
 			Color,
 			Dispatch,
-			Font,
 			IndexList,
 			Joystick,
 			Keyboard,
@@ -218,8 +216,6 @@ class Pegasus extends null
 
 	static async launchGame(dirName: string)
 	{
-		await Font.fromFile('system.rfn');
-
 		// load and execute the game's main module.  if it exports a startup
 		// function or class, call it.
 		const fileName = `${dirName}/bin/main.js`;
@@ -592,15 +588,6 @@ class Dispatch extends null
 	}
 }
 
-class Font
-{
-	static async fromFile(fileName: string)
-	{
-		const rfnData = await util.loadFileRaw(fileName);
-		new galileo.Font(rfnData);
-	}
-}
-
 class IndexList
 {
 	buffer: galileo.IndexBuffer;
@@ -796,15 +783,13 @@ class Shape
 			galileo.Shader.Default.transform(galileo.Matrix.Identity);
 			if (arg1 !== null)
 				arg1.texture.activate(0);
-			tempVBO.upload(arg2 as ArrayLike<Vertex>);
-			galileo.Shape.draw(tempVBO, null, type);
+			galileo.Prim.drawImmediate(arg2 as ArrayLike<Vertex>, type);
 		}
 		else {
 			galileo.Shader.Default.activate(false);
 			galileo.Shader.Default.project(surface.projection.matrix);
 			galileo.Shader.Default.transform(galileo.Matrix.Identity);
-			tempVBO.upload(arg1);
-			galileo.Shape.draw(tempVBO, null, type);
+			galileo.Prim.drawImmediate(arg1, type);
 		}
 	}
 
