@@ -43,7 +43,7 @@ async function loadAudioFile(fileName: string)
 }
 
 export
-async function loadFileRaw(fileName: string)
+async function loadRawFile(fileName: string)
 {
 	const fileRequest = await fetch(fileName);
 	return fileRequest.arrayBuffer();

@@ -59,7 +59,7 @@ interface Vertex
 
 const eventLoop = new EventLoop();
 
-let defaultFont: galileo.Font;
+let defaultFont: Font;
 let mainObject: { [x: string]: any } | undefined;
 
 enum Key
@@ -218,8 +218,7 @@ class Pegasus extends null
 
 	static async launchGame(dirName: string)
 	{
-		const rfn = await util.loadFileRaw('/system.rfn');
-		defaultFont = new galileo.Font(rfn);
+		defaultFont = await Font.fromFile('system.rfn');
 
 		// load and execute the game's main module.  if it exports a startup
 		// function or class, call it.
@@ -599,15 +598,27 @@ class Font
 
 	static get Default()
 	{
-		const font = Object.create(Font.prototype) as Font;
-		font.font = defaultFont;
-		Object.defineProperty(this, 'Default', {
+		Object.defineProperty(Font, 'Default', {
 			writable: false,
 			enumerable: false,
 			configurable: true,
-			value: font,
+			value: defaultFont,
 		});
-		return font;
+		return defaultFont;
+	}
+
+	static async fromFile(fileName: string)
+	{
+		const fileData = await util.loadRawFile(fileName);
+		const font = new galileo.Font(fileData);
+		const object = Object.create(this.prototype) as Font;
+		object.font = font;
+		return object;
+	}
+
+	constructor()
+	{
+		throw new Error(`'Font' constructor is not supported in Oozaru`);
 	}
 
 	drawText(surface: Surface, x: number, y: number, text: string, color = Color.White, wrapWidth?: number)
