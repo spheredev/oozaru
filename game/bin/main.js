@@ -96,6 +96,6 @@ class Showcase extends Thread
 
 function drawShadowText(surface, x, y, text, color = Color.White)
 {
-	//Font.Default.drawText(surface, x + 1, y + 1, text, Color.Black.fadeTo(color.a));
-	//Font.Default.drawText(surface, x, y, text, color);
+	Font.Default.drawText(surface, x + 1, y + 1, text, Color.Black.fadeTo(color.a));
+	Font.Default.drawText(surface, x, y, text, color);
 }

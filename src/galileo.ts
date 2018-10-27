@@ -37,6 +37,8 @@ interface Glyph
 	pixelData: Uint8Array;
 	width: number;
 	height: number;
+	u: number;
+	v: number;
 }
 
 let activeShader: Shader | null = null;
@@ -200,21 +202,30 @@ class DrawTarget
 export
 class Font
 {
-	atlas: Texture;
+	private atlas: Texture;
 	private glyphs: Glyph[] = [];
 	private lineHeight = 0;
+	private maxWidth = 0;
 	private numGlyphs = 0;
+	private stride: number;
 
 	constructor(rfnData: BufferSource)
 	{
 		let stream = new BufferStream(rfnData);
-		let maxWidth = 0;
 		let rfn = stream.readStruct({
 			signature: 'string/4',
 			version:   'uint16-le',
 			numGlyphs: 'uint16-le',
 			reserved:  'reserve/248',
 		});
+		if (rfn.signature !== '.rfn')
+			throw new Error(`Unable to load RFN font file`);
+		if (rfn.version < 2 || rfn.version > 2)
+			throw new Error(`Unsupported RFN version '${rfn.version}'`)
+		if (rfn.numGlyphs <= 0)
+			throw new Error(`Malformed RFN font (no glyphs)`);
+		const numAcross = Math.ceil(Math.sqrt(rfn.numGlyphs));
+		this.stride = 1.0 / numAcross;
 		for (let i = 0; i < rfn.numGlyphs; ++i) {
 			let charInfo = stream.readStruct({
 				width:    'uint16-le',
@@ -222,20 +233,21 @@ class Font
 				reserved: 'reserve/28',
 			});
 			this.lineHeight = Math.max(this.lineHeight, charInfo.height);
-			maxWidth = Math.max(maxWidth, charInfo.width);
+			this.maxWidth = Math.max(this.maxWidth, charInfo.width);
 			const pixelData = stream.readBytes(charInfo.width * charInfo.height * 4);
 			this.glyphs.push({
 				width: charInfo.width,
 				height: charInfo.height,
+				u: i % numAcross / numAcross,
+				v: 1.0 - Math.floor(i / numAcross) / numAcross,
 				pixelData,
 			});
 		}
-		const numAcross = Math.ceil(Math.sqrt(rfn.numGlyphs));
-		this.atlas = new Texture(numAcross * maxWidth, numAcross * this.lineHeight);
+		this.atlas = new Texture(numAcross * this.maxWidth, numAcross * this.lineHeight);
 		this.numGlyphs = rfn.numGlyphs;
 		for (let i = 0; i < this.numGlyphs; ++i) {
 			const glyph = this.glyphs[i];
-			const x = i % numAcross * maxWidth;
+			const x = i % numAcross * this.maxWidth;
 			const y = Math.floor(i / numAcross) * this.lineHeight;
 			this.atlas.upload(glyph.pixelData, x, y, glyph.width, glyph.height);
 		}
@@ -246,10 +258,16 @@ class Font
 		return this.lineHeight;
 	}
 
-	draw(text: string)
+	drawText(text: string, color: RGBA, matrix: Matrix)
 	{
+		if (activeShader !== null) {
+			activeShader.activate(true);
+			activeShader.transform(matrix);
+		}
+		this.atlas.activate(0);
 		let cp: number | undefined;
 		let ptr = 0;
+		let x = 0;
 		while ((cp = text.codePointAt(ptr++)) !== undefined) {
 			if (cp > 0xFFFF)  // surrogate pair?
 				++ptr;
@@ -284,6 +302,17 @@ class Font
 			if (cp >= this.numGlyphs)
 				cp = 0x1A;
 			const glyph = this.glyphs[cp];
+			const x1 = x, x2 = x1 + glyph.width;
+			const y1 = 0, y2 = y1 + glyph.height;
+			let u1 = glyph.u, u2 = u1 + glyph.width / this.maxWidth * this.stride;
+			let v1 = glyph.v, v2 = v1 - glyph.height / this.lineHeight * this.stride;
+			Prim.drawImmediate([
+				{ x: x1, y: y1, u: u1, v: v1, color },
+				{ x: x2, y: y1, u: u2, v: v1, color },
+				{ x: x1, y: y2, u: u1, v: v2, color },
+				{ x: x2, y: y2, u: u2, v: v2, color },
+			], ShapeType.TriStrip);
+			x += glyph.width;
 		}
 	}
 }
@@ -505,7 +534,7 @@ class Prim extends null
 		gl.enable(gl.SCISSOR_TEST);
 	}
 
-	static draw(vertexBuffer: VertexBuffer, indexBuffer: IndexBuffer | null, type: ShapeType)
+	static draw(vertexBuffer: VertexBuffer, indexBuffer: IndexBuffer | null, type: ShapeType, offset = 0, numVertices?: number)
 	{
 		const drawMode = type === ShapeType.Fan ? gl.TRIANGLE_FAN
 			: type === ShapeType.Lines ? gl.LINES
@@ -516,11 +545,15 @@ class Prim extends null
 			: gl.TRIANGLES;
 		vertexBuffer.activate();
 		if (indexBuffer !== null) {
+			if (numVertices === undefined)
+				numVertices = indexBuffer.length - offset;
 			indexBuffer.activate();
-			gl.drawElements(drawMode, indexBuffer.length, gl.UNSIGNED_SHORT, 0);
+			gl.drawElements(drawMode, numVertices, gl.UNSIGNED_SHORT, offset);
 		}
 		else {
-			gl.drawArrays(drawMode, 0, vertexBuffer.length);
+			if (numVertices === undefined)
+				numVertices = vertexBuffer.length - offset;
+			gl.drawArrays(drawMode, 0, numVertices);
 		}
 	}
 
@@ -707,7 +740,7 @@ class Texture
 			? new Uint8Array(content.buffer)
 			: new Uint8Array(content);
 		gl.bindTexture(gl.TEXTURE_2D, this.hwTexture);
-		gl.texSubImage2D(gl.TEXTURE_2D, 0, x, this.width - y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
+		gl.texSubImage2D(gl.TEXTURE_2D, 0, x, this.height - y - height, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
 	}
 }
 
