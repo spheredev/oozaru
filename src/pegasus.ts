@@ -30,7 +30,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import EventLoop, {JobType} from './event-loop.js';
+import EventLoop, { JobType } from './event-loop.js';
+import InputEngine, { MouseKey, Key } from './input-engine.js';
 import * as galileo from './galileo.js';
 import * as util from './utility.js';
 
@@ -60,125 +61,17 @@ interface Vertex
 const eventLoop = new EventLoop();
 
 let defaultFont: Font;
+let gameData: { [x: string]: any };
+let inputEngine: InputEngine;
 let mainObject: { [x: string]: any } | undefined;
-
-enum Key
-{
-	Alt,
-	AltGr,
-	Apostrophe,
-	Backslash,
-	Backspace,
-	CapsLock,
-	CloseBrace,
-	Comma,
-	Delete,
-	Down,
-	End,
-	Enter,
-	Equals,
-	Escape,
-	F1,
-	F2,
-	F3,
-	F4,
-	F5,
-	F6,
-	F7,
-	F8,
-	F9,
-	F10,
-	F11,
-	F12,
-	Home,
-	Hyphen,
-	Insert,
-	LCtrl,
-	LShift,
-	Left,
-	NumLock,
-	OpenBrace,
-	PageDown,
-	PageUp,
-	Period,
-	RCtrl,
-	RShift,
-	Right,
-	ScrollLock,
-	Semicolon,
-	Slahs,
-	Space,
-	Tab,
-	Tilde,
-	Up,
-	A,
-	B,
-	C,
-	D,
-	E,
-	F,
-	G,
-	H,
-	I,
-	J,
-	K,
-	L,
-	M,
-	N,
-	O,
-	P,
-	Q,
-	R,
-	S,
-	T,
-	U,
-	V,
-	W,
-	X,
-	Y,
-	Z,
-	D1,
-	D2,
-	D3,
-	D4,
-	D5,
-	D6,
-	D7,
-	D8,
-	D9,
-	D0,
-	NumPad1,
-	NumPad2,
-	NumPad3,
-	NumPad4,
-	NumPad5,
-	NumPad6,
-	NumPad7,
-	NumPad8,
-	NumPad9,
-	NumPad0,
-	NumPadEnter,
-	Add,
-	Decimal,
-	Divide,
-	Multiply,
-	Subtract,
-}
-
-enum MouseKey
-{
-	Left,
-	Middle,
-	Right,
-	WheelUp,
-	WheelDown,
-}
 
 export default
 class Pegasus extends null
 {
-	static initializeGlobals()
+	static initialize(input: InputEngine)
 	{
+		inputEngine = input;
+
 		Object.defineProperty(window, 'global', {
 			writable: false,
 			enumerable: false,
@@ -220,9 +113,14 @@ class Pegasus extends null
 	{
 		defaultFont = await Font.fromFile('system.rfn');
 
+		// load the game's JSON manifest
+		const fileData = await util.loadRawFile(`${dirName}/game.json`);
+		const jsonText = new TextDecoder().decode(fileData);
+		gameData = Object.freeze(JSON.parse(jsonText));
+
 		// load and execute the game's main module.  if it exports a startup
 		// function or class, call it.
-		const fileName = `${dirName}/bin/main.js`;
+		const fileName = `${dirName}/${gameData.main.substr(2)}`;
 		const main = await import(fileName);
 		if (util.isConstructor(main.default)) {
 			mainObject = new main.default() as object;
@@ -247,6 +145,11 @@ class Sphere extends null
 	static get Engine()
 	{
 		return "Oozaru X.X.X";
+	}
+
+	static get Game()
+	{
+		return gameData;
 	}
 
 	static get Version()
@@ -621,6 +524,11 @@ class Font
 		throw new Error(`'Font' constructor is not supported in Oozaru`);
 	}
 
+	get height()
+	{
+		return this.font.height;
+	}
+
 	drawText(surface: Surface, x: number, y: number, text: string, color = Color.White, wrapWidth?: number)
 	{
 		const matrix = galileo.Matrix.Identity.translate(x, y);
@@ -628,6 +536,11 @@ class Font
 		Shader.Default.program.activate(false);
 		Shader.Default.program.project(surface.projection.matrix);
 		this.font.drawText(text, color, matrix);
+	}
+
+	getTextSize(text: string)
+	{
+		return this.font.textSize(text);
 	}
 }
 
@@ -668,17 +581,72 @@ class Keyboard
 {
 	static get Default()
 	{
-		return new this();
+		const keyboard = new Keyboard();
+		Object.defineProperty(Keyboard, 'Default', {
+			writable: false,
+			enumerable: false,
+			configurable: true,
+			value: keyboard,
+		});
+		return keyboard;
+	}
+
+	charOf(key: Key, shifted = false): string
+	{
+		return key === Key.Space ? " "
+			: key === Key.Tilde ? shifted ? "~" : "`"
+			: key === Key.D0 ? shifted ? ")" : "0"
+			: key === Key.D1 ? shifted ? "!" : "1"
+			: key === Key.D2 ? shifted ? "@" : "2"
+			: key === Key.D3 ? shifted ? "#" : "3"
+			: key === Key.D4 ? shifted ? "$" : "4"
+			: key === Key.D5 ? shifted ? "%" : "5"
+			: key === Key.D6 ? shifted ? "^" : "6"
+			: key === Key.D7 ? shifted ? "&" : "7"
+			: key === Key.D8 ? shifted ? "*" : "8"
+			: key === Key.D9 ? shifted ? "(" : "9"
+			: key === Key.A ? shifted ? "A" : "a"
+			: key === Key.B ? shifted ? "B" : "b"
+			: key === Key.C ? shifted ? "C" : "c"
+			: key === Key.D ? shifted ? "D" : "d"
+			: key === Key.E ? shifted ? "E" : "e"
+			: key === Key.F ? shifted ? "F" : "f"
+			: key === Key.G ? shifted ? "G" : "g"
+			: key === Key.H ? shifted ? "H" : "h"
+			: key === Key.I ? shifted ? "I" : "i"
+			: key === Key.J ? shifted ? "J" : "j"
+			: key === Key.K ? shifted ? "K" : "k"
+			: key === Key.L ? shifted ? "L" : "l"
+			: key === Key.M ? shifted ? "M" : "m"
+			: key === Key.N ? shifted ? "N" : "n"
+			: key === Key.O ? shifted ? "O" : "o"
+			: key === Key.P ? shifted ? "P" : "p"
+			: key === Key.Q ? shifted ? "Q" : "q"
+			: key === Key.R ? shifted ? "R" : "r"
+			: key === Key.S ? shifted ? "S" : "s"
+			: key === Key.T ? shifted ? "T" : "t"
+			: key === Key.U ? shifted ? "U" : "u"
+			: key === Key.V ? shifted ? "V" : "v"
+			: key === Key.W ? shifted ? "W" : "w"
+			: key === Key.X ? shifted ? "X" : "x"
+			: key === Key.Y ? shifted ? "Y" : "y"
+			: key === Key.Z ? shifted ? "Z" : "z"
+			: "";
+	}
+
+	clearQueue()
+	{
+		inputEngine.clearKeyQueue();
 	}
 
 	getKey(): Key | null
 	{
-		return null;
+		return inputEngine.getKey();
 	}
 
 	isPressed(key: Key)
 	{
-		return false;
+		return inputEngine.isKeyDown(key);
 	}
 }
 
@@ -749,6 +717,10 @@ class Mouse
 	static get Default()
 	{
 		return new this();
+	}
+
+	clearQueue()
+	{
 	}
 
 	getEvent(): MouseEvent | null

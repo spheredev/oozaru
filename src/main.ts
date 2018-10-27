@@ -31,17 +31,18 @@
 **/
 
 import Galileo from './galileo.js';
+import InputEngine from './input-engine.js';
 import Pegasus from './pegasus.js';
 
-const
-	mainCanvas = document.getElementById('screen') as HTMLCanvasElement
+const mainCanvas = document.getElementById('screen') as HTMLCanvasElement;
+const inputEngine = new InputEngine(mainCanvas);
 
 main();
 
 async function main()
 {
 	await Galileo.initialize(mainCanvas);
-	Pegasus.initializeGlobals();
+	Pegasus.initialize(inputEngine);
 	mainCanvas.onclick = () => {
 		mainCanvas.onclick = null;
 		const headingDiv = document.getElementById('prompt') as HTMLDivElement;

@@ -4,9 +4,11 @@
  *  (c) 2013-2017 Bruce Pascoe
 **/
 
-import { Prim, Random, Thread } from '../lib/sphere-runtime.js';
+import { Console, Prim, Random, Thread } from '../lib/sphere-runtime.js';
 
 import { HPGauge } from './kh2Bar.js';
+
+new Console();
 
 // let me just say how awesome it is that KH uses chartreuse to
 // color HP gauges rather than pure green.  very classy.

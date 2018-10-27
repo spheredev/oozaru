@@ -315,6 +315,53 @@ class Font
 			x += glyph.width;
 		}
 	}
+
+	textSize(text: string)
+	{
+		let cp: number | undefined;
+		let ptr = 0;
+		let width = 0;
+		while ((cp = text.codePointAt(ptr++)) !== undefined) {
+			if (cp > 0xFFFF)  // surrogate pair?
+				++ptr;
+			cp = cp == 0x20AC ? 128
+				: cp == 0x201A ? 130
+				: cp == 0x0192 ? 131
+				: cp == 0x201E ? 132
+				: cp == 0x2026 ? 133
+				: cp == 0x2020 ? 134
+				: cp == 0x2021 ? 135
+				: cp == 0x02C6 ? 136
+				: cp == 0x2030 ? 137
+				: cp == 0x0160 ? 138
+				: cp == 0x2039 ? 139
+				: cp == 0x0152 ? 140
+				: cp == 0x017D ? 142
+				: cp == 0x2018 ? 145
+				: cp == 0x2019 ? 146
+				: cp == 0x201C ? 147
+				: cp == 0x201D ? 148
+				: cp == 0x2022 ? 149
+				: cp == 0x2013 ? 150
+				: cp == 0x2014 ? 151
+				: cp == 0x02DC ? 152
+				: cp == 0x2122 ? 153
+				: cp == 0x0161 ? 154
+				: cp == 0x203A ? 155
+				: cp == 0x0153 ? 156
+				: cp == 0x017E ? 158
+				: cp == 0x0178 ? 159
+				: cp;
+			if (cp >= this.numGlyphs)
+				cp = 0x1A;
+			const glyph = this.glyphs[cp];
+			width += glyph.width;
+		}
+		return {
+			width,
+			height: this.lineHeight,
+		};
+	}
 }
 
 export
