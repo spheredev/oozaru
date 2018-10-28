@@ -30,10 +30,19 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
+import BufferStream from './buffer-stream.js';
 import EventLoop, { JobType } from './event-loop.js';
 import InputEngine, { MouseKey, Key } from './input-engine.js';
+import * as audio from './audio-engine.js';
 import * as galileo from './galileo.js';
 import * as util from './utility.js';
+
+enum FileOp
+{
+	Read,
+	Update,
+	Write,
+}
 
 interface JobOptions
 {
@@ -82,6 +91,7 @@ class Pegasus extends null
 		// register Sphere v2 API globals
 		Object.assign(window, {
 			// enumerations
+			FileOp,
 			Key,
 			MouseKey,
 			ShapeType: galileo.ShapeType,
@@ -90,6 +100,8 @@ class Pegasus extends null
 			Sphere,
 			Color,
 			Dispatch,
+			FS,
+			FileStream,
 			Font,
 			IndexList,
 			Joystick,
@@ -102,6 +114,7 @@ class Pegasus extends null
 			Shader,
 			Shape,
 			Sound,
+			SoundStream,
 			Surface,
 			Texture,
 			Transform,
@@ -111,12 +124,15 @@ class Pegasus extends null
 
 	static async launchGame(dirName: string)
 	{
-		defaultFont = await Font.fromFile('system.rfn');
+		defaultFont = await Font.fromFile('../system.rfn');
 
 		// load the game's JSON manifest
 		const fileData = await util.loadRawFile(`${dirName}/game.json`);
 		const jsonText = new TextDecoder().decode(fileData);
 		gameData = Object.freeze(JSON.parse(jsonText));
+		const matches = gameData.resolution.match(/^([0-9]*)x([0-9]*)$/);
+		if (matches !== null)
+			galileo.Prim.rerez(+(matches[1]), +(matches[2]));
 
 		// load and execute the game's main module.  if it exports a startup
 		// function or class, call it.
@@ -495,6 +511,77 @@ class Dispatch extends null
 	}
 }
 
+class FS extends null
+{
+	static async evaluateScript(fileName: string)
+	{
+		const source = await (await fetch(`game/${fileName}`)).text();
+		return (0, eval)(source);
+	}
+}
+
+class FileStream
+{
+	fullPath: string;
+	stream: BufferStream | null;
+
+	static async open(fileName: string, fileOp: FileOp)
+	{
+		if (fileOp !== FileOp.Read)
+			throw new RangeError(`Oozaru currently only supports FileStreams in read mode`);
+		const data = await util.loadRawFile(`game/${fileName}`);
+		const fileStream = new FileStream();
+		fileStream.fullPath = fileName;
+		fileStream.stream = new BufferStream(data);
+		return fileStream;
+	}
+
+	get fileName()
+	{
+		return this.fullPath;
+	}
+
+	get fileSize()
+	{
+		if (this.stream === null)
+			throw new Error(`The FileStream has already been disposed`);
+		return this.stream.bufferSize;
+	}
+
+	get position()
+	{
+		if (this.stream === null)
+			throw new Error(`The FileStream has already been disposed`);
+		return this.stream.position;
+	}
+
+	set position(value)
+	{
+		if (this.stream === null)
+			throw new Error(`The FileStream has already been disposed`);
+		this.stream.position = value;
+	}
+
+	dispose()
+	{
+		this.stream = null;
+	}
+
+	read(numBytes: number)
+	{
+		if (this.stream === null)
+			throw new Error(`The FileStream has already been disposed`);
+		return this.stream.readBytes(numBytes).buffer;
+	}
+
+	write(data: BufferSource)
+	{
+		if (this.stream === null)
+			throw new Error(`The FileStream has already been disposed`);
+		throw new Error(`Oozaru doesn't yet support FileStream#write()`);
+	}
+}
+
 class Font
 {
 	font: galileo.Font;
@@ -512,7 +599,7 @@ class Font
 
 	static async fromFile(fileName: string)
 	{
-		const fileData = await util.loadRawFile(fileName);
+		const fileData = await util.loadRawFile(`game/${fileName}`);
 		const font = new galileo.Font(fileData);
 		const object = Object.create(this.prototype) as Font;
 		object.font = font;
@@ -667,16 +754,35 @@ class Keyboard
 
 class Mixer
 {
-	zit = { volume: 1.0 };
+	mixer: audio.Mixer;
+	volume_: number;
+
+	static get Default()
+	{
+		const mixer = new Mixer(44100, 16, 2);
+		Object.defineProperty(Mixer, 'Default', {
+			writable: false,
+			enumerable: false,
+			configurable: true,
+			value: mixer,
+		});
+		return mixer;
+	}
+
+	constructor(frequency: number, _bits: number, _numChannels: number)
+	{
+		this.mixer = new audio.Mixer(frequency);
+		this.volume_ = 1.0;
+	}
 
 	get volume()
 	{
-		return this.zit.volume;
+		return this.volume_;
 	}
 
-	set volume(value: number)
+	set volume(value)
 	{
-		this.zit.volume = value;
+		this.volume_ = value;
 	}
 }
 
@@ -924,6 +1030,31 @@ class Sound
 	{
 		this.audio.pause();
 		this.audio.currentTime = 0.0;
+	}
+}
+
+class SoundStream
+{
+	stream: audio.Stream;
+
+	constructor(frequency: number, _bits: number, numChannels: number)
+	{
+		this.stream = new audio.Stream(frequency, numChannels);
+	}
+
+	get length()
+	{
+		return this.stream.timeLeft;
+	}
+
+	play(mixer: Mixer)
+	{
+		this.stream.play(mixer.mixer);
+	}
+
+	write(data: Float32Array)
+	{
+		this.stream.buffer(data);
 	}
 }
 
