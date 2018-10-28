@@ -591,6 +591,21 @@ class Keyboard
 		return keyboard;
 	}
 
+	get capsLock()
+	{
+		return false;
+	}
+
+	get numLock()
+	{
+		return false;
+	}
+
+	get scrollLock()
+	{
+		return false;
+	}
+
 	charOf(key: Key, shifted = false): string
 	{
 		return key === Key.Space ? " "

@@ -194,6 +194,7 @@ class InputEngine
 				case 'KeyX': this.keyQueue.push(Key.X); break;
 				case 'KeyY': this.keyQueue.push(Key.Y); break;
 				case 'KeyZ': this.keyQueue.push(Key.Z); break;
+				case 'Space': this.keyQueue.push(Key.Space); break;
 			}
 		});
 		canvas.addEventListener('keyup', e => {
@@ -251,6 +252,12 @@ class InputEngine
 			: key === Key.X ? 'KeyX'
 			: key === Key.Y ? 'KeyY'
 			: key === Key.Z ? 'KeyZ'
+			: key === Key.LShift ? 'ShiftLeft'
+			: key === Key.LCtrl ? 'ControlLeft'
+			: key === Key.Alt ? 'AltLeft'
+			: key === Key.RShift ? 'ShiftRight'
+			: key === Key.RCtrl ? 'ControlRight'
+			: key === Key.AltGr ? 'AltRight'
 			: "";
 		return this.pressed[keySpec];
 	}

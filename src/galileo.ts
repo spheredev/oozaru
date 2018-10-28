@@ -185,7 +185,7 @@ class DrawTarget
 		this.clipping.w = width;
 		this.clipping.h = height;
 		if (this === activeDrawTarget)
-			gl.scissor(x, y, width, height);
+			gl.scissor(x, this.height - y - height, width, height);
 	}
 
 	unclip()
