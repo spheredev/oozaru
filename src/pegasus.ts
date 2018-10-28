@@ -130,6 +130,7 @@ class Pegasus extends null
 		const fileData = await util.loadRawFile(`${dirName}/game.json`);
 		const jsonText = new TextDecoder().decode(fileData);
 		gameData = Object.freeze(JSON.parse(jsonText));
+		document.title = gameData.name;
 		const matches = gameData.resolution.match(/^([0-9]*)x([0-9]*)$/);
 		if (matches !== null)
 			galileo.Prim.rerez(+(matches[1]), +(matches[2]));

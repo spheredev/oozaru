@@ -50,7 +50,6 @@ class Stream
 	bufferLength = 0.0;
 	frequency: number;
 	lastMixer: Mixer | null;
-	node: ScriptProcessorNode;
 	numChannels: number;
 	timeOffset = 0.0;
 
@@ -59,7 +58,6 @@ class Stream
 		this.frequency = frequency;
 		this.numChannels = numChannels;
 		this.lastMixer = null;
-		this.node = new ScriptProcessorNode();
 	}
 
 	get timeLeft()

@@ -1,1 +1,18 @@
-{"version":2,"apiLevel":1,"name":"kh2Bar Showcase","author":"Fat Cerberus","resolution":"320x240","main":"@/bin/main.js","$COMPILER":"Cell 5.3a2","$SOURCES":{"@/bin/kh2Bar.mjs":"src/kh2Bar.mjs","@/bin/main.mjs":"src/main.mjs","@/images/justSaiyan.png":"images/justSaiyan.png"}}
+{
+	"version": 2,
+	"apiLevel": 1,
+	"name": "mp3 SoundStream Demo",
+	"author": "Bruce Pascoe",
+	"summary": "",
+	"resolution": "800x600",
+	"main": "@/scripts/main.js",
+	"fullScreen": true,
+	"$COMPILER": "Cell 5.3a2",
+	"$SOURCES": {
+		"@/scripts/main.js": "src/main.js",
+		"@/lib/aurora.js": "lib/aurora.js",
+		"@/lib/mp3.js": "lib/mp3.js",
+		"@/images/theFelt.png": "images/theFelt.png",
+		"@/music/chartreuseRewind.mp3": "music/chartreuseRewind.mp3"
+	}
+}
