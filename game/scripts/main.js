@@ -13,10 +13,15 @@ import { from, Prim, Thread } from '../lib/sphere-runtime.js';
 
 // Aurora.js was originally written for use in browsers, so we need to do some
 // contortions to get it to work.
-if (window === undefined) {
+if (typeof window === 'undefined') {
 	global.window = global;
 	global.setImmediate = callback => Dispatch.now(callback);
 	global.clearImmediate = token => token.cancel();
+}
+
+if (Sphere.Engine.startsWith('miniSphere')) {
+	FileStream.open = async (fileName, op) => new FileStream(fileName, op);
+	Texture.fromFile = async (fileName) => new Texture(fileName);
 }
 
 export default
@@ -38,8 +43,8 @@ class mp3Demo extends Thread
 		this.asset = AV.Asset.fromBuffer(mp3Data);
 		this.asset.get('format', format => {
 			this.stream = new SoundStream(
-				format.sampleRate * format.channelsPerFrame, 32,  // 32-bit means float32
-				1);
+				format.sampleRate, 32,  // 32-bit means float32
+				format.channelsPerFrame);
 			this.stream.play(Mixer.Default);
 			this.asset.on('data', buffer => this.on_receiveData(buffer));
 			this.asset.start();

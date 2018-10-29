@@ -34,71 +34,75 @@ export
 class Mixer
 {
 	context: AudioContext;
+	gainer: GainNode;
 
 	constructor(frequency: number)
 	{
 		this.context = new AudioContext({
 			sampleRate: frequency,
 		});
+		this.gainer = this.context.createGain();
+		this.gainer.gain.value = 1.0;
+		this.gainer.connect(this.context.destination);
+	}
+
+	get volume()
+	{
+		return this.gainer.gain.value;
+	}
+
+	set volume(value)
+	{
+		this.gainer.gain.value = value;
 	}
 }
 
 export
 class Stream
 {
-	buffers: AudioBuffer[] = [];
-	bufferLength = 0.0;
+	buffers: Float32Array[] = [];
+	bufferSize = 0;
 	frequency: number;
-	lastMixer: Mixer | null;
+	inPtr = 0;
 	numChannels: number;
-	timeOffset = 0.0;
 
 	constructor(frequency: number, numChannels = 1)
 	{
 		this.frequency = frequency;
 		this.numChannels = numChannels;
-		this.lastMixer = null;
 	}
 
 	get timeLeft()
 	{
-		return this.bufferLength;
+		return this.bufferSize / (this.frequency * this.numChannels);
 	}
 
 	buffer(data: Float32Array)
 	{
-		// TODO: split channels in input buffer
-
-		const buffer = new AudioBuffer({
-			length: data.byteLength,
-			numberOfChannels: this.numChannels,
-			sampleRate: this.frequency,
-		});
-		this.bufferLength += buffer.duration;
-		buffer.copyToChannel(data, 0);
-		if (this.lastMixer !== null) {
-			const source = new AudioBufferSourceNode(this.lastMixer.context, { buffer });
-			source.connect(this.lastMixer.context.destination);
-			source.start(this.timeOffset);
-			source.addEventListener('ended', () => this.bufferLength -= buffer.duration)
-			this.timeOffset += buffer.duration;
-		}
-		else {
-			this.buffers.push(buffer);
-		}
+		this.buffers.push(data);
 	}
 
 	play(mixer: Mixer)
 	{
-		let buffer: AudioBuffer | undefined
-		this.timeOffset = mixer.context.currentTime;
-		while (buffer = this.buffers.shift()) {
-			const source = new AudioBufferSourceNode(mixer.context, { buffer });
-			source.connect(mixer.context.destination);
-			source.start(this.timeOffset);
-			source.addEventListener('ended', () => this.bufferLength -= source.buffer!.duration)
-			this.timeOffset += buffer.duration;
-		}
-		this.lastMixer = mixer;
+		const node = mixer.context.createScriptProcessor(4096, 0, 1);
+		node.addEventListener('audioprocess', e => {
+			if (this.buffers.length === 0)
+				return;
+			let outBytesLeft = e.outputBuffer.length;
+			let outPtr = 0;
+			while (outBytesLeft > 0) {
+				const samples = this.buffers[0].subarray(this.inPtr);
+				const bytesToCopy = Math.min(outBytesLeft, samples.length);
+				e.outputBuffer.copyToChannel(samples, 0, outPtr);
+				outBytesLeft -= bytesToCopy;
+				outPtr += bytesToCopy;
+				this.inPtr += bytesToCopy;
+				if (this.inPtr >= this.buffers[0].length) {
+					this.buffers.shift();
+					this.inPtr = 0;
+				}
+			}
+		});
+		node.connect(mixer.gainer);
 	}
 }

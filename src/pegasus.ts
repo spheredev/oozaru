@@ -531,10 +531,15 @@ class FileStream
 		if (fileOp !== FileOp.Read)
 			throw new RangeError(`Oozaru currently only supports FileStreams in read mode`);
 		const data = await util.loadRawFile(`game/${fileName}`);
-		const fileStream = new FileStream();
+		const fileStream = Object.create(this.prototype) as FileStream;
 		fileStream.fullPath = fileName;
 		fileStream.stream = new BufferStream(data);
 		return fileStream;
+	}
+
+	constructor()
+	{
+		throw new RangeError(`'FileStream' constructor is unsupported in Oozaru`);
 	}
 
 	get fileName()
@@ -609,7 +614,7 @@ class Font
 
 	constructor()
 	{
-		throw new Error(`'Font' constructor is not supported in Oozaru`);
+		throw new Error(`'Font' constructor is unsupported in Oozaru`);
 	}
 
 	get height()
@@ -756,7 +761,6 @@ class Keyboard
 class Mixer
 {
 	mixer: audio.Mixer;
-	volume_: number;
 
 	static get Default()
 	{
@@ -773,17 +777,16 @@ class Mixer
 	constructor(frequency: number, _bits: number, _numChannels: number)
 	{
 		this.mixer = new audio.Mixer(frequency);
-		this.volume_ = 1.0;
 	}
 
 	get volume()
 	{
-		return this.volume_;
+		return this.mixer.volume;
 	}
 
 	set volume(value)
 	{
-		this.volume_ = value;
+		this.mixer.volume = value;
 	}
 }
 
