@@ -30,6 +30,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
+import Sampler from './sampler.js';
+
 export
 class Mixer
 {
@@ -63,7 +65,7 @@ class Stream
 	buffers: Float32Array[] = [];
 	bufferSize = 0;
 	frequency: number;
-	inPtr = 0;
+	inPtr = 0.0;
 	numChannels: number;
 
 	constructor(frequency: number, numChannels = 1)
@@ -80,28 +82,32 @@ class Stream
 	buffer(data: Float32Array)
 	{
 		this.buffers.push(data);
+		this.bufferSize += data.byteLength;
 	}
 
 	play(mixer: Mixer)
 	{
-		const node = mixer.context.createScriptProcessor(4096, 0, 1);
+		const node = mixer.context.createScriptProcessor(4096, 0, this.numChannels);
 		node.addEventListener('audioprocess', e => {
-			if (this.buffers.length === 0)
-				return;
-			let outBytesLeft = e.outputBuffer.length;
-			let outPtr = 0;
-			while (outBytesLeft > 0) {
-				const samples = this.buffers[0].subarray(this.inPtr);
-				const bytesToCopy = Math.min(outBytesLeft, samples.length);
-				e.outputBuffer.copyToChannel(samples, 0, outPtr);
-				outBytesLeft -= bytesToCopy;
-				outPtr += bytesToCopy;
-				this.inPtr += bytesToCopy;
-				if (this.inPtr >= this.buffers[0].length) {
+			const delta = this.frequency / e.outputBuffer.sampleRate;
+			const sampler = new Sampler(this.buffers[0], this.numChannels);
+			const outs: Float32Array[] = [];
+			for (let i = 0; i < this.numChannels; ++i)
+				outs[i] = e.outputBuffer.getChannelData(i);
+			let inPtr = this.inPtr;
+			for (let i = 0, len = outs[0].length; i < len; ++i) {
+				for (let j = 0; j < this.numChannels; ++j)
+					outs[j][i] = sampler.sample(inPtr, j);
+				inPtr += delta;
+				if (inPtr >= Math.floor(this.buffers[0].length / this.numChannels)) {
+					this.bufferSize -= this.buffers[0].byteLength;
+					sampler.head = this.buffers[0][this.buffers[0].length - 1];
 					this.buffers.shift();
-					this.inPtr = 0;
+					sampler.samples = this.buffers[0];
+					inPtr = -(inPtr - Math.floor(inPtr));
 				}
 			}
+			this.inPtr = inPtr;
 		});
 		node.connect(mixer.gainer);
 	}

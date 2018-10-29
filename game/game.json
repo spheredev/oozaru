@@ -4,7 +4,7 @@
 	"name": "mp3 SoundStream Demo",
 	"author": "Bruce Pascoe",
 	"summary": "",
-	"resolution": "800x600",
+	"resolution": "320x240",
 	"main": "@/scripts/main.js",
 	"fullScreen": true,
 	"$COMPILER": "Cell 5.3a2",
