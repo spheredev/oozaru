@@ -1041,14 +1041,16 @@ class SoundStream
 {
 	stream: audio.Stream;
 
-	constructor(frequency: number, _bits: number, numChannels: number)
+	constructor(frequency: number, bits: number, numChannels: number)
 	{
+		if (bits !== 32) // Web Audio only supports floating point samples
+			throw new RangeError(`Oozaru only supports 32-bit floating point audio`);
 		this.stream = new audio.Stream(frequency, numChannels);
 	}
 
 	get length()
 	{
-		return this.stream.timeLeft;
+		return this.stream.buffered;
 	}
 
 	play(mixer: Mixer)

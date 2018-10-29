@@ -63,10 +63,10 @@ export
 class Stream
 {
 	buffers: Float32Array[] = [];
-	bufferSize = 0;
 	frequency: number;
 	inPtr = 0.0;
 	numChannels: number;
+	timeBuffered = 0.0;
 
 	constructor(frequency: number, numChannels = 1)
 	{
@@ -74,37 +74,43 @@ class Stream
 		this.numChannels = numChannels;
 	}
 
-	get timeLeft()
+	get buffered()
 	{
-		return this.bufferSize / (this.frequency * this.numChannels);
+		return this.timeBuffered;
 	}
 
 	buffer(data: Float32Array)
 	{
 		this.buffers.push(data);
-		this.bufferSize += data.byteLength;
+		this.timeBuffered += data.length / (this.frequency * this.numChannels);
 	}
 
 	play(mixer: Mixer)
 	{
 		const node = mixer.context.createScriptProcessor(4096, 0, this.numChannels);
 		node.addEventListener('audioprocess', e => {
-			const delta = this.frequency / e.outputBuffer.sampleRate;
-			const sampler = new Sampler(this.buffers[0], this.numChannels);
-			const outs: Float32Array[] = [];
+			if (this.timeBuffered < e.outputBuffer.duration)
+				return;  // not enough audio buffered
+			this.timeBuffered = this.timeBuffered - e.outputBuffer.duration;
+			if (this.timeBuffered < 0.0)
+				this.timeBuffered = 0.0;
+			const step = this.frequency / e.outputBuffer.sampleRate;
+			const outputs: Float32Array[] = [];
 			for (let i = 0; i < this.numChannels; ++i)
-				outs[i] = e.outputBuffer.getChannelData(i);
+				outputs[i] = e.outputBuffer.getChannelData(i);
+			let inBuffer = this.buffers[0];
 			let inPtr = this.inPtr;
-			for (let i = 0, len = outs[0].length; i < len; ++i) {
+			const sampler = new Sampler(inBuffer, this.numChannels);
+			for (let i = 0, len = outputs[0].length; i < len; ++i) {
 				for (let j = 0; j < this.numChannels; ++j)
-					outs[j][i] = sampler.sample(inPtr, j);
-				inPtr += delta;
-				if (inPtr >= Math.floor(this.buffers[0].length / this.numChannels)) {
-					this.bufferSize -= this.buffers[0].byteLength;
-					sampler.head = this.buffers[0][this.buffers[0].length - 1];
+					outputs[j][i] = sampler.sample(inPtr, j);
+				inPtr += step;
+				if (inPtr >= Math.floor(inBuffer.length / this.numChannels)) {
 					this.buffers.shift();
-					sampler.samples = this.buffers[0];
-					inPtr = -(inPtr - Math.floor(inPtr));
+					inBuffer = sampler.source = this.buffers[0];
+					inPtr = 0.0;
+					if (inBuffer === undefined)
+						return;  // no more data--it probably got eaten
 				}
 			}
 			this.inPtr = inPtr;

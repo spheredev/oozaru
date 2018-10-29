@@ -33,8 +33,6 @@
 export default
 class Sampler
 {
-	head = 0.0;
-	tail = 0.0;
 	numChannels: number;
 	samples: Float32Array | Float64Array;
 	window = 1.0;
@@ -49,7 +47,6 @@ class Sampler
 	{
 		return this.samples;
 	}
-
 	set source(value)
 	{
 		this.samples = value;
@@ -59,16 +56,17 @@ class Sampler
 	{
 		const x1 = Math.floor(x) * this.numChannels + channel;
 		const frac = x - Math.floor(x);
-		if (false && frac !== 0.0) {
+		if (frac !== 0.0) {
 			const x2 = x1 + this.numChannels;
-			const value = x1 >= 0 ? this.samples[x1] : this.head;
-			const next = x2 < this.samples.length ? this.samples[x2] : this.tail;
-			return value + frac * (next - value);
+			const value = this.samples[x1];
+			const next = this.samples[x2];
+			const asin1 = Math.asin(value);
+			let asin2 = Math.asin(next);
+			const phi = asin1 + frac * (asin2 - asin1);
+			return Math.sin(phi);
 		}
 		else {
-			return x1 >= this.samples.length ? this.tail
-				: x1 < 0 ? this.head
-				: this.samples[x1];
+			return this.samples[x1];
 		}
 	}
 }
