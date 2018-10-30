@@ -30,34 +30,91 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import Galileo from './galileo.js';
-import InputEngine from './input-engine.js';
-import PegasusAPI from './pegasus.js';
-import VanillaAPI from './vanilla.js';
+import * as galileo from './galileo.js';
+import * as util from './utility.js';
 
-const mainCanvas = document.getElementById('screen') as HTMLCanvasElement;
-const inputEngine = new InputEngine(mainCanvas);
+import * as exports from './vanilla.js'
 
-main();
+let defaultFont: Font;
 
-async function main()
+export default
+class VanillaAPI extends null
 {
-	await Galileo.initialize(mainCanvas);
-	await PegasusAPI.initialize(inputEngine);
-	await VanillaAPI.initialize();
-	mainCanvas.onclick = async () => {
-		mainCanvas.onclick = null;
-		const headingDiv = document.getElementById('prompt') as HTMLDivElement;
-		headingDiv.innerHTML = `<i>loading...</i>`;
-		await PegasusAPI.launchGame('./game/');
-		headingDiv.innerHTML = `
-			<tt><i>${Sphere.Game.name}</i> by <b>${Sphere.Game.author}</b></tt><br>
-			<tt>- <b>${Sphere.Engine}</b> implementing <b>API v${Sphere.Version} level ${Sphere.APILevel}</b></tt><br>
-			<tt>- compiled with <b>${Sphere.Compiler}</b></tt><br>
-			<tt>- backbuffer resolution is <b>${Sphere.Game.resolution}</b></tt><br>
-			<br>
-			<tt><b>About this Game:</b></tt><br>
-			<tt>${Sphere.Game.summary}</tt>
-		`;
-	};
+	static async initialize()
+	{
+		const rfnData = await util.loadRawFile('./system.rfn');
+		defaultFont = new Font(new galileo.Font(rfnData));
+
+		for (const name of Object.keys(exports)) {
+			if (name === 'default')
+				continue;
+			Object.defineProperty(window, name, {
+				writable: true,
+				enumerable: false,
+				configurable: true,
+				value: (exports as any)[name];
+			});
+		}
+	}
+}
+
+export
+function CreateSurface(width: number, height: number)
+{
+	return new Surface(width, height);
+}
+
+export
+function GetSystemFont()
+{
+	return defaultFont;
+}
+
+class Font
+{
+	font: galileo.Font;
+	matrix = new galileo.Matrix();
+
+	constructor(font: galileo.Font)
+	{
+		this.font = font;
+	}
+
+	drawText(x: number, y: number, text: string)
+	{
+		this.matrix.identity().translate(x, y);
+		this.font.drawText(text, { r: 1, g: 1, b: 1, a: 1 }, this.matrix);
+	}
+
+	getStringHeight(text: string)
+	{
+		return this.font.height;
+	}
+
+	getStringWidth(text: string)
+	{
+		return this.font.textSize(text).width;
+	}
+}
+
+class Surface
+{
+	drawTarget: galileo.DrawTarget;
+	texture: galileo.Texture;
+
+	constructor(width: number, height: number)
+	{
+		this.texture = new galileo.Texture(width, height);
+		this.drawTarget = new galileo.DrawTarget(this.texture);
+	}
+
+	get height()
+	{
+		return this.drawTarget.height;
+	}
+
+	get width()
+	{
+		return this.drawTarget.width;
+	}
 }
