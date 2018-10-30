@@ -54,19 +54,14 @@ class Sampler
 
 	sample(x: number, channel = 0)
 	{
+		// linear interpolation.  not the best, but works well enough for realtime
+		// resampling.  I wouldn't even need to do this if Web Audio had automatic resampling
+		// for ScriptProcessorNodes, but alas...
 		const x1 = Math.floor(x) * this.numChannels + channel;
-		const frac = x - Math.floor(x);
-		if (frac !== 0.0) {
-			const x2 = x1 + this.numChannels;
-			const value = this.samples[x1];
-			const next = this.samples[x2];
-			const asin1 = Math.asin(value);
-			let asin2 = Math.asin(next);
-			const phi = asin1 + frac * (asin2 - asin1);
-			return Math.sin(phi);
-		}
-		else {
-			return this.samples[x1];
-		}
+		const x2 = x1 + this.numChannels;
+		const frac = x % 1.0;
+		const v1 = this.samples[x1];
+		const v2 = this.samples[x2];
+		return v1 + frac * (v2 - v1);
 	}
 }
