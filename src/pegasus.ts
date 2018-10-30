@@ -159,6 +159,12 @@ class Sphere extends null
 		return 1;
 	}
 
+	static get Compiler()
+	{
+		return typeof gameData.$COMPILER === 'string'
+			? gameData.$COMPILER : undefined;
+	}
+
 	static get Engine()
 	{
 		return "Oozaru X.X.X";
@@ -179,8 +185,30 @@ class Sphere extends null
 		return 60;
 	}
 
+	static get frameSkip()
+	{
+		return 0;
+	}
+
+	static get fullScreen()
+	{
+		return false;
+	}
+
 	static set frameRate(_value)
 	{
+		throw new Error(`Oozaru doesn't support setting the frame rate`);
+	}
+
+	static set frameSkip(_value)
+	{
+		throw new Error(`Oozaru doesn't support frameskip`);
+	}
+
+	static set fullScreen(value)
+	{
+		if (value !== false)
+			throw new Error(`Oozaru doesn't yet support fullScreen mode`);
 	}
 
 	static get main()
@@ -580,7 +608,7 @@ class FileStream
 		return this.stream.readBytes(numBytes).buffer;
 	}
 
-	write(data: BufferSource)
+	write(_data: BufferSource)
 	{
 		if (this.stream === null)
 			throw new Error(`The FileStream has already been disposed`);
@@ -624,6 +652,8 @@ class Font
 
 	drawText(surface: Surface, x: number, y: number, text: string, color = Color.White, wrapWidth?: number)
 	{
+		if (wrapWidth !== undefined)
+			throw new Error(`Oozaru doesn't yet support text wrapping`);
 		const matrix = galileo.Matrix.Identity.translate(x, y);
 		surface.drawTarget.activate();
 		Shader.Default.program.activate(false);
@@ -853,7 +883,7 @@ class Mouse
 		return null;
 	}
 
-	isPressed(key: MouseKey)
+	isPressed(_key: MouseKey)
 	{
 		return false;
 	}
