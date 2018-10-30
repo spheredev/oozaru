@@ -976,7 +976,7 @@ class Sound
 	static async fromFile(fileName: string)
 	{
 		const sound = Object.create(this.prototype) as Sound;
-		sound.sound = await audialis.Sound.fromFile(fileName);
+		sound.sound = await audialis.Sound.fromFile(`./game/${fileName}`);
 		return sound;
 	}
 

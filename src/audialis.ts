@@ -66,9 +66,9 @@ class Sound
 	mixer?: Mixer;
 	node?: MediaElementAudioSourceNode;
 
-	static async fromFile(fileName: string)
+	static async fromFile(url: string)
 	{
-		const media = await util.loadAudioFile(`game/${fileName}`);
+		const media = await util.loadAudioFile(url);
 		media.loop = true;
 		return new this(media);
 	}
@@ -120,9 +120,10 @@ class Sound
 
 	play(mixer: Mixer)
 	{
-		if (mixer !== this.mixer && this.node !== undefined) {
+		if (mixer !== this.mixer) {
 			this.mixer = mixer;
-			this.node.disconnect();
+			if (this.node !== undefined)
+				this.node.disconnect();
 			this.node = mixer.context.createMediaElementSource(this.media);
 			this.node.connect(mixer.gainer);
 		}
