@@ -30,6 +30,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
+import * as util from './utility.js';
+
 export
 class Mixer
 {
@@ -58,15 +60,94 @@ class Mixer
 }
 
 export
+class Sound
+{
+	media: HTMLAudioElement;
+	mixer?: Mixer;
+	node?: MediaElementAudioSourceNode;
+
+	static async fromFile(fileName: string)
+	{
+		const media = await util.loadAudioFile(`game/${fileName}`);
+		media.loop = true;
+		return new this(media);
+	}
+
+	constructor(audioElement: HTMLAudioElement)
+	{
+		this.media = audioElement;
+	}
+
+	get length()
+	{
+		return this.media.duration;
+	}
+
+	get position()
+	{
+		return this.media.currentTime;
+	}
+
+	get repeat()
+	{
+		return this.media.loop;
+	}
+
+	get volume()
+	{
+		return this.media.volume;
+	}
+
+	set position(value)
+	{
+		this.media.currentTime = value;
+	}
+
+	set repeat(value)
+	{
+		this.media.loop = value;
+	}
+
+	set volume(value)
+	{
+		this.media.volume = value;
+	}
+
+	pause()
+	{
+		this.media.pause();
+	}
+
+	play(mixer: Mixer)
+	{
+		if (mixer !== this.mixer && this.node !== undefined) {
+			this.mixer = mixer;
+			this.node.disconnect();
+			this.node = mixer.context.createMediaElementSource(this.media);
+			this.node.connect(mixer.gainer);
+		}
+
+		this.media.play();
+	}
+
+	stop()
+	{
+		this.media.pause();
+		this.media.currentTime = 0.0;
+	}
+}
+
+export
 class Stream
 {
 	buffers: Float32Array[] = [];
 	frequency: number;
 	inputPtr = 0.0;
+	node?: ScriptProcessorNode;
 	numChannels: number;
 	timeBuffered = 0.0;
 
-	constructor(frequency: number, numChannels = 1)
+	constructor(frequency: number, numChannels: number)
 	{
 		this.frequency = frequency;
 		this.numChannels = numChannels;
@@ -85,8 +166,8 @@ class Stream
 
 	play(mixer: Mixer)
 	{
-		const node = mixer.context.createScriptProcessor(4096, 0, this.numChannels);
-		node.addEventListener('audioprocess', e => {
+		this.node = mixer.context.createScriptProcessor(0, 0, this.numChannels);
+		this.node.addEventListener('audioprocess', e => {
 			if (this.timeBuffered < e.outputBuffer.duration)
 				return;  // not enough audio buffered
 			this.timeBuffered = this.timeBuffered - e.outputBuffer.duration;
@@ -118,6 +199,6 @@ class Stream
 			}
 			this.inputPtr = inputPtr;
 		});
-		node.connect(mixer.gainer);
+		this.node.connect(mixer.gainer);
 	}
 }

@@ -33,7 +33,7 @@
 import BufferStream from './buffer-stream.js';
 import EventLoop, { JobType } from './event-loop.js';
 import InputEngine, { MouseKey, Key } from './input-engine.js';
-import * as audio from './audio-engine.js';
+import * as audialis from './audialis.js';
 import * as galileo from './galileo.js';
 import * as util from './utility.js';
 
@@ -138,7 +138,7 @@ class Pegasus extends null
 		// load and execute the game's main module.  if it exports a startup
 		// function or class, call it.
 		const fileName = `${dirName}/${gameData.main.substr(2)}`;
-		const main = await import(fileName);
+		const main = await util.loadJSModule(fileName);
 		if (util.isConstructor(main.default)) {
 			mainObject = new main.default() as object;
 			if (typeof mainObject.start === 'function')
@@ -516,7 +516,7 @@ class FS extends null
 {
 	static async evaluateScript(fileName: string)
 	{
-		const source = await (await fetch(`game/${fileName}`)).text();
+		const source = await (await fetch(`./game/${fileName}`)).text();
 		return (0, eval)(source);
 	}
 }
@@ -530,7 +530,7 @@ class FileStream
 	{
 		if (fileOp !== FileOp.Read)
 			throw new RangeError(`Oozaru currently only supports FileStreams in read mode`);
-		const data = await util.loadRawFile(`game/${fileName}`);
+		const data = await util.loadRawFile(`./game/${fileName}`);
 		const fileStream = Object.create(this.prototype) as FileStream;
 		fileStream.fullPath = fileName;
 		fileStream.stream = new BufferStream(data);
@@ -605,7 +605,7 @@ class Font
 
 	static async fromFile(fileName: string)
 	{
-		const fileData = await util.loadRawFile(`game/${fileName}`);
+		const fileData = await util.loadRawFile(`./game/${fileName}`);
 		const font = new galileo.Font(fileData);
 		const object = Object.create(this.prototype) as Font;
 		object.font = font;
@@ -760,7 +760,7 @@ class Keyboard
 
 class Mixer
 {
-	mixer: audio.Mixer;
+	mixer: audialis.Mixer;
 
 	static get Default()
 	{
@@ -776,7 +776,7 @@ class Mixer
 
 	constructor(frequency: number, _bits: number, _numChannels: number)
 	{
-		this.mixer = new audio.Mixer(frequency);
+		this.mixer = new audialis.Mixer(frequency);
 	}
 
 	get volume()
@@ -971,81 +971,77 @@ class Shape
 
 class Sound
 {
+	private sound: audialis.Sound;
+
 	static async fromFile(fileName: string)
 	{
-		const audioElement = await util.loadAudioFile(`game/${fileName}`);
-		audioElement.loop = true;
-		return new this(audioElement);
+		const sound = Object.create(this.prototype) as Sound;
+		sound.sound = await audialis.Sound.fromFile(fileName);
+		return sound;
 	}
-
-	audio: HTMLAudioElement;
 
 	constructor(audioElement: HTMLAudioElement)
 	{
-		this.audio = audioElement;
+		this.sound = new audialis.Sound(audioElement);
 	}
 
 	get length()
 	{
-		return this.audio.duration;
+		return this.sound.length;
 	}
 
 	get position()
 	{
-		return this.audio.currentTime;
+		return this.sound.position;
+	}
+	set position(value)
+	{
+		this.sound.position = value;
 	}
 
 	get repeat()
 	{
-		return this.audio.loop;
+		return this.sound.repeat;
+	}
+	set repeat(value)
+	{
+		this.sound.repeat = value;
 	}
 
 	get volume()
 	{
-		return this.audio.volume;
+		return this.sound.volume;
 	}
-
-	set position(value)
-	{
-		this.audio.currentTime = value;
-	}
-
-	set repeat(value)
-	{
-		this.audio.loop = value;
-	}
-
 	set volume(value)
 	{
-		this.audio.volume = value;
+		this.sound.volume = value;
 	}
 
 	pause()
 	{
-		this.audio.pause();
+		this.sound.pause();
 	}
 
-	play()
+	play(mixer = Mixer.Default)
 	{
-		this.audio.play();
+		this.sound.play(mixer.mixer);
 	}
 
 	stop()
 	{
-		this.audio.pause();
-		this.audio.currentTime = 0.0;
+		this.sound.stop();
 	}
 }
 
 class SoundStream
 {
-	stream: audio.Stream;
+	stream: audialis.Stream;
 
 	constructor(frequency: number, bits: number, numChannels: number)
 	{
 		if (bits !== 32) // Web Audio only supports floating point samples
 			throw new RangeError(`Oozaru only supports 32-bit floating point audio`);
-		this.stream = new audio.Stream(frequency, numChannels);
+		this.stream = new audialis.Stream(frequency, numChannels);
 	}
 
 	get length()
@@ -1070,7 +1066,7 @@ class Texture
 
 	static async fromFile(fileName: string)
 	{
-		const image = await util.loadImageFile(`game/${fileName}`);
+		const image = await util.loadImageFile(`./game/${fileName}`);
 		return new this(image);
 	}
 

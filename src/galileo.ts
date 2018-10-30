@@ -106,8 +106,8 @@ class Galileo extends null
 
 		immediateVBO = new VertexBuffer();
 
-		const vertSource = await (await fetch('shaders/default.vert.glsl')).text();
-		const fragSource = await (await fetch('shaders/default.frag.glsl')).text();
+		const vertSource = await (await fetch('./shaders/default.vert.glsl')).text();
+		const fragSource = await (await fetch('./shaders/default.frag.glsl')).text();
 		defaultShader = new Shader(vertSource, fragSource);
 		screenCanvas = canvas;
 

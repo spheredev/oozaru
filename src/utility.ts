@@ -31,37 +31,6 @@
 **/
 
 export
-async function loadAudioFile(fileName: string)
-{
-	return new Promise<HTMLAudioElement>((resolve, reject) => {
-		const audio = new Audio();
-		audio.onloadedmetadata = () => resolve(audio);
-		audio.onerror = () =>
-			reject(new Error(`Unable to load audio file '${fileName}'`));
-		audio.src = fileName;
-	});
-}
-
-export
-async function loadRawFile(fileName: string)
-{
-	const fileRequest = await fetch(fileName);
-	return fileRequest.arrayBuffer();
-}
-
-export
-async function loadImageFile(fileName: string)
-{
-	return new Promise<HTMLImageElement>((resolve, reject) => {
-		const image = new Image();
-		image.onload = () => resolve(image);
-		image.onerror = () =>
-			reject(new Error(`Unable to load image file '${fileName}'`));
-		image.src = fileName;
-	});
-}
-
-export
 function isConstructor(func: Function)
 {
 	const funcProxy = new Proxy(func, { construct() { return {}; } });
@@ -75,9 +44,80 @@ function isConstructor(func: Function)
 }
 
 export
+async function loadAudioFile(url: string)
+{
+	return new Promise<HTMLAudioElement>((resolve, reject) => {
+		const audio = new Audio();
+		audio.onloadedmetadata = () => resolve(audio);
+		audio.onerror = () =>
+			reject(new Error(`Unable to load audio file '${url}'`));
+		audio.src = url;
+	});
+}
+
+export
+async function loadRawFile(url: string)
+{
+	const fileRequest = await fetch(url);
+	return fileRequest.arrayBuffer();
+}
+
+export
+async function loadImageFile(url: string)
+{
+	return new Promise<HTMLImageElement>((resolve, reject) => {
+		const image = new Image();
+		image.onload = () => resolve(image);
+		image.onerror = () =>
+			reject(new Error(`Unable to load image file '${url}'`));
+		image.src = url;
+	});
+}
+
+export
+async function loadJSModule(url: string)
+{
+	const vector = `$module$${Math.random().toString(32).slice(2)}`;
+	const globalThis: { [x: string]: any } = window;
+	const fullURL = toAbsoluteURL(url);
+	const source = `
+		import * as module from "${fullURL}";
+		window.${vector} = module;
+	`;
+	const blob = new Blob([ source ], { type: 'text/javascript' });
+	return new Promise<any>((resolve, reject) => {
+		const script = document.createElement('script');
+		script.type = 'module';
+		script.defer = true;
+		const finishUp = () => {
+			delete globalThis[vector];
+			script.remove();
+			URL.revokeObjectURL(script.src);
+		};
+		script.onload = () => {
+			resolve(globalThis[vector]);
+			finishUp();
+		}
+		script.onerror = () => {
+			reject(new Error(`Unable to load JS module '${url}'`));
+			finishUp();
+		}
+		script.src = URL.createObjectURL(blob);
+		document.head!.appendChild(script);
+	});
+}
+
+export
 function promiseTry<T>(callback: () => T)
 {
 	return new Promise<T>(resolve => {
 		resolve(callback());
 	});
+}
+
+function toAbsoluteURL(url: string)
+{
+	const anchor = document.createElement('a');
+	anchor.setAttribute("href", url);
+	return (anchor.cloneNode(false) as HTMLAnchorElement).href;
 }
