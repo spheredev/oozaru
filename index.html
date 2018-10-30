@@ -4,10 +4,25 @@
 		<title>Oozaru: Sphere for the Web</title>
 		<script type=module src="oozaru/main.js"></script>
 	</head>
-	<body>
+	<body style="color:#CCC; background-color:#181818">
+		<br>
 		<center>
-			<div id="prompt"><b>Click the box below to launch a Sphere game for testing!</b></div><br>
-			<canvas id="screen" width=320 height=240 tabindex=1 style="border:1px solid #000000"></canvas>
+			<table cellpadding=20 width=100%>
+				<tr valign=top>
+					<td>
+						<canvas id="screen" width=320 height=240 tabindex=1 style="border:1px solid #404040"></canvas>
+					</td>
+					<td width=100%>
+						<a href="./index.html"><img src="./logo.svg" width=32 height=32></a>
+						<font size=+3>&nbsp;<b>Oozaru</b>: Sphere for the Web</h1></font>
+						<div id="game_info"></div><br>
+						<div id="prompt">
+							Click on the canvas to launch a Sphere game for testing.  This is necessary to ensure audio playback works properly.
+						</div><br><br>
+						<button onclick='window.location.reload(true)'>turn it off and on again</button>
+					</td>
+				</tr>
+			</table>
 		</center>
 	</body>
 </html>

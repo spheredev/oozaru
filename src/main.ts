@@ -43,11 +43,17 @@ async function main()
 {
 	await Galileo.initialize(mainCanvas);
 	Pegasus.initialize(inputEngine);
-	mainCanvas.onclick = () => {
+	mainCanvas.onclick = async () => {
 		mainCanvas.onclick = null;
 		const headingDiv = document.getElementById('prompt') as HTMLDivElement;
-		headingDiv.innerHTML = "<i>launching Sphere game...</i>";
-		Pegasus.launchGame('./game/');
-		headingDiv.innerHTML = "Sphere game launched!";
+		headingDiv.innerHTML = `<i>loading...</i>`;
+		await Pegasus.launchGame('./game/');
+		headingDiv.innerHTML = `
+			<tt><i>${Sphere.Game.name}</i> by <b>${Sphere.Game.author}</b></tt><br>
+			<tt>Compiled with <b>${Sphere.Compiler}</b></tt><br>
+			<tt><b>${Sphere.Engine}</b> implementing <b>API v${Sphere.Version} level ${Sphere.APILevel}</b></tt><br>
+			<br>
+			"${Sphere.Game.summary}"
+		`;
 	};
 }

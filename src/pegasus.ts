@@ -167,7 +167,7 @@ class Sphere extends null
 
 	static get Engine()
 	{
-		return "Oozaru X.X.X";
+		return "Oozaru 1.0a1";
 	}
 
 	static get Game()
@@ -547,6 +547,28 @@ class FS extends null
 		const source = await (await fetch(`./game/${fileName}`)).text();
 		return (0, eval)(source);
 	}
+
+	static async fileExists(pathName: string)
+	{
+		try {
+			const response = await fetch(`./game/${pathName}`);
+			return response.status === 200;
+		}
+		catch {
+			return false;
+		}
+	}
+
+	static fullPath(pathName: string, baseDirName: string)
+	{
+		return pathName;
+	}
+
+	static async loadAsset(fileName: string)
+	{
+		const text = await (await fetch(`./game/${fileName}`)).text();
+		return JSON.parse(text);
+	}
 }
 
 class FileStream
@@ -893,7 +915,6 @@ class RNG
 {
 	constructor()
 	{
-
 	}
 
 	next()
@@ -911,10 +932,17 @@ class SSj extends null
 	{
 		console.log(object);
 	}
+
+	static now()
+	{
+		return 0;
+	}
 }
 
 class Shader
 {
+	program: galileo.Shader;
+
 	static get Default()
 	{
 		const shader = Object.create(this.prototype) as Shader;
@@ -927,8 +955,6 @@ class Shader
 		});
 		return shader;
 	}
-
-	program: galileo.Shader;
 
 	constructor()
 	{
