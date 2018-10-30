@@ -30,8 +30,6 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import Sampler from './sampler.js';
-
 export
 class Mixer
 {
@@ -64,7 +62,7 @@ class Stream
 {
 	buffers: Float32Array[] = [];
 	frequency: number;
-	inPtr = 0.0;
+	inputPtr = 0.0;
 	numChannels: number;
 	timeBuffered = 0.0;
 
@@ -98,22 +96,27 @@ class Stream
 			const outputs: Float32Array[] = [];
 			for (let i = 0; i < this.numChannels; ++i)
 				outputs[i] = e.outputBuffer.getChannelData(i);
-			let inBuffer = this.buffers[0];
-			let inPtr = this.inPtr;
-			const sampler = new Sampler(inBuffer, this.numChannels);
+			let input = this.buffers[0];
+			let inputPtr = this.inputPtr;
 			for (let i = 0, len = outputs[0].length; i < len; ++i) {
-				for (let j = 0; j < this.numChannels; ++j)
-					outputs[j][i] = sampler.sample(inPtr, j);
-				inPtr += step;
-				if (inPtr >= Math.floor(inBuffer.length / this.numChannels)) {
+				const t1 = Math.floor(inputPtr) * this.numChannels;
+				const t2 = t1 + this.numChannels;
+				const frac = inputPtr % 1.0;
+				for (let j = 0; j < this.numChannels; ++j) {
+					const a = input[t1 + j];
+					const b = input[t2 + j];
+					outputs[j][i] = a + frac * (b - a);
+				}
+				inputPtr += step;
+				if (inputPtr >= Math.floor(input.length / this.numChannels)) {
 					this.buffers.shift();
-					inBuffer = sampler.source = this.buffers[0];
-					inPtr = 0.0;
-					if (inBuffer === undefined)
+					input = this.buffers[0];
+					inputPtr -= Math.floor(input.length / this.numChannels);
+					if (input === undefined)
 						return;  // no more data--it probably got eaten
 				}
 			}
-			this.inPtr = inPtr;
+			this.inputPtr = inputPtr;
 		});
 		node.connect(mixer.gainer);
 	}
