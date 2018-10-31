@@ -32,50 +32,40 @@
 
 import * as util from './utility.js'
 
-export default
+export
 class Game
 {
-	private manifest: any;
+	private data: { [x: string]: any };
+	private screenSize: { x: number, y: number };
 	private url: string;
 
 	static async fromDirectory(url: string)
 	{
-		const fileData = await util.loadRawFile(`${url}/game.json`);
-		const jsonText = new TextDecoder().decode(fileData);
+		const json = await util.fetchJSON(`${url}/game.json`);
 		const game = new this();
-		game.manifest = Object.freeze(JSON.parse(jsonText));
 		game.url = url;
+		game.data = Object.freeze(json);
+
+		// parse the screen resolution string
+		const matches = game.data.resolution.match(/^([0-9]*)x([0-9]*)$/);
+		if (matches !== null)
+			game.screenSize = Object.freeze({ x: +matches[1], y: +matches[2] });
+		else
+			game.screenSize = Object.freeze({ x: 640, y: 480 });
+
 		return game;
 	}
 
-	get author(): string
-	{
-		return this.manifest.author;
-	}
-
-	get compiler(): string
-	{
-		return this.manifest.$COMPILER;
-	}
-
-	get summary(): string
-	{
-		return this.manifest.summary;
-	}
-
-	get title(): string
-	{
-		return this.manifest.name;
-	}
-
-	urlOf(pathName: string)
+	static urlOf(game: Game | null, pathName: string)
 	{
 		const hops = pathName.split(/[\\/]+/);
 		if (hops[0] !== '@' && hops[0] !== '#' && hops[0] !== '~' && hops[0] !== '$' && hops[0] !== '%')
 			hops.unshift('@');
 		if (hops[0] === '@') {
+			if (game === null)
+				throw new Error(`No game loaded to resolve SphereFS '@/' prefix`);
 			hops.splice(0, 1);
-			return `${this.url}/${hops.join('/')}`;
+			return `${game.url}/${hops.join('/')}`;
 		}
 		else if (hops[0] === '#') {
 			hops.splice(0, 1);
@@ -84,5 +74,40 @@ class Game
 		else {
 			throw new RangeError(`Unsupported SphereFS prefix '${hops[0]}'`);
 		}
+	}
+
+	get author(): string
+	{
+		return this.data.author;
+	}
+
+	get compiler(): string
+	{
+		return this.data.$COMPILER;
+	}
+
+	get modulePath(): string
+	{
+		return this.data.main;
+	}
+
+	get manifest()
+	{
+		return this.data;
+	}
+
+	get resolution()
+	{
+		return this.screenSize;
+	}
+
+	get summary(): string
+	{
+		return this.data.summary;
+	}
+
+	get title(): string
+	{
+		return this.data.name;
 	}
 }

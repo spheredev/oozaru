@@ -210,10 +210,9 @@ class Font
 	private numGlyphs = 0;
 	private stride: number;
 
-	static async fromFile(fileName: string)
+	static async fromFile(url: string)
 	{
-		const url = util.urlFromPath(fileName);
-		const data = await util.loadRawFile(url);
+		const data = await util.fetchRawFile(url);
 		return new this(data);
 	}
 

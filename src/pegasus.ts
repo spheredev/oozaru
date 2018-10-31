@@ -34,6 +34,7 @@ import BufferStream from './buffer-stream.js';
 import EventLoop, { JobType } from './event-loop.js';
 import InputEngine, { MouseKey, Key } from './input-engine.js';
 import * as audialis from './audialis.js';
+import * as fs from './fs.js';
 import * as galileo from './galileo.js';
 import * as util from './utility.js';
 
@@ -70,7 +71,7 @@ interface Vertex
 const eventLoop = new EventLoop();
 
 let defaultFont: Font;
-let gameData: { [x: string]: any };
+let game: fs.Game;
 let inputEngine: InputEngine;
 let mainObject: { [x: string]: any } | undefined;
 
@@ -122,23 +123,19 @@ class Pegasus extends null
 		});
 	}
 
-	static async launchGame(dirName: string)
+	static async launchGame(directoryURL: string)
 	{
-		defaultFont = await Font.fromFile('#/default.rfn');
-
 		// load the game's JSON manifest
-		const fileData = await util.loadRawFile(`${dirName}/game.json`);
-		const jsonText = new TextDecoder().decode(fileData);
-		gameData = Object.freeze(JSON.parse(jsonText));
-		document.title = gameData.name;
-		const matches = gameData.resolution.match(/^([0-9]*)x([0-9]*)$/);
-		if (matches !== null)
-			galileo.Prim.rerez(+(matches[1]), +(matches[2]));
+		game = await fs.Game.fromDirectory(directoryURL);
+		galileo.Prim.rerez(game.resolution.x, game.resolution.y);
+		document.title = game.title;
+
+		defaultFont = await Font.fromFile('#/default.rfn');
 
 		// load and execute the game's main module.  if it exports a startup
 		// function or class, call it.
-		const moduleURL = util.urlFromPath(gameData.main);
-		const main = await util.loadJSModule(moduleURL);
+		const moduleURL = fs.Game.urlOf(game, game.modulePath);
+		const main = await util.fetchModule(moduleURL);
 		if (util.isConstructor(main.default)) {
 			mainObject = new main.default() as object;
 			if (typeof mainObject.start === 'function')
@@ -161,8 +158,7 @@ class Sphere extends null
 
 	static get Compiler()
 	{
-		return typeof gameData.$COMPILER === 'string'
-			? gameData.$COMPILER : undefined;
+		return game.compiler;
 	}
 
 	static get Engine()
@@ -172,7 +168,7 @@ class Sphere extends null
 
 	static get Game()
 	{
-		return gameData;
+		return game.manifest;
 	}
 
 	static get Version()
@@ -544,14 +540,14 @@ class FS extends null
 {
 	static async evaluateScript(fileName: string)
 	{
-		const url = util.urlFromPath(fileName);
+		const url = fs.Game.urlOf(game, fileName);
 		const source = await (await fetch(url)).text();
 		return (0, eval)(source);
 	}
 
 	static async fileExists(pathName: string)
 	{
-		const url = util.urlFromPath(pathName);
+		const url = fs.Game.urlOf(game, pathName);
 		try {
 			const response = await fetch(url);
 			return response.status === 200;
@@ -568,7 +564,7 @@ class FS extends null
 
 	static async require(fileName: string)
 	{
-		const url = util.urlFromPath(fileName);
+		const url = fs.Game.urlOf(game, fileName);
 		const text = await (await fetch(url)).text();
 		return JSON.parse(text);
 	}
@@ -584,8 +580,8 @@ class FileStream
 		if (fileOp !== FileOp.Read)
 			throw new RangeError(`Oozaru currently only supports FileStreams in read mode`);
 
-		const url = util.urlFromPath(fileName);
-		const data = await util.loadRawFile(url);
+		const url = fs.Game.urlOf(game, fileName);
+		const data = await util.fetchRawFile(url);
 		const fileStream = Object.create(this.prototype) as FileStream;
 		fileStream.fullPath = fileName;
 		fileStream.stream = new BufferStream(data);
@@ -660,8 +656,8 @@ class Font
 
 	static async fromFile(fileName: string)
 	{
-		const fileData = await util.loadRawFile(util.urlFromPath(fileName));
-		const font = new galileo.Font(fileData);
+		const url = fs.Game.urlOf(game, fileName);
+		const font = await galileo.Font.fromFile(url);
 		const object = Object.create(this.prototype) as Font;
 		object.font = font;
 		return object;
@@ -1036,7 +1032,7 @@ class Sound
 
 	static async fromFile(fileName: string)
 	{
-		const url = util.urlFromPath(fileName);
+		const url = fs.Game.urlOf(game, fileName);
 		const sound = Object.create(this.prototype) as Sound;
 		sound.sound = await audialis.Sound.fromFile(url);
 		return sound;
@@ -1128,8 +1124,8 @@ class Texture
 
 	static async fromFile(fileName: string)
 	{
-		const url = util.urlFromPath(fileName);
-		const image = await util.loadImageFile(url);
+		const url = fs.Game.urlOf(game, fileName);
+		const image = await util.fetchImage(url);
 		return new Texture(image);
 	}
 

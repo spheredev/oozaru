@@ -68,7 +68,7 @@ class Sound
 
 	static async fromFile(url: string)
 	{
-		const media = await util.loadAudioFile(url);
+		const media = await util.fetchAudio(url);
 		media.loop = true;
 		return new this(media);
 	}

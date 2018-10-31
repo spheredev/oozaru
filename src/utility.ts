@@ -31,20 +31,7 @@
 **/
 
 export
-function isConstructor(func: Function)
-{
-	const funcProxy = new Proxy(func, { construct() { return {}; } });
-	try {
-		Reflect.construct(funcProxy, []);
-		return true;
-	}
-	catch {
-		return false;
-	}
-}
-
-export
-async function loadAudioFile(url: string)
+async function fetchAudio(url: string)
 {
 	return new Promise<HTMLAudioElement>((resolve, reject) => {
 		const audio = new Audio();
@@ -56,14 +43,7 @@ async function loadAudioFile(url: string)
 }
 
 export
-async function loadRawFile(url: string)
-{
-	const fileRequest = await fetch(url);
-	return fileRequest.arrayBuffer();
-}
-
-export
-async function loadImageFile(url: string)
+async function fetchImage(url: string)
 {
 	return new Promise<HTMLImageElement>((resolve, reject) => {
 		const image = new Image();
@@ -75,8 +55,17 @@ async function loadImageFile(url: string)
 }
 
 export
-async function loadJSModule(url: string)
+async function fetchJSON(url: string)
 {
+	return (await fetch(url)).json();
+}
+
+export
+async function fetchModule(url: string)
+{
+	// this mimics dynamic import() since most browsers (as of 2018) don't yet support it.
+	// based on https://github.com/uupaa/dynamic-import-polyfill
+
 	const vector = `$module$${Math.random().toString(32).slice(2)}`;
 	const globalThis: { [x: string]: any } = window;
 	const fullURL = toAbsoluteURL(url);
@@ -88,7 +77,6 @@ async function loadJSModule(url: string)
 	return new Promise<any>((resolve, reject) => {
 		const script = document.createElement('script');
 		script.type = 'module';
-		script.defer = true;
 		const finishUp = () => {
 			delete globalThis[vector];
 			script.remove();
@@ -108,6 +96,26 @@ async function loadJSModule(url: string)
 }
 
 export
+async function fetchRawFile(url: string)
+{
+	const fileRequest = await fetch(url);
+	return fileRequest.arrayBuffer();
+}
+
+export
+function isConstructor(func: Function)
+{
+	const funcProxy = new Proxy(func, { construct() { return {}; } });
+	try {
+		Reflect.construct(funcProxy, []);
+		return true;
+	}
+	catch {
+		return false;
+	}
+}
+
+export
 function promiseTry<T>(callback: () => T)
 {
 	return new Promise<T>(resolve => {
@@ -120,23 +128,4 @@ function toAbsoluteURL(url: string)
 	const anchor = document.createElement('a');
 	anchor.setAttribute("href", url);
 	return (anchor.cloneNode(false) as HTMLAnchorElement).href;
-}
-
-export
-function urlFromPath(pathName: string)
-{
-	const hops = pathName.split(/[\\/]+/);
-	if (hops[0] !== '@' && hops[0] !== '#' && hops[0] !== '~' && hops[0] !== '$' && hops[0] !== '%')
-		hops.unshift('@');
-	if (hops[0] === '@') {
-		hops.splice(0, 1);
-		return `./game/${hops.join('/')}`;
-	}
-	else if (hops[0] === '#') {
-		hops.splice(0, 1);
-		return `./assets/${hops.join('/')}`;
-	}
-	else {
-		throw new RangeError(`Unsupported SphereFS prefix '${hops[0]}'`);
-	}
 }
