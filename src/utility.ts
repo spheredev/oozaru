@@ -121,3 +121,22 @@ function toAbsoluteURL(url: string)
 	anchor.setAttribute("href", url);
 	return (anchor.cloneNode(false) as HTMLAnchorElement).href;
 }
+
+export
+function urlFromPath(pathName: string)
+{
+	const hops = pathName.split(/[\\/]+/);
+	if (hops[0] !== '@' && hops[0] !== '#' && hops[0] !== '~' && hops[0] !== '$' && hops[0] !== '%')
+		hops.unshift('@');
+	if (hops[0] === '@') {
+		hops.splice(0, 1);
+		return `./game/${hops.join('/')}`;
+	}
+	else if (hops[0] === '#') {
+		hops.splice(0, 1);
+		return `./assets/${hops.join('/')}`;
+	}
+	else {
+		throw new RangeError(`Unsupported SphereFS prefix '${hops[0]}'`);
+	}
+}

@@ -3,7 +3,7 @@
 	"apiLevel": 1,
 	"name": "mp3 SoundStream Demo",
 	"author": "Bruce Pascoe",
-	"summary": "",
+	"summary": "Shows off the Sphere v2 SoundStream class by decoding an mp3 file using the Aurora.js library and playing it back in realtime, all in pure JavaScript.",
 	"resolution": "640x480",
 	"main": "@/scripts/main.js",
 	"fullScreen": true,

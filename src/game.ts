@@ -1,4 +1,4 @@
-/**
+/*
  *  Oozaru JavaScript game engine
  *  Copyright (c) 2015-2018, Fat Cerberus
  *  All rights reserved.
@@ -30,91 +30,59 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import * as galileo from './galileo.js';
-import * as util from './utility.js';
-
-import * as exports from './vanilla.js'
-
-let defaultFont: Font;
+import * as util from './utility.js'
 
 export default
-class VanillaAPI extends null
+class Game
 {
-	static async initialize()
-	{
-		const rfnData = await util.loadRawFile('./system.rfn');
-		defaultFont = new Font(new galileo.Font(rfnData));
+	private manifest: any;
+	private url: string;
 
-		for (const name of Object.keys(exports)) {
-			if (name === 'default')
-				continue;
-			Object.defineProperty(window, name, {
-				writable: true,
-				enumerable: false,
-				configurable: true,
-				value: (exports as any)[name];
-			});
+	static async fromDirectory(url: string)
+	{
+		const fileData = await util.loadRawFile(`${url}/game.json`);
+		const jsonText = new TextDecoder().decode(fileData);
+		const game = new this();
+		game.manifest = Object.freeze(JSON.parse(jsonText));
+		game.url = url;
+		return game;
+	}
+
+	get author(): string
+	{
+		return this.manifest.author;
+	}
+
+	get compiler(): string
+	{
+		return this.manifest.$COMPILER;
+	}
+
+	get summary(): string
+	{
+		return this.manifest.summary;
+	}
+
+	get title(): string
+	{
+		return this.manifest.name;
+	}
+
+	urlOf(pathName: string)
+	{
+		const hops = pathName.split(/[\\/]+/);
+		if (hops[0] !== '@' && hops[0] !== '#' && hops[0] !== '~' && hops[0] !== '$' && hops[0] !== '%')
+			hops.unshift('@');
+		if (hops[0] === '@') {
+			hops.splice(0, 1);
+			return `${this.url}/${hops.join('/')}`;
 		}
-	}
-}
-
-export
-function CreateSurface(width: number, height: number)
-{
-	return new Surface(width, height);
-}
-
-export
-function GetSystemFont()
-{
-	return defaultFont;
-}
-
-class Font
-{
-	font: galileo.Font;
-	matrix = new galileo.Matrix();
-
-	constructor(font: galileo.Font)
-	{
-		this.font = font;
-	}
-
-	drawText(x: number, y: number, text: string)
-	{
-		this.matrix.identity().translate(x, y);
-		this.font.drawText(text, { r: 1, g: 1, b: 1, a: 1 }, this.matrix);
-	}
-
-	getStringHeight(text: string)
-	{
-		return this.font.height;
-	}
-
-	getStringWidth(text: string)
-	{
-		return this.font.textSize(text).width;
-	}
-}
-
-class Surface
-{
-	drawTarget: galileo.DrawTarget;
-	texture: galileo.Texture;
-
-	constructor(width: number, height: number)
-	{
-		this.texture = new galileo.Texture(width, height);
-		this.drawTarget = new galileo.DrawTarget(this.texture);
-	}
-
-	get height()
-	{
-		return this.drawTarget.height;
-	}
-
-	get width()
-	{
-		return this.drawTarget.width;
+		else if (hops[0] === '#') {
+			hops.splice(0, 1);
+			return `./assets/${hops.join('/')}`;
+		}
+		else {
+			throw new RangeError(`Unsupported SphereFS prefix '${hops[0]}'`);
+		}
 	}
 }

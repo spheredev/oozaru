@@ -34,10 +34,10 @@ class mp3Demo extends Thread
 
 	async on_startUp()
 	{
-		await FS.evaluateScript('lib/aurora.js');
-		await FS.evaluateScript('lib/mp3.js');
+		await FS.evaluateScript('@/lib/aurora.js');
+		await FS.evaluateScript('@/lib/mp3.js');
 
-		let fileStream = await FileStream.open('music/chartreuseRewind.mp3', FileOp.Read);
+		let fileStream = await FileStream.open('@/music/chartreuseRewind.mp3', FileOp.Read);
 		let mp3Data = fileStream.read(fileStream.fileSize);
 		fileStream.dispose();
 		this.asset = AV.Asset.fromBuffer(mp3Data);
@@ -50,7 +50,7 @@ class mp3Demo extends Thread
 			this.asset.start();
 		});
 
-		this.albumArt = await Texture.fromFile('images/theFelt.png');
+		this.albumArt = await Texture.fromFile('@/images/theFelt.png');
 		this.vu1 = 0.0;
 		this.vu2 = 0.0;
 	}

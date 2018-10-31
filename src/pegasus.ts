@@ -124,7 +124,7 @@ class Pegasus extends null
 
 	static async launchGame(dirName: string)
 	{
-		defaultFont = await Font.fromFile('../system.rfn');
+		defaultFont = await Font.fromFile('#/default.rfn');
 
 		// load the game's JSON manifest
 		const fileData = await util.loadRawFile(`${dirName}/game.json`);
@@ -137,8 +137,8 @@ class Pegasus extends null
 
 		// load and execute the game's main module.  if it exports a startup
 		// function or class, call it.
-		const fileName = `${dirName}/${gameData.main.substr(2)}`;
-		const main = await util.loadJSModule(fileName);
+		const moduleURL = util.urlFromPath(gameData.main);
+		const main = await util.loadJSModule(moduleURL);
 		if (util.isConstructor(main.default)) {
 			mainObject = new main.default() as object;
 			if (typeof mainObject.start === 'function')
@@ -544,14 +544,16 @@ class FS extends null
 {
 	static async evaluateScript(fileName: string)
 	{
-		const source = await (await fetch(`./game/${fileName}`)).text();
+		const url = util.urlFromPath(fileName);
+		const source = await (await fetch(url)).text();
 		return (0, eval)(source);
 	}
 
 	static async fileExists(pathName: string)
 	{
+		const url = util.urlFromPath(pathName);
 		try {
-			const response = await fetch(`./game/${pathName}`);
+			const response = await fetch(url);
 			return response.status === 200;
 		}
 		catch {
@@ -564,9 +566,10 @@ class FS extends null
 		return pathName;
 	}
 
-	static async loadAsset(fileName: string)
+	static async require(fileName: string)
 	{
-		const text = await (await fetch(`./game/${fileName}`)).text();
+		const url = util.urlFromPath(fileName);
+		const text = await (await fetch(url)).text();
 		return JSON.parse(text);
 	}
 }
@@ -580,7 +583,9 @@ class FileStream
 	{
 		if (fileOp !== FileOp.Read)
 			throw new RangeError(`Oozaru currently only supports FileStreams in read mode`);
-		const data = await util.loadRawFile(`./game/${fileName}`);
+
+		const url = util.urlFromPath(fileName);
+		const data = await util.loadRawFile(url);
 		const fileStream = Object.create(this.prototype) as FileStream;
 		fileStream.fullPath = fileName;
 		fileStream.stream = new BufferStream(data);
@@ -655,7 +660,7 @@ class Font
 
 	static async fromFile(fileName: string)
 	{
-		const fileData = await util.loadRawFile(`./game/${fileName}`);
+		const fileData = await util.loadRawFile(util.urlFromPath(fileName));
 		const font = new galileo.Font(fileData);
 		const object = Object.create(this.prototype) as Font;
 		object.font = font;
@@ -1031,8 +1036,9 @@ class Sound
 
 	static async fromFile(fileName: string)
 	{
+		const url = util.urlFromPath(fileName);
 		const sound = Object.create(this.prototype) as Sound;
-		sound.sound = await audialis.Sound.fromFile(`./game/${fileName}`);
+		sound.sound = await audialis.Sound.fromFile(url);
 		return sound;
 	}
 
@@ -1122,8 +1128,9 @@ class Texture
 
 	static async fromFile(fileName: string)
 	{
-		const image = await util.loadImageFile(`./game/${fileName}`);
-		return new this(image);
+		const url = util.urlFromPath(fileName);
+		const image = await util.loadImageFile(url);
+		return new Texture(image);
 	}
 
 	constructor(width: number, height: number, content?: ArrayBufferView | Color);

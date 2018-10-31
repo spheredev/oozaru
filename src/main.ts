@@ -32,8 +32,7 @@
 
 import Galileo from './galileo.js';
 import InputEngine from './input-engine.js';
-import PegasusAPI from './pegasus.js';
-import VanillaAPI from './vanilla.js';
+import Pegasus from './pegasus.js';
 
 const mainCanvas = document.getElementById('screen') as HTMLCanvasElement;
 const inputEngine = new InputEngine(mainCanvas);
@@ -43,17 +42,16 @@ main();
 async function main()
 {
 	await Galileo.initialize(mainCanvas);
-	await PegasusAPI.initialize(inputEngine);
-	await VanillaAPI.initialize();
+	await Pegasus.initialize(inputEngine);
 	mainCanvas.onclick = async () => {
 		mainCanvas.onclick = null;
 		const headingDiv = document.getElementById('prompt') as HTMLDivElement;
 		headingDiv.innerHTML = `<i>loading...</i>`;
-		await PegasusAPI.launchGame('./game/');
+		await Pegasus.launchGame('./game/');
 		headingDiv.innerHTML = `
 			<tt><i>${Sphere.Game.name}</i> by <b>${Sphere.Game.author}</b></tt><br>
 			<tt>- <b>${Sphere.Engine}</b> implementing <b>API v${Sphere.Version} level ${Sphere.APILevel}</b></tt><br>
-			<tt>- compiled with <b>${Sphere.Compiler}</b></tt><br>
+			<tt>- game compiled with <b>${Sphere.Compiler}</b></tt><br>
 			<tt>- backbuffer resolution is <b>${Sphere.Game.resolution}</b></tt><br>
 			<br>
 			<tt><b>About this Game:</b></tt><br>

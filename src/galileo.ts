@@ -31,6 +31,7 @@
 **/
 
 import BufferStream from './buffer-stream.js';
+import * as util from './utility.js';
 
 interface Glyph
 {
@@ -208,6 +209,13 @@ class Font
 	private maxWidth = 0;
 	private numGlyphs = 0;
 	private stride: number;
+
+	static async fromFile(fileName: string)
+	{
+		const url = util.urlFromPath(fileName);
+		const data = await util.loadRawFile(url);
+		return new this(data);
+	}
 
 	constructor(rfnData: BufferSource)
 	{
