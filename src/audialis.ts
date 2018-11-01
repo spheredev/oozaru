@@ -142,15 +142,15 @@ export
 class Stream
 {
 	buffers: Float32Array[] = [];
-	frequency: number;
 	inputPtr = 0.0;
 	node?: ScriptProcessorNode;
 	numChannels: number;
+	sampleRate: number;
 	timeBuffered = 0.0;
 
-	constructor(frequency: number, numChannels: number)
+	constructor(sampleRate: number, numChannels: number)
 	{
-		this.frequency = frequency;
+		this.sampleRate = sampleRate;
 		this.numChannels = numChannels;
 	}
 
@@ -162,22 +162,26 @@ class Stream
 	buffer(data: Float32Array)
 	{
 		this.buffers.push(data);
-		this.timeBuffered += data.length / (this.frequency * this.numChannels);
+		this.timeBuffered += data.length / (this.sampleRate * this.numChannels);
 	}
 
 	play(mixer: Mixer)
 	{
 		this.node = mixer.context.createScriptProcessor(0, 0, this.numChannels);
 		this.node.addEventListener('audioprocess', e => {
-			if (this.timeBuffered < e.outputBuffer.duration)
-				return;  // not enough audio buffered
-			this.timeBuffered = this.timeBuffered - e.outputBuffer.duration;
-			if (this.timeBuffered < 0.0)
-				this.timeBuffered = 0.0;
-			const step = this.frequency / e.outputBuffer.sampleRate;
 			const outputs: Float32Array[] = [];
 			for (let i = 0; i < this.numChannels; ++i)
 				outputs[i] = e.outputBuffer.getChannelData(i);
+			if (this.timeBuffered < e.outputBuffer.duration) {
+				// not enough data buffered, fill with silence
+				for (let i = 0; i < this.numChannels; ++i)
+					outputs[i].fill(0.0);
+				return;
+			}
+			this.timeBuffered -= e.outputBuffer.duration;
+			if (this.timeBuffered < 0.0)
+				this.timeBuffered = 0.0;
+			const step = this.sampleRate / e.outputBuffer.sampleRate;
 			let input = this.buffers[0];
 			let inputPtr = this.inputPtr;
 			for (let i = 0, len = outputs[0].length; i < len; ++i) {
@@ -194,8 +198,12 @@ class Stream
 					this.buffers.shift();
 					input = this.buffers[0];
 					inputPtr -= Math.floor(input.length / this.numChannels);
-					if (input === undefined)
-						return;  // no more data--it probably got eaten
+					if (input === undefined) {
+						// no more data, fill the rest with silence and return
+						for (let j = 0; j < this.numChannels; ++j)
+							outputs[j].fill(0.0, i + 1);
+						return;
+					}
 				}
 			}
 			this.inputPtr = inputPtr;

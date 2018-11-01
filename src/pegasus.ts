@@ -554,8 +554,7 @@ class FS extends null
 	static async evaluateScript(fileName: string)
 	{
 		const url = fs.Game.urlOf(game, fileName);
-		const source = await (await fetch(url)).text();
-		return (0, eval)(source);
+		return util.fetchScript(url);
 	}
 
 	static async fileExists(pathName: string)

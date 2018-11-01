@@ -103,6 +103,24 @@ async function fetchRawFile(url: string)
 }
 
 export
+async function fetchScript(url: string)
+{
+	return new Promise<void>((resolve, reject) => {
+		const script = document.createElement('script');
+		script.onload = () => {
+			resolve();
+			script.remove();
+		}
+		script.onerror = () => {
+			reject(new Error(`Unable to load JS script '${url}'`));
+			script.remove();
+		}
+		script.src = url;
+		document.head!.appendChild(script);
+	});
+}
+
+export
 async function fetchText(url: string)
 {
 	const fileRequest = await fetch(url);
