@@ -47,12 +47,12 @@ async function main()
 		mainCanvas.onclick = null;
 		const headingDiv = document.getElementById('prompt') as HTMLDivElement;
 		headingDiv.innerHTML = `<i>loading...</i>`;
-		await Pegasus.launchGame('./game/');
+		const game = await Pegasus.launchGame('./game/');
 		headingDiv.innerHTML = `
-			<tt><i>${Sphere.Game.name}</i> by <b>${Sphere.Game.author}</b></tt><br>
+			<tt><i>${game.title}</i> by <b>${game.author}</b></tt><br>
 			<tt>- <b>${Sphere.Engine}</b> implementing <b>API v${Sphere.Version} level ${Sphere.APILevel}</b></tt><br>
 			<tt>- game compiled with <b>${Sphere.Compiler}</b></tt><br>
-			<tt>- backbuffer resolution is <b>${Sphere.Game.resolution}</b></tt><br>
+			<tt>- backbuffer resolution is <b>${game.resolution.x}x${game.resolution.y}</b></tt><br>
 			<br>
 			<tt><b>About this Game:</b></tt><br>
 			<tt>${Sphere.Game.summary}</tt>

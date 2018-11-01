@@ -58,6 +58,12 @@ interface MouseEvent
 	y: number;
 }
 
+interface ShaderOptions
+{
+	vertexFile: string;
+	fragmentFile: string;
+}
+
 interface Vertex
 {
 	x: number,
@@ -71,6 +77,7 @@ interface Vertex
 const eventLoop = new EventLoop();
 
 let defaultFont: Font;
+let defaultShader: Shader;
 let game: fs.Game;
 let inputEngine: InputEngine;
 let mainObject: { [x: string]: any } | undefined;
@@ -131,6 +138,10 @@ class Pegasus extends null
 		document.title = game.title;
 
 		defaultFont = await Font.fromFile('#/default.rfn');
+		defaultShader = await Shader.fromFiles({
+			vertexFile: '#/default.vert.glsl',
+			fragmentFile: '#/default.frag.glsl',
+		});
 
 		// load and execute the game's main module.  if it exports a startup
 		// function or class, call it.
@@ -146,6 +157,8 @@ class Pegasus extends null
 
 		// start the Sphere v2 event loop
 		eventLoop.start();
+
+		return game;
 	}
 }
 
@@ -590,7 +603,7 @@ class FileStream
 
 	constructor()
 	{
-		throw new RangeError(`'FileStream' constructor is unsupported in Oozaru`);
+		throw new RangeError(`FileStream constructor is unsupported in Oozaru`);
 	}
 
 	get fileName()
@@ -946,20 +959,29 @@ class Shader
 
 	static get Default()
 	{
-		const shader = Object.create(this.prototype) as Shader;
-		shader.program = galileo.Shader.Default;
-		Object.defineProperty(this, 'Default', {
+		Object.defineProperty(Shader, 'Default', {
 			writable: false,
 			enumerable: false,
 			configurable: true,
-			value: shader,
+			value: defaultShader,
 		});
+		return defaultShader;
+	}
+
+	static async fromFiles(options: ShaderOptions)
+	{
+		const vertURL = fs.Game.urlOf(game, options.vertexFile);
+		const fragURL = fs.Game.urlOf(game, options.fragmentFile);
+		const vertSource = await util.fetchText(vertURL);
+		const fragSource = await util.fetchText(fragURL);
+		const shader = Object.create(this.prototype) as Shader;
+		shader.program = new galileo.Shader(vertSource, fragSource);
 		return shader;
 	}
 
-	constructor()
+	constructor(_options: ShaderOptions)
 	{
-		this.program = galileo.Shader.Default;
+		throw new RangeError(`Shader constructor is unsupported in Oozaru`);
 	}
 }
 
@@ -975,17 +997,17 @@ class Shape
 	{
 		surface.drawTarget.activate();
 		if (arg1 instanceof Texture || arg1 === null) {
-			galileo.Shader.Default.activate(arg1 !== null);
-			galileo.Shader.Default.project(surface.projection.matrix);
-			galileo.Shader.Default.transform(galileo.Matrix.Identity);
+			Shader.Default.program.activate(arg1 !== null);
+			Shader.Default.program.project(surface.projection.matrix);
+			Shader.Default.program.transform(galileo.Matrix.Identity);
 			if (arg1 !== null)
 				arg1.texture.activate(0);
 			galileo.Prim.drawImmediate(arg2 as ArrayLike<Vertex>, type);
 		}
 		else {
-			galileo.Shader.Default.activate(false);
-			galileo.Shader.Default.project(surface.projection.matrix);
-			galileo.Shader.Default.transform(galileo.Matrix.Identity);
+			Shader.Default.program.activate(false);
+			Shader.Default.program.project(surface.projection.matrix);
+			Shader.Default.program.transform(galileo.Matrix.Identity);
 			galileo.Prim.drawImmediate(arg1, type);
 		}
 	}

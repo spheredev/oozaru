@@ -103,6 +103,13 @@ async function fetchRawFile(url: string)
 }
 
 export
+async function fetchText(url: string)
+{
+	const fileRequest = await fetch(url);
+	return fileRequest.text();
+}
+
+export
 function isConstructor(func: Function)
 {
 	const funcProxy = new Proxy(func, { construct() { return {}; } });

@@ -42,9 +42,8 @@ interface Glyph
 	v: number;
 }
 
-let activeShader: Shader | null = null;
 let activeDrawTarget: DrawTarget | null = null;
-let defaultShader: Shader;
+let activeShader: Shader | null = null;
 let gl: WebGLRenderingContext;
 let immediateVBO: VertexBuffer;
 let screenCanvas: HTMLCanvasElement;
@@ -95,21 +94,17 @@ class Galileo extends null
 {
 	static async initialize(canvas: HTMLCanvasElement)
 	{
-		const webGLContext = canvas.getContext('webgl', { alpha: false });
-		if (webGLContext === null)
+		const webGL = canvas.getContext('webgl', { alpha: false });
+		if (webGL === null)
 			throw new Error(`Unable to acquire WebGL rendering context`);
-		gl = webGLContext;
-		gl.blendEquation(gl.FUNC_ADD);
-		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-		gl.clearColor(0.0, 0.0, 0.0, 1.0);
-		gl.enable(gl.BLEND);
-		gl.enable(gl.SCISSOR_TEST);
+		webGL.blendEquation(webGL.FUNC_ADD);
+		webGL.blendFunc(webGL.SRC_ALPHA, webGL.ONE_MINUS_SRC_ALPHA);
+		webGL.clearColor(0.0, 0.0, 0.0, 1.0);
+		webGL.enable(webGL.BLEND);
+		webGL.enable(webGL.SCISSOR_TEST);
 
+		gl = webGL;
 		immediateVBO = new VertexBuffer();
-
-		const vertSource = await (await fetch('./shaders/default.vert.glsl')).text();
-		const fragSource = await (await fetch('./shaders/default.frag.glsl')).text();
-		defaultShader = new Shader(vertSource, fragSource);
 		screenCanvas = canvas;
 
 		DrawTarget.Screen.activate();
@@ -635,11 +630,6 @@ class Shader
 	textureLoc: WebGLUniformLocation | null;
 	modelView: Matrix;
 	projection: Matrix;
-
-	static get Default()
-	{
-		return defaultShader;
-	}
 
 	constructor(vertexSource: string, fragmentSource: string)
 	{
