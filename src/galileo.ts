@@ -94,7 +94,9 @@ class Galileo extends null
 {
 	static async initialize(canvas: HTMLCanvasElement)
 	{
-		const webGL = canvas.getContext('webgl', { alpha: false });
+		const webGL = canvas.getContext('webgl2') as WebGLRenderingContext | null
+			|| canvas.getContext('webgl')
+			|| canvas.getContext('experimental-webgl');
 		if (webGL === null)
 			throw new Error(`Unable to acquire WebGL rendering context`);
 		webGL.blendEquation(webGL.FUNC_ADD);
