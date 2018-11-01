@@ -602,7 +602,7 @@ class FileStream
 
 	constructor()
 	{
-		throw new RangeError(`FileStream constructor is unsupported in Oozaru`);
+		throw new RangeError(`'new FileStream' is unsupported in Oozaru, use 'FileStream.open' instead`);
 	}
 
 	get fileName()
@@ -677,7 +677,7 @@ class Font
 
 	constructor()
 	{
-		throw new Error(`'Font' constructor is unsupported in Oozaru`);
+		throw new RangeError(`'new Font' is unsupported in Oozaru, use 'Font.fromFile' instead`);
 	}
 
 	get height()
@@ -980,7 +980,7 @@ class Shader
 
 	constructor(_options: ShaderOptions)
 	{
-		throw new RangeError(`Shader constructor is unsupported in Oozaru`);
+		throw new RangeError(`'new Shader' is unsupported in Oozaru, use 'Shader.fromFiles' instead`);
 	}
 }
 
@@ -1059,9 +1059,9 @@ class Sound
 		return sound;
 	}
 
-	constructor(audioElement: HTMLAudioElement)
+	constructor(_fileName: string)
 	{
-		this.sound = new audialis.Sound(audioElement);
+		throw new RangeError(`'new Sound' is unsupported in Oozaru, use 'Sound.fromFile' instead`);
 	}
 
 	get length()
