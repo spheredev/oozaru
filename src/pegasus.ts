@@ -1118,8 +1118,8 @@ class SoundStream
 
 	constructor(frequency: number, bits: number, numChannels: number)
 	{
-		if (bits !== 32) // Web Audio only supports floating point samples
-			throw new RangeError(`Oozaru only supports 32-bit floating point audio`);
+		if (bits !== 32) // Web Audio only supports float32 samples
+			throw new RangeError(`Only 32-bit floating-point audio is supported in Oozaru`);
 		this.stream = new audialis.Stream(frequency, numChannels);
 	}
 
@@ -1128,7 +1128,12 @@ class SoundStream
 		return this.stream.buffered;
 	}
 
-	play(mixer: Mixer)
+	pause()
+	{
+		this.stream.pause();
+	}
+
+	play(mixer = Mixer.Default)
 	{
 		this.stream.play(mixer.mixer);
 	}

@@ -141,12 +141,14 @@ class Sound
 export
 class Stream
 {
-	buffers: Float32Array[] = [];
-	inputPtr = 0.0;
-	node?: ScriptProcessorNode;
-	numChannels: number;
-	sampleRate: number;
-	timeBuffered = 0.0;
+	private buffers: Float32Array[] = [];
+	private inputPtr = 0.0;
+	private mixer: Mixer | null = null;
+	private node?: ScriptProcessorNode;
+	private numChannels: number;
+	private paused = true;
+	private sampleRate: number;
+	private timeBuffered = 0.0;
 
 	constructor(sampleRate: number, numChannels: number)
 	{
@@ -165,49 +167,67 @@ class Stream
 		this.timeBuffered += data.length / (this.sampleRate * this.numChannels);
 	}
 
-	play(mixer: Mixer)
+	pause()
 	{
-		this.node = mixer.context.createScriptProcessor(0, 0, this.numChannels);
-		this.node.addEventListener('audioprocess', e => {
-			const outputs: Float32Array[] = [];
-			for (let i = 0; i < this.numChannels; ++i)
-				outputs[i] = e.outputBuffer.getChannelData(i);
-			if (this.timeBuffered < e.outputBuffer.duration) {
-				// not enough data buffered, fill with silence
-				for (let i = 0; i < this.numChannels; ++i)
-					outputs[i].fill(0.0);
-				return;
+		this.paused = true;
+	}
+
+	play(mixer?: Mixer)
+	{
+		// IMPORTANT: the first call to .play() must specify a mixer.  not doing so invokes undefined
+		//            behavior and I can't be held responsible for what happens afterwards.  if you do
+		//            this and it summons an evil man-eating pig that devours you, your dog, your house,
+		//            and everything else in a hundred-mile radius, don't blame me!
+
+		this.paused = false;
+		if (mixer !== undefined && mixer !== this.mixer) {
+			if (this.node !== undefined) {
+				this.node.onaudioprocess = null;
+				this.node.disconnect();
 			}
-			this.timeBuffered -= e.outputBuffer.duration;
-			if (this.timeBuffered < 0.0)
-				this.timeBuffered = 0.0;
-			const step = this.sampleRate / e.outputBuffer.sampleRate;
-			let input = this.buffers[0];
-			let inputPtr = this.inputPtr;
-			for (let i = 0, len = outputs[0].length; i < len; ++i) {
-				const t1 = Math.floor(inputPtr) * this.numChannels;
-				const t2 = t1 + this.numChannels;
-				const frac = inputPtr % 1.0;
-				for (let j = 0; j < this.numChannels; ++j) {
-					const a = input[t1 + j];
-					const b = input[t2 + j];
-					outputs[j][i] = a + frac * (b - a);
+			this.node = mixer.context.createScriptProcessor(0, 0, this.numChannels);
+			this.node.onaudioprocess = (e) => {
+				const outputs: Float32Array[] = [];
+				for (let i = 0; i < this.numChannels; ++i)
+					outputs[i] = e.outputBuffer.getChannelData(i);
+				if (this.paused || this.timeBuffered < e.outputBuffer.duration) {
+					// not enough data buffered or stream is paused, fill with silence
+					for (let i = 0; i < this.numChannels; ++i)
+						outputs[i].fill(0.0);
+					return;
 				}
-				inputPtr += step;
-				if (inputPtr >= Math.floor(input.length / this.numChannels)) {
-					this.buffers.shift();
-					input = this.buffers[0];
-					inputPtr -= Math.floor(input.length / this.numChannels);
-					if (input === undefined) {
-						// no more data, fill the rest with silence and return
-						for (let j = 0; j < this.numChannels; ++j)
-							outputs[j].fill(0.0, i + 1);
-						return;
+				this.timeBuffered -= e.outputBuffer.duration;
+				if (this.timeBuffered < 0.0)
+					this.timeBuffered = 0.0;
+				const step = this.sampleRate / e.outputBuffer.sampleRate;
+				let input = this.buffers[0];
+				let inputPtr = this.inputPtr;
+				for (let i = 0, len = outputs[0].length; i < len; ++i) {
+					const t1 = Math.floor(inputPtr) * this.numChannels;
+					const t2 = t1 + this.numChannels;
+					const frac = inputPtr % 1.0;
+					for (let j = 0; j < this.numChannels; ++j) {
+						const a = input[t1 + j];
+						const b = input[t2 + j];
+						outputs[j][i] = a + frac * (b - a);
+					}
+					inputPtr += step;
+					if (inputPtr >= Math.floor(input.length / this.numChannels)) {
+						this.buffers.shift();
+						input = this.buffers[0];
+						inputPtr -= Math.floor(input.length / this.numChannels);
+						if (input === undefined) {
+							// no more data, fill the rest with silence and return
+							for (let j = 0; j < this.numChannels; ++j)
+								outputs[j].fill(0.0, i + 1);
+							return;
+						}
 					}
 				}
-			}
-			this.inputPtr = inputPtr;
-		});
-		this.node.connect(mixer.gainer);
+				this.inputPtr = inputPtr;
+			};
+			this.node.connect(mixer.gainer);
+			this.mixer = mixer;
+		}
 	}
 }
