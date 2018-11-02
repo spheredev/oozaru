@@ -99,6 +99,8 @@ class Pegasus extends null
 		// register Sphere v2 API globals
 		Object.assign(window, {
 			// enumerations
+			BlendOp: galileo.BlendOp,
+			DepthOp: galileo.DepthOp,
 			FileOp,
 			Key,
 			MouseKey,
@@ -1155,11 +1157,15 @@ class Texture
 		return new Texture(image);
 	}
 
+	constructor(fileName: string);
 	constructor(width: number, height: number, content?: ArrayBufferView | Color);
 	constructor(image: HTMLImageElement);
 	constructor(...args: [ any, any?, any? ])
 	{
-		if (args[0] instanceof HTMLImageElement) {
+		if (typeof args[0] === 'string') {
+			throw new RangeError(`'new Texture' with filename unsupported, use 'Texture.fromFile' instead`);
+		}
+		else if (args[0] instanceof HTMLImageElement) {
 			const image = args[0];
 			this.texture = new galileo.Texture(image);
 		}
@@ -1212,6 +1218,24 @@ class Surface extends Texture
 		this.drawTarget = new galileo.DrawTarget(this.texture);
 		this.projection = new Transform()
 			.project2D(0, 0, this.drawTarget.width, this.drawTarget.height);
+	}
+
+	get blendOp()
+	{
+		return this.drawTarget.blendOp;
+	}
+	set blendOp(value)
+	{
+		this.drawTarget.blendOp = value;
+	}
+
+	get depthOp()
+	{
+		return this.drawTarget.depthOp;
+	}
+	set depthOp(value)
+	{
+		this.drawTarget.depthOp = value;
 	}
 
 	get height()

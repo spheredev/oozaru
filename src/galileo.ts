@@ -49,6 +49,20 @@ let immediateVBO: VertexBuffer;
 let screenCanvas: HTMLCanvasElement;
 
 export
+enum BlendOp
+{
+	AlphaBlend,
+	Add,
+	Average,
+	CopyAlpha,
+	CopyRGB,
+	Invert,
+	Multiply,
+	Replace,
+	Subtract,
+}
+
+export
 enum DepthOp
 {
 	AlwaysPass,
@@ -132,6 +146,7 @@ class Galileo extends null
 export
 class DrawTarget
 {
+	blendOp_ = BlendOp.AlphaBlend;
 	clipping: Rectangle;
 	depthOp_ = DepthOp.LessOrEqual;
 	frameBuffer: WebGLFramebuffer | null;
@@ -139,18 +154,19 @@ class DrawTarget
 
 	static get Screen()
 	{
-		const screenSurface = Object.create(DrawTarget.prototype) as DrawTarget;
-		screenSurface.clipping = { x: 0, y: 0, w: screenCanvas.width, h: screenCanvas.height };
-		screenSurface.depthOp_ = DepthOp.LessOrEqual;
-		screenSurface.frameBuffer = null;
-		screenSurface.texture = null;
+		const surface = Object.create(DrawTarget.prototype) as DrawTarget;
+		surface.blendOp_ = BlendOp.AlphaBlend;
+		surface.clipping = { x: 0, y: 0, w: screenCanvas.width, h: screenCanvas.height };
+		surface.depthOp_ = DepthOp.LessOrEqual;
+		surface.frameBuffer = null;
+		surface.texture = null;
 		Object.defineProperty(this, 'Screen', {
 			writable: false,
 			enumerable: false,
 			configurable: true,
-			value: screenSurface,
+			value: surface,
 		});
-		return screenSurface;
+		return surface;
 	}
 
 	constructor(texture: Texture)
@@ -169,6 +185,17 @@ class DrawTarget
 		this.clipping = { x: 0, y: 0, w: texture.width, h: texture.height };
 		this.frameBuffer = frameBuffer;
 		this.texture = texture;
+	}
+
+	get blendOp()
+	{
+		return this.blendOp_;
+	}
+	set blendOp(value)
+	{
+		this.blendOp_ = value;
+		if (activeDrawTarget === this)
+			applyBlendOp(value);
 	}
 
 	get depthOp()
@@ -206,6 +233,7 @@ class DrawTarget
 		else
 			gl.viewport(0, 0, screenCanvas.width, screenCanvas.height);
 		gl.scissor(this.clipping.x, this.clipping.y, this.clipping.w, this.clipping.h);
+		applyBlendOp(this.blendOp_);
 		applyDepthOp(this.depthOp_);
 		activeDrawTarget = this;
 	}
@@ -891,6 +919,54 @@ class VertexBuffer
 			gl.bufferData(gl.ARRAY_BUFFER, data, this.streamable ? gl.STREAM_DRAW : gl.STATIC_DRAW);
 			this.maxItems = this.length;
 		}
+	}
+}
+
+function applyBlendOp(op: BlendOp)
+{
+	switch (op) {
+		case BlendOp.AlphaBlend:
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+			break;
+		case BlendOp.Add:
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.ONE, gl.ONE);
+			break;
+		case BlendOp.Average:
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.CONSTANT_COLOR, gl.CONSTANT_COLOR);
+			gl.blendColor(0.5, 0.5, 0.5, 0.5);
+			break;
+		case BlendOp.CopyAlpha:
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFuncSeparate(gl.ZERO, gl.ONE, gl.ONE, gl.ZERO);
+			break;
+		case BlendOp.CopyRGB:
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFuncSeparate(gl.ONE, gl.ZERO, gl.ZERO, gl.ONE);
+			break;
+		case BlendOp.Invert:
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.ZERO, gl.ONE_MINUS_SRC_COLOR);
+			break;
+		case BlendOp.Multiply:
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.DST_COLOR, gl.ZERO);
+			break;
+		case BlendOp.Replace:
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.ONE, gl.ZERO);
+			break;
+		case BlendOp.Subtract:
+			gl.blendEquation(gl.FUNC_REVERSE_SUBTRACT);
+			gl.blendFunc(gl.ONE, gl.ONE);
+			break;
+		default:
+			// something went horribly wrong if we got here; just set the blender to output
+			// nothing so the user can see something went awry.
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.ZERO, gl.ZERO);
 	}
 }
 

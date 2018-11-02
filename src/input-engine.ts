@@ -155,6 +155,10 @@ class InputEngine
 		canvas.addEventListener('keydown', e => {
 			this.pressed[e.code] = true;
 			switch (e.code) {
+				case 'ArrowLeft': this.keyQueue.push(Key.Left); break;
+				case 'ArrowRight': this.keyQueue.push(Key.Right); break;
+				case 'ArrowDown': this.keyQueue.push(Key.Down); break;
+				case 'ArrowUp': this.keyQueue.push(Key.Up); break;
 				case 'Backquote': this.keyQueue.push(Key.Tilde); break;
 				case 'Backspace': this.keyQueue.push(Key.Backspace); break;
 				case 'Enter': this.keyQueue.push(Key.Enter); break;
