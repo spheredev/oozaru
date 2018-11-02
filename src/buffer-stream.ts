@@ -78,6 +78,24 @@ class BufferStream
 		return bytes;
 	}
 
+	readFloat32(littleEndian = false)
+	{
+		if (this.ptr + 4 > this.bytes.length)
+			throw new Error(`Unable to read 32-bit float from stream`);
+		const value = this.view.getFloat32(this.ptr, littleEndian);
+		this.ptr += 4;
+		return value;
+	}
+
+	readFloat64(littleEndian = false)
+	{
+		if (this.ptr + 8 > this.bytes.length)
+			throw new Error(`Unable to read 64-bit float from stream`);
+		const value = this.view.getFloat64(this.ptr, littleEndian);
+		this.ptr += 8;
+		return value;
+	}
+
 	readInt8()
 	{
 		if (this.ptr + 1 > this.bytes.length)
@@ -134,24 +152,32 @@ class BufferStream
 	{
 		let retval: { [x: string]: any } = {};
 		for (const key of Object.keys(manifest)) {
-			let valueType = manifest[key];
-			const matches = valueType.match(/(string|reserve)\/([0-9]*)/);
-			let numBytes = 0;
-			if (matches !== null) {
-				valueType = matches[1];
-				numBytes = parseInt(matches[2], 10);
-			}
+			const matches = manifest[key].match(/(string|reserve)\/([0-9]*)/);
+			const valueType = matches !== null ? matches[1] : manifest[key];
+			const numBytes = matches !== null ? parseInt(matches[2], 10) : 0;
 			switch (valueType) {
+				case 'float32-be':
+					retval[key] = this.readFloat32();
+					break;
+				case 'float32-le':
+					retval[key] = this.readFloat32(true);
+					break;
+				case 'float64-be':
+					retval[key] = this.readFloat64();
+					break;
+				case 'float64-le':
+					retval[key] = this.readFloat64(true);
+					break;
 				case 'int8': case 'int8-be': case 'int8-le':
 					retval[key] = this.readInt8();
 					break;
-				case 'int16': case 'int16-be':
+				case 'int16-be':
 					retval[key] = this.readInt16();
 					break;
 				case 'int16-le':
 					retval[key] = this.readInt16(true);
 					break;
-				case 'int32': case 'int32-be':
+				case 'int32-be':
 					retval[key] = this.readInt32();
 					break;
 				case 'int32-le':
@@ -164,31 +190,31 @@ class BufferStream
 				case 'string':
 					retval[key] = this.readString(numBytes);
 					break;
-				case 'string-8':
+				case 'string8': case 'string8-be': case 'string8-le':
 					retval[key] = this.readStringU8();
 					break;
-				case 'string-16': case 'string-16-be':
+				case 'string16-be':
 					retval[key] = this.readStringU16();
 					break;
-				case 'string-16-le':
+				case 'string16-le':
 					retval[key] = this.readStringU16(true);
 					break;
-				case 'string-32': case 'string-32-be':
+				case 'string32-be':
 					retval[key] = this.readStringU32();
 					break;
-				case 'string-32-le':
+				case 'string32-le':
 					retval[key] = this.readStringU32(true);
 					break;
 				case 'uint8': case 'uint8-be': case 'uint8-le':
 					retval[key] = this.readUint8();
 					break;
-				case 'uint16': case 'uint16-be':
+				case 'uint16-be':
 					retval[key] = this.readUint16();
 					break;
 				case 'uint16-le':
 					retval[key] = this.readUint16(true);
 					break;
-				case 'uint32': case 'uint32-be':
+				case 'uint32-be':
 					retval[key] = this.readUint32();
 					break;
 				case 'uint32-le':
