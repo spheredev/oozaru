@@ -49,6 +49,19 @@ let immediateVBO: VertexBuffer;
 let screenCanvas: HTMLCanvasElement;
 
 export
+enum DepthOp
+{
+	AlwaysPass,
+	Equal,
+	Greater,
+	GreaterOrEqual,
+	Less,
+	LessOrEqual,
+	NeverPass,
+	NotEqual,
+}
+
+export
 interface RGBA
 {
 	r: number;
@@ -99,10 +112,13 @@ class Galileo extends null
 			|| canvas.getContext('experimental-webgl');
 		if (webGL === null)
 			throw new Error(`Unable to acquire WebGL rendering context`);
+		webGL.clearColor(0.0, 0.0, 0.0, 1.0);
+		webGL.clearDepth(1.0);
 		webGL.blendEquation(webGL.FUNC_ADD);
 		webGL.blendFunc(webGL.SRC_ALPHA, webGL.ONE_MINUS_SRC_ALPHA);
-		webGL.clearColor(0.0, 0.0, 0.0, 1.0);
+		webGL.depthFunc(webGL.LEQUAL);
 		webGL.enable(webGL.BLEND);
+		webGL.enable(webGL.DEPTH_TEST);
 		webGL.enable(webGL.SCISSOR_TEST);
 
 		gl = webGL;
@@ -117,6 +133,7 @@ export
 class DrawTarget
 {
 	clipping: Rectangle;
+	depthOp_ = DepthOp.LessOrEqual;
 	frameBuffer: WebGLFramebuffer | null;
 	texture: Texture | null;
 
@@ -124,6 +141,7 @@ class DrawTarget
 	{
 		const screenSurface = Object.create(DrawTarget.prototype) as DrawTarget;
 		screenSurface.clipping = { x: 0, y: 0, w: screenCanvas.width, h: screenCanvas.height };
+		screenSurface.depthOp_ = DepthOp.LessOrEqual;
 		screenSurface.frameBuffer = null;
 		screenSurface.texture = null;
 		Object.defineProperty(this, 'Screen', {
@@ -138,15 +156,30 @@ class DrawTarget
 	constructor(texture: Texture)
 	{
 		const frameBuffer = gl.createFramebuffer();
-		if (frameBuffer === null)
+		const depthBuffer = gl.createRenderbuffer();
+		if (frameBuffer === null || depthBuffer === null)
 			throw new Error(`Unable to create WebGL framebuffer object`);
 		gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
 		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
 			gl.TEXTURE_2D, texture.hwTexture, 0);
+		gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+		gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, texture.width, texture.height);
+		gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
 
 		this.clipping = { x: 0, y: 0, w: texture.width, h: texture.height };
 		this.frameBuffer = frameBuffer;
 		this.texture = texture;
+	}
+
+	get depthOp()
+	{
+		return this.depthOp_;
+	}
+	set depthOp(value)
+	{
+		this.depthOp_ = value;
+		if (activeDrawTarget === this)
+			applyDepthOp(value);
 	}
 
 	get height()
@@ -173,6 +206,7 @@ class DrawTarget
 		else
 			gl.viewport(0, 0, screenCanvas.width, screenCanvas.height);
 		gl.scissor(this.clipping.x, this.clipping.y, this.clipping.w, this.clipping.h);
+		applyDepthOp(this.depthOp_);
 		activeDrawTarget = this;
 	}
 
@@ -581,7 +615,7 @@ class Prim extends null
 	static clear()
 	{
 		gl.disable(gl.SCISSOR_TEST);
-		gl.clear(gl.COLOR_BUFFER_BIT);
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		gl.enable(gl.SCISSOR_TEST);
 	}
 
@@ -858,4 +892,17 @@ class VertexBuffer
 			this.maxItems = this.length;
 		}
 	}
+}
+
+function applyDepthOp(op: DepthOp)
+{
+	const depthFunc = op === DepthOp.AlwaysPass ? gl.ALWAYS
+		: op === DepthOp.Equal ? gl.EQUAL
+		: op === DepthOp.Greater ? gl.GREATER
+		: op === DepthOp.GreaterOrEqual ? gl.GEQUAL
+		: op === DepthOp.Less ? gl.LESS
+		: op === DepthOp.LessOrEqual ? gl.LEQUAL
+		: op === DepthOp.NotEqual ? gl.NOTEQUAL
+		: gl.NEVER;
+	gl.depthFunc(depthFunc);
 }
