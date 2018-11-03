@@ -47,17 +47,24 @@ async function main()
 	mainCanvas.onclick = async () => {
 		mainCanvas.onclick = null;
 		const headingDiv = document.getElementById('prompt') as HTMLDivElement;
-		headingDiv.innerHTML = `<i>loading...</i>`;
+		headingDiv.innerHTML = `<tt><i>loading...</i></tt>`;
 		await Pegasus.initialize(inputEngine);
-		const game = await Pegasus.launchGame('./game/');
-		headingDiv.innerHTML = `
-			<tt><i>${game.title}</i> by <b>${game.author}</b></tt><br>
-			<tt>- <b>${version.name} ${version.version}</b> implementing <b>API v${version.apiVersion} level ${version.apiLevel}</b></tt><br>
-			<tt>- game compiled with <b>${game.compiler}</b></tt><br>
-			<tt>- backbuffer resolution is <b>${game.resolution.x}x${game.resolution.y}</b></tt><br>
-			<br>
-			<tt><b>About this Game:</b></tt><br>
-			<tt>${game.summary}</tt>
-		`;
+		let game;
+		try {
+			game = await Pegasus.launchGame('./game/');
+			headingDiv.innerHTML = `
+				<tt><i>${game.title}</i> by <b>${game.author}</b></tt><br>
+				<tt>- <b>${version.name} ${version.version}</b> implementing <b>API v${version.apiVersion} level ${version.apiLevel}</b></tt><br>
+				<tt>- game compiled with <b>${game.compiler}</b></tt><br>
+				<tt>- backbuffer resolution is <b>${game.resolution.x}x${game.resolution.y}</b></tt><br>
+				<br>
+				<tt><b>About this Game:</b></tt><br>
+				<tt>${game.summary}</tt>
+			`;
+		}
+		catch (e) {
+			headingDiv.innerHTML = `<font color=#C88><tt>Unable to load Sphere game.  Check the console for more info.</tt></font>`;
+			throw e;
+		}
 	};
 }
