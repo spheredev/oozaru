@@ -63,10 +63,10 @@ async function fetchJSON(url: string)
 export
 async function fetchModule(url: string)
 {
-	// this mimics dynamic import() since most browsers (as of 2018) don't yet support it.
+	// this mimics dynamic import(), since most browsers (as of 2018) don't yet support it.
 	// based on https://github.com/uupaa/dynamic-import-polyfill
 
-	const vector = `$module$${Math.random().toString(32).slice(2)}`;
+	const vector = `$moduleNS$${Math.random().toString(32).slice(2)}`;
 	const globalThis: { [x: string]: any } = window;
 	const fullURL = toAbsoluteURL(url);
 	const source = `

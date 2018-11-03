@@ -128,18 +128,18 @@ class Game
 
 		const input = inputPath.split(/[\\/]+/);
 		if (input[0] === '$') {
-			// '$/' is merely a convenient alias; canonicalize it against '@/'.
+			// '$/' aliases the directory containing the main module, it's not a root itself.
 			input.splice(0, 1, ...this.data.main.split(/[\\/]+/).slice(0, -1));
 		}
 		const output = [ input[0] ];
-		for (let i = 1; i < input.length; ++i) {
+		for (let i = 1, len = input.length; i < len; ++i) {
 			if (input[i] === '..') {
 				if (output.length > 1) {
-					output.pop();
+					output.pop();  // collapse it
 				}
 				else {
 					// if collapsing a '../' would navigate past the SphereFS prefix, we've gone too far.
-					throw new RangeError(`FS sandboxing violation on '${pathName}'`);
+					throw new RangeError(`FS sandbox violation on '${pathName}'`);
 				}
 			}
 			else if (input[i] !== '.') {

@@ -64,15 +64,15 @@ class Music extends null
 		}
 	}
 
-	static override(fileName, fadeTime = 0)
+	static async override(fileName, fadeTime = 0)
 	{
-		crossfade(fileName, fadeTime, true);
+		await crossfade(fileName, fadeTime, true);
 		haveOverride = true;
 	}
 
-	static play(fileName, fadeTime = 0)
+	static async play(fileName, fadeTime = 0)
 	{
-		topmostSound = crossfade(fileName, fadeTime, false);
+		topmostSound = await crossfade(fileName, fadeTime, false);
 	}
 
 	static pop(fadeTime = 0)
@@ -129,7 +129,7 @@ function appearifyMixer()
 		mixer = new Mixer(44100, 16, 2);
 }
 
-function crossfade(fileName, frames = 0, forceChange)
+async function crossfade(fileName, frames = 0, forceChange = false)
 {
 	appearifyMixer();
 	let allowChange = !haveOverride || forceChange;
@@ -140,13 +140,7 @@ function crossfade(fileName, frames = 0, forceChange)
 		currentSound.fader.run();
 	}
 	if (fileName !== null) {
-		let fullPath = FS.fullPath(fileName, '@/music');
-		fullPath = from.array([ '', '.ogg', '.mp3', '.it', '.mod', '.s3m', '.xm', '.flac' ])
-			.select(suffix => `${fullPath}${suffix}`)
-			.first(fileName => FS.fileExists(fileName));
-		if (fullPath === undefined)
-			throw new Error(`couldn't find music '${fileName}'`);
-		let stream = new Sound(fullPath);
+		let stream = await Sound.fromFile(fileName);
 		stream.repeat = true;
 		stream.volume = 0.0;
 		stream.play(mixer);
