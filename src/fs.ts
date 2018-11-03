@@ -114,16 +114,12 @@ class Game
 		return this.data.name;
 	}
 
-	fullPath(pathName: string, baseDirName?: string)
+	fullPath(pathName: string, baseDirName = '@/')
 	{
 		// canonicalizing the base path first ensures the first hop will always be a SphereFS prefix.
 		// this makes things easier below.
-		if (baseDirName !== undefined) {
+		if (baseDirName !== '@/')
 			baseDirName = this.fullPath(`${baseDirName}/`);
-		}
-		else {
-			baseDirName = '@/';
-		}
 
 		// if `pathName` already starts with a SphereFS prefix, don't rebase it.
 		const inputPath = /^[@#~$%](?:\\|\/)/.test(pathName)
@@ -131,13 +127,20 @@ class Game
 			: `${baseDirName}/${pathName}`;
 
 		const input = inputPath.split(/[\\/]+/);
-		const output: string[] = [ input[0] ];
+		if (input[0] === '$') {
+			// '$/' is merely a convenient alias; canonicalize it against '@/'.
+			input.splice(0, 1, ...this.data.main.split(/[\\/]+/).slice(0, -1));
+		}
+		const output = [ input[0] ];
 		for (let i = 1; i < input.length; ++i) {
 			if (input[i] === '..') {
-				if (output.length <= 1)  // '..' is not an escape hatch.
-					throw new RangeError(`FS sandboxing violation on '${pathName}'`);
-				else
+				if (output.length > 1) {
 					output.pop();
+				}
+				else {
+					// if collapsing a '../' would navigate past the SphereFS prefix, we've gone too far.
+					throw new RangeError(`FS sandboxing violation on '${pathName}'`);
+				}
 			}
 			else if (input[i] !== '.') {
 				output.push(input[i]);
