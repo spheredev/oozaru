@@ -45,7 +45,6 @@ interface Glyph
 let activeDrawTarget: DrawTarget | null = null;
 let activeShader: Shader | null = null;
 let gl: WebGLRenderingContext;
-let immediateVBO: VertexBuffer;
 let screenCanvas: HTMLCanvasElement;
 
 export
@@ -137,7 +136,6 @@ class Galileo extends null
 		webGL.enable(webGL.SCISSOR_TEST);
 
 		gl = webGL;
-		immediateVBO = new VertexBuffer();
 		screenCanvas = canvas;
 
 		DrawTarget.Screen.activate();
@@ -145,13 +143,30 @@ class Galileo extends null
 }
 
 export
+class Color
+{
+	r: number;
+	g: number;
+	b: number;
+	a: number;
+
+	constructor(r: number, g: number, b: number, a = 1.0)
+	{
+		this.r = r;
+		this.g = g;
+		this.b = b;
+		this.a = a;
+	}
+}
+
+export
 class DrawTarget
 {
-	blendOp_ = BlendOp.AlphaBlend;
-	clipping: Rectangle;
-	depthOp_ = DepthOp.LessOrEqual;
-	frameBuffer: WebGLFramebuffer | null;
-	texture: Texture | null;
+	private blendOp_ = BlendOp.AlphaBlend;
+	private clipping: Rectangle;
+	private depthOp_ = DepthOp.LessOrEqual;
+	private frameBuffer: WebGLFramebuffer | null;
+	private texture: Texture | null;
 
 	static get Screen()
 	{
@@ -161,7 +176,7 @@ class DrawTarget
 		surface.depthOp_ = DepthOp.LessOrEqual;
 		surface.frameBuffer = null;
 		surface.texture = null;
-		Object.defineProperty(this, 'Screen', {
+		Object.defineProperty(DrawTarget, 'Screen', {
 			writable: false,
 			enumerable: false,
 			configurable: true,
@@ -269,6 +284,7 @@ class Font
 	private maxWidth = 0;
 	private numGlyphs = 0;
 	private stride: number;
+	private vertices = new VertexBuffer();
 
 	static async fromFile(url: string)
 	{
@@ -371,14 +387,17 @@ class Font
 			const glyph = this.glyphs[cp];
 			const x1 = x, x2 = x1 + glyph.width;
 			const y1 = 0, y2 = y1 + glyph.height;
-			let u1 = glyph.u, u2 = u1 + glyph.width / this.maxWidth * this.stride;
-			let v1 = glyph.v, v2 = v1 - glyph.height / this.lineHeight * this.stride;
-			Prim.drawImmediate([
+			const u1 = glyph.u;
+			const u2 = u1 + glyph.width / this.maxWidth * this.stride;
+			const v1 = glyph.v;
+			const v2 = v1 - glyph.height / this.lineHeight * this.stride;
+			this.vertices.upload([
 				{ x: x1, y: y1, u: u1, v: v1, color },
 				{ x: x2, y: y1, u: u2, v: v1, color },
 				{ x: x1, y: y2, u: u1, v: v2, color },
 				{ x: x2, y: y2, u: u2, v: v2, color },
-			], ShapeType.TriStrip);
+			]);
+			Prim.draw(this.vertices, null, ShapeType.TriStrip);
 			x += glyph.width;
 		}
 	}
@@ -669,12 +688,6 @@ class Prim extends null
 				numVertices = vertexBuffer.length - offset;
 			gl.drawArrays(drawMode, 0, numVertices);
 		}
-	}
-
-	static drawImmediate(vertices: ArrayLike<Vertex>, type: ShapeType)
-	{
-		immediateVBO.upload(vertices);
-		Prim.draw(immediateVBO, null, type);
 	}
 
 	static rerez(width: number, height: number)

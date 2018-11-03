@@ -30,6 +30,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
+import * as version from './version.js';
+
 import BufferStream from './buffer-stream.js';
 import EventLoop, { JobType } from './event-loop.js';
 import InputEngine, { MouseKey, Key } from './input-engine.js';
@@ -79,6 +81,7 @@ const eventLoop = new EventLoop();
 let defaultFont: Font;
 let defaultShader: Shader;
 let game: fs.Game;
+let immediateVBO: galileo.VertexBuffer;
 let inputEngine: InputEngine;
 let mainObject: { [x: string]: any } | undefined;
 
@@ -88,6 +91,7 @@ class Pegasus extends null
 	static initialize(input: InputEngine)
 	{
 		inputEngine = input;
+		immediateVBO = new galileo.VertexBuffer();
 
 		Object.defineProperty(window, 'global', {
 			writable: false,
@@ -168,7 +172,7 @@ class Sphere extends null
 {
 	static get APILevel()
 	{
-		return 1;
+		return version.apiLevel;
 	}
 
 	static get Compiler()
@@ -178,7 +182,7 @@ class Sphere extends null
 
 	static get Engine()
 	{
-		return "Oozaru 1.0a1";
+		return `${version.name} ${version.version}`;
 	}
 
 	static get Game()
@@ -188,7 +192,7 @@ class Sphere extends null
 
 	static get Version()
 	{
-		return 2;
+		return version.apiVersion;
 	}
 
 	static get frameRate()
@@ -573,7 +577,7 @@ class FS extends null
 
 	static fullPath(pathName: string, baseDirName: string)
 	{
-		return pathName;
+		return game.fullPath(pathName, baseDirName);
 	}
 
 	static async require(fileName: string)
@@ -1003,13 +1007,15 @@ class Shape
 			Shader.Default.program.transform(galileo.Matrix.Identity);
 			if (arg1 !== null)
 				arg1.texture.activate(0);
-			galileo.Prim.drawImmediate(arg2 as ArrayLike<Vertex>, type);
+			immediateVBO.upload(arg2 as ArrayLike<Vertex>);
+			galileo.Prim.draw(immediateVBO, null, type);
 		}
 		else {
 			Shader.Default.program.activate(false);
 			Shader.Default.program.project(surface.projection.matrix);
 			Shader.Default.program.transform(galileo.Matrix.Identity);
-			galileo.Prim.drawImmediate(arg1, type);
+			immediateVBO.upload(arg1);
+			galileo.Prim.draw(immediateVBO, null, type);
 		}
 	}
 

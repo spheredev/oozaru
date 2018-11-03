@@ -30,34 +30,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import * as version from './version.js';
-
-import Galileo from './galileo.js';
-import InputEngine from './input-engine.js';
-import Pegasus from './pegasus.js';
-
-const mainCanvas = document.getElementById('screen') as HTMLCanvasElement;
-const inputEngine = new InputEngine(mainCanvas);
-
-main();
-
-async function main()
-{
-	await Galileo.initialize(mainCanvas);
-	mainCanvas.onclick = async () => {
-		mainCanvas.onclick = null;
-		const headingDiv = document.getElementById('prompt') as HTMLDivElement;
-		headingDiv.innerHTML = `<i>loading...</i>`;
-		await Pegasus.initialize(inputEngine);
-		const game = await Pegasus.launchGame('./game/');
-		headingDiv.innerHTML = `
-			<tt><i>${game.title}</i> by <b>${game.author}</b></tt><br>
-			<tt>- <b>${version.name} ${version.version}</b> implementing <b>API v${version.apiVersion} level ${version.apiLevel}</b></tt><br>
-			<tt>- game compiled with <b>${game.compiler}</b></tt><br>
-			<tt>- backbuffer resolution is <b>${game.resolution.x}x${game.resolution.y}</b></tt><br>
-			<br>
-			<tt><b>About this Game:</b></tt><br>
-			<tt>${game.summary}</tt>
-		`;
-	};
-}
+export const name = "Oozaru";
+export const version = "1.0a1";
+export const apiVersion = 2;
+export const apiLevel = 1;

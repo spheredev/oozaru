@@ -41,19 +41,8 @@ class Game
 
 	static async fromDirectory(url: string)
 	{
-		const json = await util.fetchJSON(`${url}/game.json`);
-		const game = new this();
-		game.url = url;
-		game.data = Object.freeze(json);
-
-		// parse the screen resolution string
-		const matches = game.data.resolution.match(/^([0-9]*)x([0-9]*)$/);
-		if (matches !== null)
-			game.screenSize = Object.freeze({ x: +matches[1], y: +matches[2] });
-		else
-			game.screenSize = Object.freeze({ x: 640, y: 480 });
-
-		return game;
+		const json = await util.fetchText(`${url}/game.json`);
+		return new this(url, json);
 	}
 
 	static urlOf(game: Game | null, pathName: string)
@@ -74,6 +63,20 @@ class Game
 		else {
 			throw new RangeError(`Unsupported SphereFS prefix '${hops[0]}'`);
 		}
+	}
+
+	constructor(directoryURL: string, manifestJSON: string)
+	{
+		const manifest = JSON.parse(manifestJSON);
+
+		this.url = directoryURL;
+		this.data = Object.freeze(manifest);
+
+		// parse the screen resolution string
+		const matches = this.data.resolution.match(/^([0-9]*)x([0-9]*)$/);
+		this.screenSize = matches !== null
+			? Object.freeze({ x: +matches[1], y: +matches[2] })
+			: Object.freeze({ x: 640, y: 480 });
 	}
 
 	get author(): string
@@ -109,5 +112,37 @@ class Game
 	get title(): string
 	{
 		return this.data.name;
+	}
+
+	fullPath(pathName: string, baseDirName?: string)
+	{
+		// canonicalizing the base path first ensures the first hop will always be a SphereFS prefix.
+		// this makes things easier below.
+		if (baseDirName !== undefined) {
+			baseDirName = this.fullPath(`${baseDirName}/`);
+		}
+		else {
+			baseDirName = '@/';
+		}
+
+		// if `pathName` already starts with a SphereFS prefix, don't rebase it.
+		const inputPath = /^[@#~$%](?:\\|\/)/.test(pathName)
+			? `${pathName}`
+			: `${baseDirName}/${pathName}`;
+
+		const input = inputPath.split(/[\\/]+/);
+		const output: string[] = [ input[0] ];
+		for (let i = 1; i < input.length; ++i) {
+			if (input[i] === '..') {
+				if (output.length <= 1)  // '..' is not an escape hatch.
+					throw new RangeError(`FS sandboxing violation on '${pathName}'`);
+				else
+					output.pop();
+			}
+			else if (input[i] !== '.') {
+				output.push(input[i]);
+			}
+		}
+		return output.join('/');
 	}
 }
