@@ -719,8 +719,16 @@ class Font
 			};
 		}
 		else {
-			return this.font.textSize(text);
+			return {
+				width: this.font.widthOf(text),
+				height: this.font.height,
+			};
 		}
+	}
+
+	widthOf(text: string)
+	{
+		return this.font.widthOf(text);
 	}
 
 	wordWrap(text: string, wrapWidth: number)

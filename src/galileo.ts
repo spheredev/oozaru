@@ -402,7 +402,7 @@ class Font
 		}
 	}
 
-	textSize(text: string)
+	widthOf(text: string)
 	{
 		let cp: number | undefined;
 		let ptr = 0;
@@ -443,10 +443,7 @@ class Font
 			const glyph = this.glyphs[cp];
 			width += glyph.width;
 		}
-		return {
-			width,
-			height: this.lineHeight,
-		};
+		return width;
 	}
 
 	wordWrap(text: string, wrapWidth: number)
