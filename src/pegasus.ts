@@ -693,13 +693,20 @@ class Font
 
 	drawText(surface: Surface, x: number, y: number, text: string, color = Color.White, wrapWidth?: number)
 	{
-		if (wrapWidth !== undefined)
-			throw new Error(`Oozaru doesn't yet support text wrapping`);
 		const matrix = galileo.Matrix.Identity.translate(x, y);
 		surface.drawTarget.activate();
 		Shader.Default.program.activate(false);
 		Shader.Default.program.project(surface.projection.matrix);
-		this.font.drawText(text, color, matrix);
+		if (wrapWidth !== undefined) {
+			const lines = this.wordWrap(text, wrapWidth);
+			for (let i = 0, len = lines.length; i < len; ++i) {
+				this.font.drawText(lines[i], color, matrix);
+				matrix.translate(0, this.font.height);
+			}
+		}
+		else {
+			this.font.drawText(text, color, matrix);
+		}
 	}
 
 	getTextSize(text: string, wrapWidth?: number)
@@ -926,6 +933,16 @@ class Mouse
 		return new this();
 	}
 
+	get x()
+	{
+		return 0;
+	}
+
+	get y()
+	{
+		return 0;
+	}
+
 	clearQueue()
 	{
 	}
@@ -943,8 +960,27 @@ class Mouse
 
 class RNG
 {
+	static fromSeed(seedValue: number)
+	{
+		throw new Error(`'RNG.fromSeed' is not yet implemented`);
+	}
+
+	static fromState(state: string)
+	{
+		throw new Error(`'RNG.fromState' is not yet implemented`);
+	}
+
 	constructor()
 	{
+	}
+
+	get state()
+	{
+		throw new Error(`'RNG.state' is not yet implemented`);
+	}
+	set state(value)
+	{
+		throw new Error(`'RNG.state' is not yet implemented`);
 	}
 
 	next()
@@ -965,7 +1001,7 @@ class SSj extends null
 
 	static now()
 	{
-		return 0;
+		return performance.now() / 1000.0;
 	}
 }
 
@@ -1216,6 +1252,11 @@ class SoundStream
 	play(mixer = Mixer.Default)
 	{
 		this.stream.play(mixer.mixer);
+	}
+
+	stop()
+	{
+		this.stream.stop();
 	}
 
 	write(data: Float32Array)

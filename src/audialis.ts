@@ -152,8 +152,8 @@ class Stream
 
 	constructor(sampleRate: number, numChannels: number)
 	{
-		this.sampleRate = sampleRate;
 		this.numChannels = numChannels;
+		this.sampleRate = sampleRate;
 	}
 
 	get buffered()
@@ -229,5 +229,19 @@ class Stream
 			this.node.connect(mixer.gainer);
 			this.mixer = mixer;
 		}
+	}
+
+	stop()
+	{
+		if (this.node !== undefined) {
+			this.node.onaudioprocess = null;
+			this.node.disconnect();
+		}
+		this.buffers.length = 0;
+		this.inputPtr = 0.0;
+		this.mixer = null;
+		this.node = undefined;
+		this.paused = true;
+		this.timeBuffered = 0.0;
 	}
 }
