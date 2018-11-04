@@ -1,9 +1,9 @@
 {
     "compileOnSave" : true,
     "compilerOptions": {
-        "target": "esnext",
-        "module": "esnext",
-        "lib": [ "esnext", "dom" ],
+        "target": "es2017",
+        "module": "es6",
+        "lib": [ "es2017", "dom" ],
         "outDir": "oozaru",
         "noEmitOnError": false,
         "noImplicitAny": true,

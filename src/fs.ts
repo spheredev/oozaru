@@ -128,7 +128,7 @@ class Game
 
 		const input = inputPath.split(/[\\/]+/);
 		if (input[0] === '$') {
-			// '$/' aliases the directory containing the main module, it's not a root itself.
+			// '$/' aliases the directory containing the main module; it's not a root itself.
 			input.splice(0, 1, ...this.data.main.split(/[\\/]+/).slice(0, -1));
 		}
 		const output = [ input[0] ];
