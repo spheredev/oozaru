@@ -702,9 +702,23 @@ class Font
 		this.font.drawText(text, color, matrix);
 	}
 
-	getTextSize(text: string)
+	getTextSize(text: string, wrapWidth?: number)
 	{
-		return this.font.textSize(text);
+		if (wrapWidth !== undefined){
+			const lines = this.font.wordWrap(text, wrapWidth);
+			return {
+				width: wrapWidth,
+				height: lines.length * this.font.height,
+			};
+		}
+		else {
+			return this.font.textSize(text);
+		}
+	}
+
+	wordWrap(text: string, wrapWidth: number)
+	{
+		return this.font.wordWrap(text, wrapWidth);
 	}
 }
 
