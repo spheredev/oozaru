@@ -703,11 +703,13 @@ export
 class Shader
 {
 	program: WebGLProgram;
+	deferredValues: { [x: string]: { type: string, value: any } } = {};
 	hasTextureLoc: WebGLUniformLocation | null;
 	modelViewLoc: WebGLUniformLocation | null;
 	textureLoc: WebGLUniformLocation | null;
 	modelView: Matrix;
 	projection: Matrix;
+	uniformIDs: { [x: string]: WebGLUniformLocation | null } = {};
 
 	constructor(vertexSource: string, fragmentSource: string)
 	{
@@ -759,6 +761,46 @@ class Shader
 			gl.useProgram(this.program);
 			gl.uniformMatrix4fv(this.modelViewLoc, false, transformation.values);
 			gl.uniform1i(this.textureLoc, 0);
+			for (const name of Object.keys(this.deferredValues)) {
+				const entry = this.deferredValues[name];
+				const slot = this.uniformIDs[name];
+				let size: number;
+				switch (entry.type) {
+					case 'bool':
+						gl.uniform1i(slot, entry.value ? 1 : 0);
+						break;
+					case 'float':
+						gl.uniform1f(slot, entry.value);
+						break;
+					case 'floatArray':
+						gl.uniform1fv(slot, entry.value);
+						break;
+					case 'floatVec':
+						size = entry.value.length;
+						size === 4 ? gl.uniform4fv(slot, entry.value)
+							: size === 3 ? gl.uniform3fv(slot, entry.value)
+							: size === 2 ? gl.uniform2fv(slot, entry.value)
+							: gl.uniform1fv(slot, entry.value);
+						break;
+					case 'int':
+						gl.uniform1i(slot, entry.value);
+						break;
+					case 'intArray':
+						gl.uniform1iv(slot, entry.value);
+						break;
+					case 'intVec':
+						size = entry.value.length;
+						size === 4 ? gl.uniform4iv(slot, entry.value)
+							: size === 3 ? gl.uniform3iv(slot, entry.value)
+							: size === 2 ? gl.uniform2iv(slot, entry.value)
+							: gl.uniform1iv(slot, entry.value);
+						break;
+					case 'matrix':
+						gl.uniformMatrix4fv(slot, false, entry.value.values);
+						break;
+				}
+			}
+			this.deferredValues = {};
 			activeShader = this;
 		}
 		gl.uniform1i(this.hasTextureLoc, useTexture ? 1 : 0);
@@ -772,6 +814,122 @@ class Shader
 				.composeWith(this.projection);
 			gl.uniformMatrix4fv(this.modelViewLoc, false, transformation.values);
 		}
+	}
+
+	setBoolValue(name: string, value: boolean)
+	{
+		let location = this.uniformIDs[name];
+		if (location === undefined) {
+			location = gl.getUniformLocation(this.program, name);
+			this.uniformIDs[name] = location;
+		}
+		if (activeShader === this)
+			gl.uniform1i(location, value ? 1 : 0);
+		else
+			this.deferredValues[name] = { type: 'bool', value };
+	}
+
+	setFloatArray(name: string, values: number[])
+	{
+		let location = this.uniformIDs[name];
+		if (location === undefined) {
+			location = gl.getUniformLocation(this.program, name);
+			this.uniformIDs[name] = location;
+		}
+		if (activeShader === this)
+			gl.uniform1fv(location, values);
+		else
+			this.deferredValues[name] = { type: 'floatArray', value: values };
+	}
+
+	setFloatValue(name: string, value: number)
+	{
+		let location = this.uniformIDs[name];
+		if (location === undefined) {
+			location = gl.getUniformLocation(this.program, name);
+			this.uniformIDs[name] = location;
+		}
+		if (activeShader === this)
+			gl.uniform1f(location, value);
+		else
+			this.deferredValues[name] = { type: 'float', value };
+	}
+
+	setFloatVec(name: string, values: number[])
+	{
+		let location = this.uniformIDs[name];
+		if (location === undefined) {
+			location = gl.getUniformLocation(this.program, name);
+			this.uniformIDs[name] = location;
+		}
+		if (activeShader === this) {
+			const size = values.length;
+			size === 4 ? gl.uniform4fv(location, values)
+				: size === 3 ? gl.uniform3fv(location, values)
+				: size === 2 ? gl.uniform2fv(location, values)
+				: gl.uniform1fv(location, values);
+		}
+		else {
+			this.deferredValues[name] = { type: 'floatVec', value: values };
+		}
+	}
+
+	setIntArray(name: string, values: number[])
+	{
+		let location = this.uniformIDs[name];
+		if (location === undefined) {
+			location = gl.getUniformLocation(this.program, name);
+			this.uniformIDs[name] = location;
+		}
+		if (activeShader === this)
+			gl.uniform1iv(location, values);
+		else
+			this.deferredValues[name] = { type: 'intArray', value: values };
+	}
+
+	setIntValue(name: string, value: number)
+	{
+		let location = this.uniformIDs[name];
+		if (location === undefined) {
+			location = gl.getUniformLocation(this.program, name);
+			this.uniformIDs[name] = location;
+		}
+		if (activeShader === this)
+			gl.uniform1i(location, value);
+		else
+			this.deferredValues[name] = { type: 'int', value };
+	}
+
+	setIntVec(name: string, values: number[])
+	{
+		let location = this.uniformIDs[name];
+		if (location === undefined) {
+			location = gl.getUniformLocation(this.program, name);
+			this.uniformIDs[name] = location;
+		}
+		if (activeShader === this) {
+			const size = values.length;
+			size === 4 ? gl.uniform4iv(location, values)
+				: size === 3 ? gl.uniform3iv(location, values)
+				: size === 2 ? gl.uniform2iv(location, values)
+				: gl.uniform1iv(location, values);
+		}
+		else {
+			this.deferredValues[name] = { type: 'intVec', value: values };
+		}
+	}
+
+	setMatrixValue(name: string, value: Matrix)
+	{
+		let location = this.uniformIDs[name];
+		if (location === undefined) {
+			location = gl.getUniformLocation(this.program, name);
+			this.uniformIDs[name] = location;
+		}
+		if (activeShader === this)
+			gl.uniformMatrix4fv(location, false, value.values);
+		else
+			this.deferredValues[name] = { type: 'matrix', value };
 	}
 
 	transform(matrix: Matrix)

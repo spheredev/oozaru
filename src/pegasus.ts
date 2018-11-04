@@ -608,7 +608,7 @@ class FileStream
 
 	constructor()
 	{
-		throw new RangeError(`'new FileStream' is unsupported in Oozaru, use 'FileStream.open' instead`);
+		throw new RangeError(`'new FileStream' is unsupported, use 'FileStream.open' instead`);
 	}
 
 	get fileName()
@@ -683,7 +683,7 @@ class Font
 
 	constructor()
 	{
-		throw new RangeError(`'new Font' is unsupported in Oozaru, use 'Font.fromFile' instead`);
+		throw new RangeError(`'new Font' is unsupported, use 'Font.fromFile' instead`);
 	}
 
 	get height()
@@ -854,7 +854,6 @@ class Mixer
 	{
 		return this.mixer.volume;
 	}
-
 	set volume(value)
 	{
 		this.mixer.volume = value;
@@ -878,7 +877,6 @@ class Model
 	{
 		return this.shader_;
 	}
-
 	set shader(value)
 	{
 		this.shader_ = value;
@@ -888,7 +886,6 @@ class Model
 	{
 		return this.transform_;
 	}
-
 	set transform(value)
 	{
 		this.transform_ = value;
@@ -960,7 +957,9 @@ class SSj extends null
 
 class Shader
 {
+	fragSource: string;
 	program: galileo.Shader;
+	vertSource: string;
 
 	static get Default()
 	{
@@ -977,16 +976,75 @@ class Shader
 	{
 		const vertURL = fs.Game.urlOf(game, options.vertexFile);
 		const fragURL = fs.Game.urlOf(game, options.fragmentFile);
-		const vertSource = await util.fetchText(vertURL);
-		const fragSource = await util.fetchText(fragURL);
 		const shader = Object.create(this.prototype) as Shader;
-		shader.program = new galileo.Shader(vertSource, fragSource);
+		shader.vertSource = await util.fetchText(vertURL);
+		shader.fragSource = await util.fetchText(fragURL);
+		shader.program = new galileo.Shader(shader.vertSource, shader.fragSource);
 		return shader;
 	}
 
 	constructor(_options: ShaderOptions)
 	{
-		throw new RangeError(`'new Shader' is unsupported in Oozaru, use 'Shader.fromFiles' instead`);
+		throw new RangeError(`'new Shader' is unsupported, use 'Shader.fromFiles' instead`);
+	}
+
+	clone()
+	{
+		const dolly = Object.create(Object.getPrototypeOf(this)) as this;
+		dolly.vertSource = this.vertSource;
+		dolly.fragSource = this.fragSource;
+		dolly.program = new galileo.Shader(dolly.vertSource, dolly.fragSource);
+		return dolly;
+	}
+
+	setBoolean(name: string, value: boolean)
+	{
+		this.program.setBoolValue(name, value);
+	}
+
+	setColorVector(name: string, value: Color)
+	{
+		this.program.setFloatVec(name, [
+			value.zit.r,
+			value.zit.g,
+			value.zit.b,
+			value.zit.a
+		]);
+	}
+
+	setFloat(name: string, value: number)
+	{
+		this.program.setFloatValue(name, value);
+	}
+
+	setFloatArray(name: string, values: number[])
+	{
+		this.program.setFloatArray(name, values);
+	}
+
+	setFloatVector(name: string, values: number[])
+	{
+		this.program.setFloatVec(name, values);
+	}
+
+	setInt(name: string, value: number)
+	{
+		this.program.setIntValue(name, value);
+	}
+
+	setIntArray(name: string, values: number[])
+	{
+		this.program.setIntArray(name, values);
+	}
+
+	setIntVector(name: string, values: number[])
+	{
+		this.program.setIntVec(name, values);
+	}
+
+	setMatrix(name: string, value: Transform)
+	{
+		this.program.setMatrixValue(name, value.matrix);
 	}
 }
 
@@ -1069,7 +1127,7 @@ class Sound
 
 	constructor(_fileName: string)
 	{
-		throw new RangeError(`'new Sound' is unsupported in Oozaru, use 'Sound.fromFile' instead`);
+		throw new RangeError(`'new Sound' is unsupported, use 'Sound.fromFile' instead`);
 	}
 
 	get length()
@@ -1169,7 +1227,7 @@ class Texture
 	constructor(...args: [ any, any?, any? ])
 	{
 		if (typeof args[0] === 'string') {
-			throw new RangeError(`'new Texture' with filename unsupported, use 'Texture.fromFile' instead`);
+			throw new RangeError(`'new Texture' with filename is unsupported, use 'Texture.fromFile' instead`);
 		}
 		else if (args[0] instanceof HTMLImageElement) {
 			const image = args[0];
@@ -1253,15 +1311,14 @@ class Surface extends Texture
 	{
 		return this.projection;
 	}
+	set transform(value)
+	{
+		this.projection = value;
+	}
 
 	get width()
 	{
 		return this.drawTarget.width;
-	}
-
-	set transform(value)
-	{
-		this.projection = value;
 	}
 
 	clipTo(x: number, y: number, width: number, height: number)
