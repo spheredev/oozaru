@@ -452,8 +452,8 @@ class Font
 		let codepoints: number[] = [];
 		let currentLine = "";
 		let lineWidth = 0;
-		let wordWidth = 0;
 		let lineFinished = false;
+		let wordWidth = 0;
 		let wordFinished = false;
 		let cp: number | undefined;
 		let ptr = 0;
@@ -493,6 +493,8 @@ class Font
 			const glyph = this.glyphs[cp];
 			switch (cp) {
 				case 13: case 10:  // newline
+					if (cp === 13 && text.codePointAt(ptr) == 10)
+						++ptr;  // treat CRLF as a single newline
 					lineFinished = true;
 					break;
 				case 8:  // tab
