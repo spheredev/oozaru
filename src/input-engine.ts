@@ -75,7 +75,7 @@ enum Key
 	Right,
 	ScrollLock,
 	Semicolon,
-	Slahs,
+	Slash,
 	Space,
 	Tab,
 	Tilde,
@@ -160,8 +160,9 @@ class InputEngine
 				case 'ArrowDown': this.keyQueue.push(Key.Down); break;
 				case 'ArrowUp': this.keyQueue.push(Key.Up); break;
 				case 'Backquote': this.keyQueue.push(Key.Tilde); break;
+				case 'Backslash': this.keyQueue.push(Key.Backslash); break;
 				case 'Backspace': this.keyQueue.push(Key.Backspace); break;
-				case 'Enter': this.keyQueue.push(Key.Enter); break;
+				case 'Digit0': this.keyQueue.push(Key.D0); break;
 				case 'Digit1': this.keyQueue.push(Key.D1); break;
 				case 'Digit2': this.keyQueue.push(Key.D2); break;
 				case 'Digit3': this.keyQueue.push(Key.D3); break;
@@ -171,7 +172,9 @@ class InputEngine
 				case 'Digit7': this.keyQueue.push(Key.D7); break;
 				case 'Digit8': this.keyQueue.push(Key.D8); break;
 				case 'Digit9': this.keyQueue.push(Key.D9); break;
-				case 'Digit0': this.keyQueue.push(Key.D0); break;
+				case 'End': this.keyQueue.push(Key.End); break;
+				case 'Enter': this.keyQueue.push(Key.Enter); break;
+				case 'Home': this.keyQueue.push(Key.Home); break;
 				case 'KeyA': this.keyQueue.push(Key.A); break;
 				case 'KeyB': this.keyQueue.push(Key.B); break;
 				case 'KeyC': this.keyQueue.push(Key.C); break;
@@ -198,6 +201,10 @@ class InputEngine
 				case 'KeyX': this.keyQueue.push(Key.X); break;
 				case 'KeyY': this.keyQueue.push(Key.Y); break;
 				case 'KeyZ': this.keyQueue.push(Key.Z); break;
+				case 'PageDown': this.keyQueue.push(Key.PageDown); break;
+				case 'PageUp': this.keyQueue.push(Key.PageUp); break;
+				case 'Period': this.keyQueue.push(Key.Period); break;
+				case 'Slash': this.keyQueue.push(Key.Slash); break;
 				case 'Space': this.keyQueue.push(Key.Space); break;
 			}
 		});
@@ -256,6 +263,8 @@ class InputEngine
 			: key === Key.X ? 'KeyX'
 			: key === Key.Y ? 'KeyY'
 			: key === Key.Z ? 'KeyZ'
+			: key === Key.PageDown ? 'PageDown'
+			: key === Key.PageUp ? 'PageUp'
 			: key === Key.LShift ? 'ShiftLeft'
 			: key === Key.LCtrl ? 'ControlLeft'
 			: key === Key.Alt ? 'AltLeft'

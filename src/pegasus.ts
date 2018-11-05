@@ -40,6 +40,18 @@ import * as fs from './fs.js';
 import * as galileo from './galileo.js';
 import * as util from './utility.js';
 
+interface DirectoryEntry
+{
+	isDirectory: boolean;
+	fileName: string;
+	fullPath: string;
+}
+
+interface DirectoryStreamOptions
+{
+	recursive?: boolean;
+}
+
 enum FileOp
 {
 	Read,
@@ -76,6 +88,7 @@ interface Vertex
 	color?: Color
 }
 
+const console = window.console;
 const eventLoop = new EventLoop();
 
 let defaultFont: Font;
@@ -113,6 +126,7 @@ class Pegasus extends null
 			// classes and namespaces
 			Sphere,
 			Color,
+			DirectoryStream,
 			Dispatch,
 			FS,
 			FileStream,
@@ -523,6 +537,40 @@ class Color
 	}
 }
 
+class DirectoryStream
+{
+	constructor(dirName: string, options?: DirectoryStreamOptions)
+	{
+	}
+
+	get [Symbol.iterator]()
+	{
+		return this;
+	}
+
+	get fileCount()
+	{
+		return 0;
+	}
+
+	get position()
+	{
+		return 0;
+	}
+	set position(value)
+	{
+	}
+
+	next(): IteratorResult<DirectoryEntry>
+	{
+		return { done: true } as any;
+	}
+
+	rewind()
+	{
+	}
+}
+
 class Dispatch extends null
 {
 	static cancelAll()
@@ -583,8 +631,13 @@ class FS extends null
 	static async require(fileName: string)
 	{
 		const url = fs.Game.urlOf(game, fileName);
-		const text = await (await fetch(url)).text();
-		return JSON.parse(text);
+		if (url.endsWith('.js') || url.endsWith('.mjs')) {
+			return util.fetchModule(url);
+		}
+		else {
+			const text = await (await fetch(url)).text();
+			return JSON.parse(text);
+		}
 	}
 }
 
@@ -691,28 +744,28 @@ class Font
 		return this.font.height;
 	}
 
-	drawText(surface: Surface, x: number, y: number, text: string, color = Color.White, wrapWidth?: number)
+	drawText(surface: Surface, x: number, y: number, text: any, color = Color.White, wrapWidth?: number)
 	{
 		const matrix = galileo.Matrix.Identity.translate(x, y);
 		surface.drawTarget.activate();
 		Shader.Default.program.activate(false);
 		Shader.Default.program.project(surface.projection.matrix);
 		if (wrapWidth !== undefined) {
-			const lines = this.wordWrap(text, wrapWidth);
+			const lines = this.wordWrap(String(text), wrapWidth);
 			for (let i = 0, len = lines.length; i < len; ++i) {
 				this.font.drawText(lines[i], color, matrix);
 				matrix.translate(0, this.font.height);
 			}
 		}
 		else {
-			this.font.drawText(text, color, matrix);
+			this.font.drawText(String(text), color, matrix);
 		}
 	}
 
-	getTextSize(text: string, wrapWidth?: number)
+	getTextSize(text: any, wrapWidth?: number)
 	{
-		if (wrapWidth !== undefined){
-			const lines = this.font.wordWrap(text, wrapWidth);
+		if (wrapWidth !== undefined) {
+			const lines = this.font.wordWrap(String(text), wrapWidth);
 			return {
 				width: wrapWidth,
 				height: lines.length * this.font.height,
@@ -720,20 +773,20 @@ class Font
 		}
 		else {
 			return {
-				width: this.font.widthOf(text),
+				width: this.font.widthOf(String(text)),
 				height: this.font.height,
 			};
 		}
 	}
 
-	widthOf(text: string)
+	widthOf(text: any)
 	{
-		return this.font.widthOf(text);
+		return this.font.widthOf(String(text));
 	}
 
-	wordWrap(text: string, wrapWidth: number)
+	wordWrap(text: any, wrapWidth: number)
 	{
-		return this.font.wordWrap(text, wrapWidth);
+		return this.font.wordWrap(String(text), wrapWidth);
 	}
 }
 
@@ -764,9 +817,46 @@ class JobToken
 
 class Joystick
 {
+	static get Null()
+	{
+		let joystick = new Joystick();
+		Object.defineProperty(Joystick, 'Null', {
+			writable: false,
+			enumerable: false,
+			configurable: true,
+			value: joystick,
+		});
+		return joystick;
+	}
+
 	static getDevices()
 	{
 		return [] as Joystick[];
+	}
+
+	get name()
+	{
+		return "Oozaru Null Joystick";
+	}
+
+	get numAxes()
+	{
+		return 0;
+	}
+
+	get numButtons()
+	{
+		return 0;
+	}
+
+	getPosition(axis: number)
+	{
+		return 0.0;
+	}
+
+	isPressed(button: number)
+	{
+		return false;
 	}
 }
 
@@ -802,6 +892,9 @@ class Keyboard
 	charOf(key: Key, shifted = false): string
 	{
 		return key === Key.Space ? " "
+			: key === Key.Backslash ? shifted ? "|" : "\\"
+			: key === Key.Period ? shifted ? ">" : "."
+			: key === Key.Slash ? shifted ? "?" : "/"
 			: key === Key.Tilde ? shifted ? "~" : "`"
 			: key === Key.D0 ? shifted ? ")" : "0"
 			: key === Key.D1 ? shifted ? "!" : "1"
