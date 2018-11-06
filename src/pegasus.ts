@@ -1331,7 +1331,7 @@ class Texture
 	}
 
 	constructor(fileName: string);
-	constructor(width: number, height: number, content?: ArrayBufferView | Color);
+	constructor(width: number, height: number, content?: BufferSource | Color);
 	constructor(image: HTMLImageElement);
 	constructor(...args: [ any, any?, any? ])
 	{
@@ -1382,7 +1382,7 @@ class Surface extends Texture
 		return surface;
 	}
 
-	constructor(width: number, height: number, content?: ArrayBufferView | Color);
+	constructor(width: number, height: number, content?: BufferSource | Color);
 	constructor(image: HTMLImageElement);
 	constructor(...args: [ any, any?, any? ])
 	{

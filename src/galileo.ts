@@ -1054,8 +1054,8 @@ class Texture
 	height: number;
 
 	constructor(image: HTMLImageElement);
-	constructor(width: number, height: number, content?: ArrayBufferView | RGBA);
-	constructor(arg1: HTMLImageElement | number, arg2?: number, arg3?: ArrayBufferView | RGBA)
+	constructor(width: number, height: number, content?: BufferSource | RGBA);
+	constructor(arg1: HTMLImageElement | number, arg2?: number, arg3?: BufferSource | RGBA)
 	{
 		const hwTexture = gl.createTexture();
 		if (hwTexture === null)
@@ -1073,9 +1073,10 @@ class Texture
 		else {
 			this.width = arg1;
 			this.height = arg2 as number;
-			if (ArrayBuffer.isView(arg3)) {
+			if (arg3 instanceof ArrayBuffer || ArrayBuffer.isView(arg3)) {
+				const buffer = arg3 instanceof ArrayBuffer ? arg3 : arg3.buffer;
 				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.width, this.height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
-					new Uint8Array(arg3.buffer));
+					new Uint8Array(buffer));
 			}
 			else {
 				let pixels = new Uint32Array(this.width * this.height);
