@@ -43,7 +43,7 @@ export { default as Thread } from './thread.js';
 // Sphere Runtime shared modules
 export { default as assert } from './assert.js';
 export { default as from } from './from.js';
-//export { default as DataStream } from './data-stream.js';
+export { default as DataStream } from './data-stream.js';
 export { default as Delegate } from './delegate.js';
 export { default as Logger } from './logger.js';
 export { default as Random } from './random.js';
