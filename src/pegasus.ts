@@ -40,18 +40,6 @@ import * as fs from './fs.js';
 import * as galileo from './galileo.js';
 import * as util from './utility.js';
 
-interface DirectoryEntry
-{
-	isDirectory: boolean;
-	fileName: string;
-	fullPath: string;
-}
-
-interface DirectoryStreamOptions
-{
-	recursive?: boolean;
-}
-
 enum FileOp
 {
 	Read,
@@ -126,7 +114,6 @@ class Pegasus extends null
 			// classes and namespaces
 			Sphere,
 			Color,
-			DirectoryStream,
 			Dispatch,
 			FS,
 			FileStream,
@@ -534,40 +521,6 @@ class Color
 		return new Color(
 			this.zit.r, this.zit.g, this.zit.b,
 			this.zit.a * alphaFactor);
-	}
-}
-
-class DirectoryStream
-{
-	constructor(dirName: string, options?: DirectoryStreamOptions)
-	{
-	}
-
-	get [Symbol.iterator]()
-	{
-		return this;
-	}
-
-	get fileCount()
-	{
-		return 0;
-	}
-
-	get position()
-	{
-		return 0;
-	}
-	set position(value)
-	{
-	}
-
-	next(): IteratorResult<DirectoryEntry>
-	{
-		return { done: true } as any;
-	}
-
-	rewind()
-	{
 	}
 }
 
