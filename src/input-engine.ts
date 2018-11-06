@@ -207,9 +207,11 @@ class InputEngine
 				case 'Slash': this.keyQueue.push(Key.Slash); break;
 				case 'Space': this.keyQueue.push(Key.Space); break;
 			}
+			e.preventDefault();
 		});
 		canvas.addEventListener('keyup', e => {
 			this.pressed[e.code] = false;
+			e.preventDefault();
 		});
 	}
 
