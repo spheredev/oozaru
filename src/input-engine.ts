@@ -135,6 +135,14 @@ enum Key
 }
 
 export
+interface MouseEvent
+{
+	key: MouseKey;
+	x: number;
+	y: number;
+}
+
+export
 enum MouseKey
 {
 	Left,
@@ -147,12 +155,19 @@ enum MouseKey
 export default
 class InputEngine
 {
+	private buttonDown: { [x: number]: boolean } = {};
 	private keyQueue: Key[] = [];
+	private lastMouseX?: number = undefined;
+	private lastMouseY?: number = undefined;
+	private mouseQueue: MouseEvent[] = [];
 	private pressed: { [x: string]: boolean } = { '': false };
 
 	constructor(canvas: HTMLCanvasElement)
 	{
+		canvas.addEventListener('contextmenu', e => e.preventDefault());
+
 		canvas.addEventListener('keydown', e => {
+			e.preventDefault();
 			this.pressed[e.code] = true;
 			switch (e.code) {
 				case 'ArrowLeft': this.keyQueue.push(Key.Left); break;
@@ -207,12 +222,61 @@ class InputEngine
 				case 'Slash': this.keyQueue.push(Key.Slash); break;
 				case 'Space': this.keyQueue.push(Key.Space); break;
 			}
-			e.preventDefault();
 		});
 		canvas.addEventListener('keyup', e => {
-			this.pressed[e.code] = false;
 			e.preventDefault();
+			this.pressed[e.code] = false;
 		});
+
+		canvas.addEventListener('mousemove', e => {
+			e.preventDefault();
+			this.lastMouseX = e.offsetX;
+			this.lastMouseY = e.offsetY;
+		});
+		canvas.addEventListener('mouseout', e => {
+			e.preventDefault();
+			this.lastMouseX = undefined;
+			this.lastMouseY = undefined;
+		});
+		canvas.addEventListener('mousedown', e => {
+			e.preventDefault();
+			const key = e.button === 1 ? MouseKey.Middle
+				: e.button === 2 ? MouseKey.Right
+				: MouseKey.Left;
+			this.buttonDown[key] = true;
+		});
+		canvas.addEventListener('mouseup', e => {
+			e.preventDefault();
+			const key = e.button === 1 ? MouseKey.Middle
+				: e.button === 2 ? MouseKey.Right
+				: MouseKey.Left;
+			this.buttonDown[key] = false;
+			this.mouseQueue.push({
+				key,
+				x: e.offsetX,
+				y: e.offsetY,
+			});
+		});
+		canvas.addEventListener('wheel', e => {
+			e.preventDefault();
+			const key = e.deltaY < 0.0 ? MouseKey.WheelUp
+				: MouseKey.WheelDown;
+			this.mouseQueue.push({
+				key,
+				x: e.offsetX,
+				y: e.offsetY,
+			});
+		});
+	}
+
+	get mouseX()
+	{
+		return this.lastMouseX;
+	}
+
+	get mouseY()
+	{
+		return this.lastMouseY;
 	}
 
 	clearKeyQueue()
@@ -220,10 +284,21 @@ class InputEngine
 		this.keyQueue.length = 0;
 	}
 
+	clearMouseQueue()
+	{
+		this.mouseQueue.length = 0;
+	}
+
 	getKey()
 	{
 		const key = this.keyQueue.pop();
 		return key !== undefined ? key : null;
+	}
+
+	getMouseEvent()
+	{
+		const event = this.mouseQueue.pop();
+		return event !== undefined ? event : null;
 	}
 
 	isKeyDown(key: Key)
@@ -275,5 +350,10 @@ class InputEngine
 			: key === Key.AltGr ? 'AltRight'
 			: "";
 		return this.pressed[keySpec];
+	}
+
+	isMouseKeyDown(key: MouseKey)
+	{
+		return !!this.buttonDown[key];
 	}
 }

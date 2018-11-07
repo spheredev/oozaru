@@ -17,6 +17,13 @@ global.console =
 export default
 async function main()
 {
+	Dispatch.onRender(() => {
+		Font.Default.drawText(Surface.Screen, 0, 0, `(${Mouse.Default.x},${Mouse.Default.y})`);
+		Font.Default.drawText(Surface.Screen, 0, 12, `L: ${Mouse.Default.isPressed(MouseKey.Left)}`);
+		Font.Default.drawText(Surface.Screen, 0, 24, `R: ${Mouse.Default.isPressed(MouseKey.Right)}`);
+		Font.Default.drawText(Surface.Screen, 0, 36, `W: ${Mouse.Default.isPressed(MouseKey.Middle)}`);
+	}, { priority: Infinity });
+
 	Scene.defaultPriority = 99;
 
 	console.defineObject('bgm', null, {

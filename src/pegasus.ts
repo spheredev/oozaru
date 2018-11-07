@@ -53,13 +53,6 @@ interface JobOptions
 	priority?: number;
 }
 
-interface MouseEvent
-{
-	key: MouseKey;
-	x: number;
-	y: number;
-}
-
 interface ShaderOptions
 {
 	vertexFile: string;
@@ -984,31 +977,39 @@ class Mouse
 {
 	static get Default()
 	{
-		return new this();
+		const mouse = new Mouse();
+		Object.defineProperty(Mouse, 'Default', {
+			writable: false,
+			enumerable: false,
+			configurable: true,
+			value: mouse,
+		});
+		return mouse;
 	}
 
 	get x()
 	{
-		return 0;
+		return inputEngine.mouseX;
 	}
 
 	get y()
 	{
-		return 0;
+		return inputEngine.mouseY;
 	}
 
 	clearQueue()
 	{
+		inputEngine.clearMouseQueue();
 	}
 
-	getEvent(): MouseEvent | null
+	getEvent()
 	{
-		return null;
+		return inputEngine.getMouseEvent();
 	}
 
-	isPressed(_key: MouseKey)
+	isPressed(key: MouseKey)
 	{
-		return false;
+		return inputEngine.isMouseKeyDown(key);
 	}
 }
 
