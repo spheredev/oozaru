@@ -156,7 +156,7 @@ Scene.defineOp('talk', {
 		let lineHeight = this.font.height;
 		let boxHeight = lineHeight * 3 + 11;
 		let finalBoxY = Surface.Screen.height * 0.85 - boxHeight / 2;
-		let boxY = finalBoxY + (Surface.Screen.height - finalBoxY) * (1.0 - this.boxVisibility);
+		let boxY = Math.floor(finalBoxY + (Surface.Screen.height - finalBoxY) * (1.0 - this.boxVisibility));
 		Prim.drawRectangle(Surface.Screen, -1, boxY - 1, Surface.Screen.width + 2, boxHeight + 2,
 			Color.Black.fadeTo(0.55 * this.boxVisibility));
 		Prim.drawSolidRectangle(Surface.Screen, 0, boxY, Surface.Screen.width, boxHeight,

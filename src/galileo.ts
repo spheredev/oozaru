@@ -343,6 +343,8 @@ class Font
 
 	drawText(text: string, color: RGBA, matrix: Matrix)
 	{
+		if (text === "")
+			return;  // empty string, nothing to render
 		if (activeShader !== null) {
 			activeShader.activate(true);
 			activeShader.transform(matrix);
