@@ -284,7 +284,7 @@ class Font
 	private maxWidth = 0;
 	private numGlyphs = 0;
 	private stride: number;
-	private vertices = new VertexBuffer();
+	private vertexBuffer = new VertexBuffer();
 
 	static async fromFile(url: string)
 	{
@@ -351,6 +351,7 @@ class Font
 		let cp: number | undefined;
 		let ptr = 0;
 		let x = 0;
+		const vertices: Vertex[] = [];
 		while ((cp = text.codePointAt(ptr++)) !== undefined) {
 			if (cp > 0xFFFF)  // surrogate pair?
 				++ptr;
@@ -391,15 +392,18 @@ class Font
 			const u2 = u1 + glyph.width / this.maxWidth * this.stride;
 			const v1 = glyph.v;
 			const v2 = v1 - glyph.height / this.lineHeight * this.stride;
-			this.vertices.upload([
+			vertices.push(
 				{ x: x1, y: y1, u: u1, v: v1, color },
 				{ x: x2, y: y1, u: u2, v: v1, color },
 				{ x: x1, y: y2, u: u1, v: v2, color },
+				{ x: x2, y: y1, u: u2, v: v1, color },
+				{ x: x1, y: y2, u: u1, v: v2, color },
 				{ x: x2, y: y2, u: u2, v: v2, color },
-			]);
-			Prim.draw(this.vertices, null, ShapeType.TriStrip);
+			);
 			x += glyph.width;
 		}
+		this.vertexBuffer.upload(vertices);
+		Prim.draw(this.vertexBuffer, null, ShapeType.Triangles);
 	}
 
 	widthOf(text: string)
