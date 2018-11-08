@@ -240,6 +240,7 @@ class InputEngine
 		});
 		canvas.addEventListener('mousedown', e => {
 			e.preventDefault();
+			canvas.focus();
 			const key = e.button === 1 ? MouseKey.Middle
 				: e.button === 2 ? MouseKey.Right
 				: MouseKey.Left;
