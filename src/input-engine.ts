@@ -138,6 +138,7 @@ export
 interface MouseEvent
 {
 	key: MouseKey;
+	delta?: number;
 	x: number;
 	y: number;
 }
@@ -148,6 +149,8 @@ enum MouseKey
 	Left,
 	Middle,
 	Right,
+	Back,
+	Forward,
 	WheelUp,
 	WheelDown,
 }
@@ -243,6 +246,8 @@ class InputEngine
 			canvas.focus();
 			const key = e.button === 1 ? MouseKey.Middle
 				: e.button === 2 ? MouseKey.Right
+				: e.button === 3 ? MouseKey.Back
+				: e.button === 4 ? MouseKey.Forward
 				: MouseKey.Left;
 			this.buttonDown[key] = true;
 		});
@@ -250,6 +255,8 @@ class InputEngine
 			e.preventDefault();
 			const key = e.button === 1 ? MouseKey.Middle
 				: e.button === 2 ? MouseKey.Right
+				: e.button === 3 ? MouseKey.Back
+				: e.button === 4 ? MouseKey.Forward
 				: MouseKey.Left;
 			this.buttonDown[key] = false;
 			this.mouseQueue.push({
@@ -264,6 +271,7 @@ class InputEngine
 				: MouseKey.WheelDown;
 			this.mouseQueue.push({
 				key,
+				delta: Math.abs(e.deltaY),
 				x: e.offsetX,
 				y: e.offsetY,
 			});
