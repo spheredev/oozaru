@@ -3,7 +3,7 @@
   *           Copyright (c) 2018 Power-Command
 ***/
 
-import { Joypad, Music, Prim, Scene } from '/game/lib/sphere-runtime.js';
+import { Music, Prim, Scene } from '/game/lib/sphere-runtime.js';
 
 import { BattleEngine, BattleResult } from './battleSystem/index.js';
 import GameOverScreen, { GameOverAction } from './gameOverScreen.js';
@@ -305,9 +305,7 @@ Scene.defineOp('talk', {
 	getInput(scene) {
 		if (this.mode != "idle")
 			return;
-		if ((Keyboard.Default.isPressed(Key.Z) || Joypad.P1.isPressed(0))
-			&& this.timeout == Infinity)
-		{
+		if (Keyboard.Default.isPressed(Key.Z) && this.timeout == Infinity) {
 			if (this.topLine + 3 >= this.text[this.currentPage].length) {
 				if (this.currentPage < this.text.length - 1)
 					this.mode = "page";

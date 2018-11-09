@@ -112,12 +112,10 @@ class Pegasus extends null
 			FileStream,
 			Font,
 			IndexList,
-			Joystick,
 			Keyboard,
 			Mixer,
 			Model,
 			Mouse,
-			RNG,
 			SSj,
 			Shader,
 			Shape,
@@ -128,6 +126,16 @@ class Pegasus extends null
 			Transform,
 			VertexList,
 		});
+
+		Object.defineProperty(JSON, 'fromFile', {
+			writable: true,
+			enumerable: false,
+			configurable: true,
+			value: async function fromFile(fileName: string) {
+				const url = fs.Game.urlOf(game, fileName);
+				return util.fetchJSON(url);
+			},
+		})
 	}
 
 	static async launchGame(directoryURL: string)
@@ -761,51 +769,6 @@ class JobToken
 	}
 }
 
-class Joystick
-{
-	static get Null()
-	{
-		let joystick = new Joystick();
-		Object.defineProperty(Joystick, 'Null', {
-			writable: false,
-			enumerable: false,
-			configurable: true,
-			value: joystick,
-		});
-		return joystick;
-	}
-
-	static getDevices()
-	{
-		return [] as Joystick[];
-	}
-
-	get name()
-	{
-		return "Oozaru Null Joystick";
-	}
-
-	get numAxes()
-	{
-		return 0;
-	}
-
-	get numButtons()
-	{
-		return 0;
-	}
-
-	getPosition(axis: number)
-	{
-		return 0.0;
-	}
-
-	isPressed(button: number)
-	{
-		return false;
-	}
-}
-
 class Keyboard
 {
 	static get Default()
@@ -1010,40 +973,6 @@ class Mouse
 	isPressed(key: MouseKey)
 	{
 		return inputEngine.isMouseKeyDown(key);
-	}
-}
-
-class RNG
-{
-	static fromSeed(seedValue: number)
-	{
-		throw new Error(`'RNG.fromSeed' is not yet implemented`);
-	}
-
-	static fromState(state: string)
-	{
-		throw new Error(`'RNG.fromState' is not yet implemented`);
-	}
-
-	constructor()
-	{
-	}
-
-	get state()
-	{
-		throw new Error(`'RNG.state' is not yet implemented`);
-	}
-	set state(value)
-	{
-		throw new Error(`'RNG.state' is not yet implemented`);
-	}
-
-	next()
-	{
-		return {
-			done: false,
-			value: Math.random(),
-		};
 	}
 }
 

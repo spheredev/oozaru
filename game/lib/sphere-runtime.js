@@ -33,7 +33,7 @@
 // miniSphere-specific modules
 export { default as Console } from './console.js';
 export { default as FocusTarget } from './focus-target.js';
-export { default as Joypad } from './joypad.js';
+//export { default as Joypad } from './joypad.js';
 export { default as Music } from './music.js';
 export { default as Pact } from './pact.js';
 export { default as Prim } from './prim.js';
