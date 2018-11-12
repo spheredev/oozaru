@@ -103,6 +103,18 @@ class Query<T> implements Iterable<T>
 		return new Query(map(this.source, mapper));
 	}
 
+	reduce<R>(reducer: (accumulator: R | T, value: T) => R, initialValue?: R)
+	{
+		let accumulator: T | R | undefined = initialValue;
+		for (const item of this.source) {
+			if (accumulator === undefined)
+				accumulator = item;
+			else
+				accumulator = reducer(accumulator, item);
+		}
+		return accumulator;
+	}
+
 	some(predicate: (value: T) => boolean)
 	{
 		for (const item of this.source) {
