@@ -130,18 +130,34 @@ class Query<T> implements Iterable<T>
 	}
 }
 
-function* filter<T>(source: Iterable<T>, predicate: (value: T) => boolean)
+function filter<T>(source: Iterable<T>, predicate: (value: T) => boolean)
 {
-	for (const item of source) {
-		if (predicate(item))
-			yield item;
-	}
+	const iter = source[Symbol.iterator]();
+	return {
+		[Symbol.iterator]() { return this; },
+		next() {
+			for (;;) {
+				const result = iter.next();
+				if (result.done || predicate(result.value))
+					return result;
+			}
+		},
+	};
 }
 
-function* map<T, R>(source: Iterable<T>, mapper: (value: T) => R)
+function map<T, R>(source: Iterable<T>, mapper: (value: T) => R)
 {
-	for (const item of source)
-		yield mapper(item);
+	const iter = source[Symbol.iterator]();
+	return {
+		[Symbol.iterator]() { return this; },
+		next(): IteratorResult<R> {
+			const result = iter.next();
+			if (!result.done)
+				return { done: false, value: mapper(result.value) }
+			else
+				return { done: true } as IteratorResult<R>;
+		},
+	};
 }
 
 function* multi<T>(...sources: Iterable<T>[])
