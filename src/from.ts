@@ -38,8 +38,6 @@ function from<T>(...sources: Iterable<T>[])
 
 class Query<T> implements Iterable<T>
 {
-	readonly [Symbol.toStringTag] = this.constructor.name;
-
 	private source: Iterable<T>;
 
 	constructor(...sources: Iterable<T>[])
@@ -53,6 +51,11 @@ class Query<T> implements Iterable<T>
 	get [Symbol.iterator]()
 	{
 		return this.source[Symbol.iterator];
+	}
+
+	get [Symbol.toStringTag]()
+	{
+		return this.constructor.name;
 	}
 
 	besides(callback: (value: T) => void)
@@ -76,6 +79,11 @@ class Query<T> implements Iterable<T>
 				return item;
 		}
 		return undefined;
+	}
+
+	first(count: number)
+	{
+		return new Query(takeWhile(this.source, () => count-- > 0));
 	}
 
 	forEach(callback: (value: T) => void)
@@ -130,7 +138,7 @@ class Query<T> implements Iterable<T>
 	}
 }
 
-function filter<T>(source: Iterable<T>, predicate: (value: T) => boolean)
+function filter<T>(source: Iterable<T>, predicate: (value: T) => boolean): IterableIterator<T>
 {
 	const iter = source[Symbol.iterator]();
 	return {
@@ -145,7 +153,7 @@ function filter<T>(source: Iterable<T>, predicate: (value: T) => boolean)
 	};
 }
 
-function map<T, R>(source: Iterable<T>, mapper: (value: T) => R)
+function map<T, R>(source: Iterable<T>, mapper: (value: T) => R): IterableIterator<R>
 {
 	const iter = source[Symbol.iterator]();
 	return {
@@ -156,6 +164,20 @@ function map<T, R>(source: Iterable<T>, mapper: (value: T) => R)
 				return { done: false, value: mapper(result.value) }
 			else
 				return { done: true } as IteratorResult<R>;
+		},
+	};
+}
+
+function takeWhile<T>(source: Iterable<T>, predicate: (value: T) => boolean): IterableIterator<T>
+{
+	const iter = source[Symbol.iterator]();
+	return {
+		[Symbol.iterator]() { return this; },
+		next() {
+			const result = iter.next();
+			if (result.done || !predicate(result.value))
+				result.done = true;
+			return result;
 		},
 	};
 }
