@@ -43,7 +43,7 @@ class Query<T> implements Iterable<T>
 	constructor(...sources: Iterable<T>[])
 	{
 		if (sources.length > 1)
-			this.source = multi(...sources);
+			this.source = multi(sources);
 		else
 			this.source = sources[0];
 	}
@@ -182,10 +182,21 @@ function takeWhile<T>(source: Iterable<T>, predicate: (value: T) => boolean): It
 	};
 }
 
-function* multi<T>(...sources: Iterable<T>[])
+function multi<T>(sources: Iterable<T>[])
 {
-	for (const source of sources) {
-		for (const item of source)
-			yield item;
+	let sourceIndex = 0;
+	let iter = sources[sourceIndex][Symbol.iterator]();
+	return {
+		[Symbol.iterator]() { return this; },
+		next() {
+			let result = iter.next();
+			while (result.done) {
+				if (++sourceIndex >= sources.length)
+					return result;
+				iter = sources[sourceIndex][Symbol.iterator]();
+				result = iter.next();
+			}
+			return result;
+		}
 	}
 }
