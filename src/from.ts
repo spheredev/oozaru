@@ -39,6 +39,7 @@ function from<T>(...sources: Iterable<T>[])
 class Query<T> implements Iterable<T>
 {
 	private source: Iterable<T>;
+	private iterator: () => Iterator<T>;
 
 	constructor(...sources: Iterable<T>[])
 	{
@@ -46,11 +47,12 @@ class Query<T> implements Iterable<T>
 			this.source = multi(sources);
 		else
 			this.source = sources[0];
+		this.iterator = () => this.source[Symbol.iterator]();
 	}
 
 	get [Symbol.iterator]()
 	{
-		return this.source[Symbol.iterator];
+		return this.iterator;
 	}
 
 	get [Symbol.toStringTag]()
@@ -58,18 +60,37 @@ class Query<T> implements Iterable<T>
 		return this.constructor.name;
 	}
 
-	besides(callback: (value: T) => void)
-	{
-		return new Query(map(this.source, it => (callback(it), it)));
-	}
-
-	every(predicate: (value: T) => boolean)
+	all(predicate: (value: T) => boolean)
 	{
 		for (const item of this.source) {
 			if (!predicate(item))
 				return false;
 		}
 		return true;
+	}
+
+	any(predicate: (value: T) => boolean)
+	{
+		for (const item of this.source) {
+			if (predicate(item))
+				return true;
+		}
+		return false;
+	}
+
+	ascending<R>(keymaker: (value: T) => R)
+	{
+		return new Query(orderBy(this.source, keymaker));
+	}
+
+	besides(callback: (value: T) => void)
+	{
+		return new Query(map(this.source, it => (callback(it), it)));
+	}
+
+	descending<R>(keymaker: (value: T) => R)
+	{
+		return new Query(orderBy(this.source, keymaker, true));
 	}
 
 	find(predicate: (value: T) => boolean)
@@ -81,20 +102,10 @@ class Query<T> implements Iterable<T>
 		return undefined;
 	}
 
-	first(count: number)
-	{
-		return new Query(takeWhile(this.source, () => count-- > 0));
-	}
-
 	forEach(callback: (value: T) => void)
 	{
 		for (const item of this.source)
 			callback(item);
-	}
-
-	filter(predicate: (value: T) => boolean)
-	{
-		return new Query(filter(this.source, predicate));
 	}
 
 	includes(value: T)
@@ -104,11 +115,6 @@ class Query<T> implements Iterable<T>
 				return true;
 		}
 		return false;
-	}
-
-	map<R>(mapper: (value: T) => R)
-	{
-		return new Query(map(this.source, mapper));
 	}
 
 	reduce<R>(reducer: (accumulator: R | T, value: T) => R, initialValue?: R)
@@ -123,22 +129,28 @@ class Query<T> implements Iterable<T>
 		return accumulator;
 	}
 
-	some(predicate: (value: T) => boolean)
+	select<R>(mapper: (value: T) => R)
 	{
-		for (const item of this.source) {
-			if (predicate(item))
-				return true;
-		}
-		return false;
+		return new Query(map(this.source, mapper));
+	}
+
+	take(count: number)
+	{
+		return new Query(takeWhile(this.source, () => count-- > 0));
 	}
 
 	toArray()
 	{
 		return [ ...this.source ];
 	}
+
+	where(predicate: (value: T) => boolean)
+	{
+		return new Query(filter(this.source, predicate));
+	}
 }
 
-function filter<T>(source: Iterable<T>, predicate: (value: T) => boolean): IterableIterator<T>
+function filter<T>(source: Iterable<T>, predicate: (value: T) => boolean)
 {
 	const iter = source[Symbol.iterator]();
 	return {
@@ -153,7 +165,7 @@ function filter<T>(source: Iterable<T>, predicate: (value: T) => boolean): Itera
 	};
 }
 
-function map<T, R>(source: Iterable<T>, mapper: (value: T) => R): IterableIterator<R>
+function map<T, R>(source: Iterable<T>, mapper: (value: T) => R)
 {
 	const iter = source[Symbol.iterator]();
 	return {
@@ -161,23 +173,9 @@ function map<T, R>(source: Iterable<T>, mapper: (value: T) => R): IterableIterat
 		next(): IteratorResult<R> {
 			const result = iter.next();
 			if (!result.done)
-				return { done: false, value: mapper(result.value) }
+				return { done: false, value: mapper(result.value) };
 			else
 				return { done: true } as IteratorResult<R>;
-		},
-	};
-}
-
-function takeWhile<T>(source: Iterable<T>, predicate: (value: T) => boolean): IterableIterator<T>
-{
-	const iter = source[Symbol.iterator]();
-	return {
-		[Symbol.iterator]() { return this; },
-		next() {
-			const result = iter.next();
-			if (result.done || !predicate(result.value))
-				result.done = true;
-			return result;
 		},
 	};
 }
@@ -199,4 +197,41 @@ function multi<T>(sources: Iterable<T>[])
 			return result;
 		}
 	}
+}
+
+function orderBy<T, R>(source: Iterable<T>, keymaker: (value: T) => R, descending = false)
+{
+	const items: [ R, T, number ][] = [];
+	let index = 0;
+	for (const value of source)
+		items.push([ keymaker(value), value, index++ ]);
+	if (descending)
+		items.sort((a, b) => b[0] < a[0] ? -1 : a[0] < b[0] ? +1 : 0);
+	else
+		items.sort((a, b) => a[0] < b[0] ? -1 : b[0] < a[0] ? +1 : 0);
+	const length = items.length;
+	index = 0;
+	return {
+		[Symbol.iterator]() { return this; },
+		next() {
+			if (index >= length)
+				return { done: true } as IteratorResult<T>;
+			else
+				return { done: false, value: items[index++][1] };
+		}
+	}
+}
+
+function takeWhile<T>(source: Iterable<T>, predicate: (value: T) => boolean)
+{
+	const iter = source[Symbol.iterator]();
+	return {
+		[Symbol.iterator]() { return this; },
+		next() {
+			const result = iter.next();
+			if (result.done || !predicate(result.value))
+				result.done = true;
+			return result;
+		},
+	};
 }
