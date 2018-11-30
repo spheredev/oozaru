@@ -6,15 +6,16 @@
 import { Music, Prim, Scene } from '/game/lib/sphere-runtime.js';
 
 import { BattleEngine, BattleResult } from './battleSystem/index.js';
+import AutoColorMask from './autoColorMask.js';
 import GameOverScreen, { GameOverAction } from './gameOverScreen.js';
 
-Scene.defineOp('adjustBGM', {
-	start(scene, volume, numFrames = 0) {
-		Music.adjustVolume(volume, numFrames);
-	},
+let fadeMask = new AutoColorMask();
 
-	update(scene) {
-		return Music.adjustingVolume;
+SSj.log("defineScenelets ran");
+
+Scene.defineOp('adjustBGM', {
+	async start(scene, volume, numFrames = 0) {
+		await Music.adjustVolume(volume, numFrames);
 	},
 });
 
@@ -61,9 +62,21 @@ Scene.defineOp('battle', {
 	},
 });
 
+Scene.defineOp('call', {
+	async start(scene, method, ...args) {
+		await method.apply(null, ...args);
+	},
+});
+
 Scene.defineOp('changeBGM', {
 	start(scene, trackName, fadeTime) {
 		Music.play(`@/music/${trackName}.ogg`, fadeTime);
+	},
+});
+
+Scene.defineOp('fadeTo', {
+	async start(scene, color, numFrames) {
+		await fadeMask.fadeTo(color, numFrames);
 	},
 });
 
@@ -98,6 +111,25 @@ Scene.defineOp('marquee', {
 
 	update(scene) {
 		return this.animation.running;
+	},
+});
+
+Scene.defineOp('pause', {
+	start(scene, frames) {
+		this.timer = frames;
+	},
+	update(scene) {
+		return --this.timer > 0;
+	},
+});
+
+Scene.defineOp('playSound', {
+	async start(scene, fileName) {
+		this.sound = Sound.fromFile(fileName);
+		this.sound.play();
+	},
+	update(scene) {
+		return this.sound.playing;
 	},
 });
 
@@ -156,14 +188,14 @@ Scene.defineOp('talk', {
 		let lineHeight = this.font.height;
 		let boxHeight = lineHeight * 3 + 11;
 		let finalBoxY = Surface.Screen.height * 0.85 - boxHeight / 2;
-		let boxY = Math.floor(finalBoxY + (Surface.Screen.height - finalBoxY) * (1.0 - this.boxVisibility));
+		let boxY = finalBoxY + (Surface.Screen.height - finalBoxY) * (1.0 - this.boxVisibility);
 		Prim.drawRectangle(Surface.Screen, -1, boxY - 1, Surface.Screen.width + 2, boxHeight + 2,
 			Color.Black.fadeTo(0.55 * this.boxVisibility));
 		Prim.drawSolidRectangle(Surface.Screen, 0, boxY, Surface.Screen.width, boxHeight,
 			Color.Black.fadeTo(0.5 * this.boxVisibility));
 		this.textSurface.blendOp = BlendOp.Replace;
 		Prim.drawSolidRectangle(this.textSurface, 0, 0, this.textSurface.width, this.textSurface.height, Color.Transparent);
-		this.textSurface.blendOp = BlendOp.AlphaBlend;
+		this.textSurface.blendOp = BlendOp.Default;
 		let lineCount = this.text[this.currentPage].length;
 		let textAreaWidth = this.textSurface.width;
 		let textX = 0;
@@ -187,12 +219,13 @@ Scene.defineOp('talk', {
 					this.textSurface.blendOp = BlendOp.Subtract;
 					Prim.drawSolidRectangle(this.textSurface,
 						(textX - lineHeight * 2) + shownArea, textY, lineHeight * 2, lineHeight + 1,
-						Color.Transparent, Color.Black, Color.Black.fadeTo(this.boxVisibility), Color.Transparent);
+						Color.Transparent, Color.Black.fadeTo(this.boxVisibility),
+						Color.Black.fadeTo(this.boxVisibility), Color.Transparent);
 					this.textSurface.blendOp = BlendOp.Replace;
 					Prim.drawSolidRectangle(this.textSurface,
 						textX + shownArea, textY, textAreaWidth - shownArea, lineHeight + 1,
 						Color.Transparent);
-					this.textSurface.blendOp = BlendOp.AlphaBlend;
+					this.textSurface.blendOp = BlendOp.Default;
 				}
 			}
 			if (this.showSpeaker && this.speakerName != null && trueLine == 0) {
@@ -318,5 +351,171 @@ Scene.defineOp('talk', {
 				this.lineVisibility = 0.0;
 			}
 		}
+	},
+});
+
+Scene.defineOp('tween', {
+	start(scene, object, frames, easingType, endValues) {
+		this.easers = {
+			linear(t, b, c, d) {
+				return c * t / d + b;
+			},
+			easeInQuad(t, b, c, d) {
+				return c*(t/=d)*t + b;
+			},
+			easeOutQuad(t, b, c, d) {
+				return -c *(t/=d)*(t-2) + b;
+			},
+			easeInOutQuad(t, b, c, d) {
+				if ((t/=d/2) < 1) return c/2*t*t + b;
+				return -c/2 * ((--t)*(t-2) - 1) + b;
+			},
+			easeInCubic(t, b, c, d) {
+				return c*(t/=d)*t*t + b;
+			},
+			easeOutCubic(t, b, c, d) {
+				return c*((t=t/d-1)*t*t + 1) + b;
+			},
+			easeInOutCubic(t, b, c, d) {
+				if ((t/=d/2) < 1) return c/2*t*t*t + b;
+				return c/2*((t-=2)*t*t + 2) + b;
+			},
+			easeInQuart(t, b, c, d) {
+				return c*(t/=d)*t*t*t + b;
+			},
+			easeOutQuart(t, b, c, d) {
+				return -c * ((t=t/d-1)*t*t*t - 1) + b;
+			},
+			easeInOutQuart(t, b, c, d) {
+				if ((t/=d/2) < 1) return c/2*t*t*t*t + b;
+				return -c/2 * ((t-=2)*t*t*t - 2) + b;
+			},
+			easeInQuint(t, b, c, d) {
+				return c*(t/=d)*t*t*t*t + b;
+			},
+			easeOutQuint(t, b, c, d) {
+				return c*((t=t/d-1)*t*t*t*t + 1) + b;
+			},
+			easeInOutQuint(t, b, c, d) {
+				if ((t/=d/2) < 1) return c/2*t*t*t*t*t + b;
+				return c/2*((t-=2)*t*t*t*t + 2) + b;
+			},
+			easeInSine(t, b, c, d) {
+				return -c * Math.cos(t/d * (Math.PI/2)) + c + b;
+			},
+			easeOutSine(t, b, c, d) {
+				return c * Math.sin(t/d * (Math.PI/2)) + b;
+			},
+			easeInOutSine(t, b, c, d) {
+				return -c/2 * (Math.cos(Math.PI*t/d) - 1) + b;
+			},
+			easeInExpo(t, b, c, d) {
+				return (t==0) ? b : c * Math.pow(2, 10 * (t/d - 1)) + b;
+			},
+			easeOutExpo(t, b, c, d) {
+				return (t==d) ? b+c : c * (-Math.pow(2, -10 * t/d) + 1) + b;
+			},
+			easeInOutExpo(t, b, c, d) {
+				if (t==0) return b;
+				if (t==d) return b+c;
+				if ((t/=d/2) < 1) return c/2 * Math.pow(2, 10 * (t - 1)) + b;
+				return c/2 * (-Math.pow(2, -10 * --t) + 2) + b;
+			},
+			easeInCirc(t, b, c, d) {
+				return -c * (Math.sqrt(1 - (t/=d)*t) - 1) + b;
+			},
+			easeOutCirc(t, b, c, d) {
+				return c * Math.sqrt(1 - (t=t/d-1)*t) + b;
+			},
+			easeInOutCirc(t, b, c, d) {
+				if ((t/=d/2) < 1) return -c/2 * (Math.sqrt(1 - t*t) - 1) + b;
+				return c/2 * (Math.sqrt(1 - (t-=2)*t) + 1) + b;
+			},
+			easeInElastic(t, b, c, d) {
+				var s=1.70158;var p=0;var a=c;
+				if (t==0) return b;  if ((t/=d)==1) return b+c;  if (!p) p=d*.3;
+				if (a < Math.abs(c)) { a=c; var s=p/4; }
+				else var s = p/(2*Math.PI) * Math.asin (c/a);
+				return -(a*Math.pow(2,10*(t-=1)) * Math.sin( (t*d-s)*(2*Math.PI)/p )) + b;
+			},
+			easeOutElastic(t, b, c, d) {
+				var s=1.70158;var p=0;var a=c;
+				if (t==0) return b;  if ((t/=d)==1) return b+c;  if (!p) p=d*.3;
+				if (a < Math.abs(c)) { a=c; var s=p/4; }
+				else var s = p/(2*Math.PI) * Math.asin (c/a);
+				return a*Math.pow(2,-10*t) * Math.sin( (t*d-s)*(2*Math.PI)/p ) + c + b;
+			},
+			easeInOutElastic(t, b, c, d) {
+				var s=1.70158;var p=0;var a=c;
+				if (t==0) return b;  if ((t/=d/2)==2) return b+c;  if (!p) p=d*(.3*1.5);
+				if (a < Math.abs(c)) { a=c; var s=p/4; }
+				else var s = p/(2*Math.PI) * Math.asin (c/a);
+				if (t < 1) return -.5*(a*Math.pow(2,10*(t-=1)) * Math.sin( (t*d-s)*(2*Math.PI)/p )) + b;
+				return a*Math.pow(2,-10*(t-=1)) * Math.sin( (t*d-s)*(2*Math.PI)/p )*.5 + c + b;
+			},
+			easeInBack(t, b, c, d, s) {
+				if (s == undefined) s = 1.70158;
+				return c*(t/=d)*t*((s+1)*t - s) + b;
+			},
+			easeOutBack(t, b, c, d, s) {
+				if (s == undefined) s = 1.70158;
+				return c*((t=t/d-1)*t*((s+1)*t + s) + 1) + b;
+			},
+			easeInOutBack(t, b, c, d, s) {
+				if (s == undefined) s = 1.70158;
+				if ((t/=d/2) < 1) return c/2*(t*t*(((s*=(1.525))+1)*t - s)) + b;
+				return c/2*((t-=2)*t*(((s*=(1.525))+1)*t + s) + 2) + b;
+			},
+			easeInBounce(t, b, c, d) {
+				return c - this.easeOutBounce(d-t, 0, c, d) + b;
+			},
+			easeOutBounce(t, b, c, d) {
+				if ((t/=d) < (1/2.75)) {
+					return c*(7.5625*t*t) + b;
+				} else if (t < (2/2.75)) {
+					return c*(7.5625*(t-=(1.5/2.75))*t + .75) + b;
+				} else if (t < (2.5/2.75)) {
+					return c*(7.5625*(t-=(2.25/2.75))*t + .9375) + b;
+				} else {
+					return c*(7.5625*(t-=(2.625/2.75))*t + .984375) + b;
+				}
+			},
+			easeInOutBounce(t, b, c, d) {
+				if (t < d/2) return this.easeInBounce(t*2, 0, c, d) * .5 + b;
+				return this.easeOutBounce(t*2-d, 0, c, d) * .5 + c*.5 + b;
+			},
+		};
+		this.change = {};
+		this.duration = Math.trunc(frames);
+		this.elapsed = 0.0;
+		this.object = object;
+		this.startValues = {};
+		this.type = easingType in this.easers ? easingType : 'linear';
+		let isChanged = false;
+		this.keyList = endValues instanceof Color ? [ 'r', 'g', 'b', 'a' ]
+			: endValues[Symbol.toStringTag] === 'v1Color' ? [ 'red', 'green', 'blue', 'alpha' ]
+			: Object.keys(endValues);
+		for (const p of this.keyList) {
+			this.change[p] = endValues[p] - object[p];
+			this.startValues[p] = object[p];
+			isChanged = isChanged || this.change[p] !== 0;
+		}
+		if (!isChanged)
+			this.elapsed = this.duration;
+	},
+	update(scene) {
+		++this.elapsed;
+		if (this.elapsed < this.duration) {
+			for (const p of this.keyList)
+				this.object[p] = this.easers[this.type](this.elapsed, this.startValues[p], this.change[p], this.duration);
+			return true;
+		}
+		else {
+			return false;
+		}
+	},
+	finish(scene) {
+		for (const p of this.keyList)
+			this.object[p] = this.startValues[p] + this.change[p];
 	},
 });

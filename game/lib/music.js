@@ -30,38 +30,28 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import from from './from.js';
-import Scene from './scene.js';
+import Tween, { Easing } from './tween.js';
 
-let
-	adjuster = null,
-	currentSound = null,
-	haveOverride = false,
-	mixer = null,
-	oldSounds = [],
-	topmostSound = null;
+const useAsyncLoading = 'fromFile' in Sound;
+
+let adjuster = null;
+let currentSound = null;
+let haveOverride = false;
+let mixer = null;
+let oldSounds = [];
+let topmostSound = null;
 
 export default
 class Music extends null
 {
-	static get adjustingVolume()
-	{
-		return adjuster !== null && adjuster.running;
-	}
-
 	static async adjustVolume(newVolume, fadeTime = 0)
 	{
 		appearifyMixer();
 		newVolume = Math.min(Math.max(newVolume, 0.0), 1.0);
-		if (this.adjusting)
-			adjuster.stop();
-		if (fadeTime > 0) {
-			adjuster = new Scene()
-				.tween(mixer, fadeTime, 'linear', { volume: newVolume });
-			return adjuster.run();
-		} else {
+		if (fadeTime > 0)
+			await adjuster.easeIn({ volume: newVolume }, fadeTime);
+		else
 			mixer.volume = newVolume;
-		}
 	}
 
 	static async override(fileName, fadeTime = 0)
@@ -79,25 +69,19 @@ class Music extends null
 	{
 		if (oldSounds.length === 0)
 			return;
-		currentSound.fader.stop();
-		currentSound.fader = new Scene()
-			.tween(currentSound.stream, fadeTime, 'linear', { volume: 0.0 });
-		currentSound.fader.run();
+		currentSound.tween.easeIn({ volume: 0.0 }, fadeTime);
 		topmostSound = oldSounds.pop();
 		currentSound = topmostSound;
 		if (currentSound !== null) {
 			currentSound.stream.volume = 0.0;
-			currentSound.fader.stop();
-			currentSound.fader = new Scene()
-				.tween(currentSound.stream, fadeTime, 'linear', { volume: 1.0 });
-			currentSound.fader.run();
+			currentSound.tween.easeIn({ volume: 1.0 }, fadeTime);
 		}
 	}
 
-	static push(fileName, fadeTime = 0)
+	static async push(fileName, fadeTime = 0)
 	{
 		let oldSound = topmostSound;
-		this.play(fileName, fadeTime);
+		await this.play(fileName, fadeTime);
 		oldSounds.push(oldSound);
 	}
 
@@ -107,49 +91,40 @@ class Music extends null
 			return;
 		haveOverride = false;
 
-		currentSound.fader.stop();
-		currentSound.fader = new Scene()
-			.tween(currentSound.stream, fadeTime, 'linear', { volume: 0.0 });
-		currentSound.fader.run();
+		currentSound.tween.easeIn({ volume: 0.0 }, fadeTime);
 		currentSound = topmostSound;
 		if (currentSound !== null) {
 			currentSound.stream.volume = 0.0;
-			currentSound.fader.stop();
-			currentSound.fader = new Scene()
-				.tween(currentSound.stream, fadeTime, 'linear', { volume: 1.0 });
-			currentSound.fader.run();
+			currentSound.tween.easeIn({ volume: 1.0 }, fadeTime);
 		}
 	}
 }
 
 function appearifyMixer()
 {
-	// lazy mixer creation, works around Web Audio autoplay policy
-	if (mixer === null)
+	// lazy mixer creation, works around autoplay policy in Oozaru
+	if (mixer === null) {
 		mixer = new Mixer(44100, 16, 2);
+		adjuster = new Tween(mixer, Easing.Exponential);
+	}
 }
 
-async function crossfade(fileName, frames = 0, forceChange = false)
+async function crossfade(fileName, frames = 0, forceChange)
 {
 	appearifyMixer();
 	let allowChange = !haveOverride || forceChange;
-	if (currentSound !== null && allowChange) {
-		currentSound.fader.stop();
-		currentSound.fader = new Scene()
-			.tween(currentSound.stream, frames, 'linear', { volume: 0.0 });
-		currentSound.fader.run();
-	}
+	if (currentSound !== null && allowChange)
+		currentSound.tween.easeIn({ volume: 0.0 }, frames);
 	if (fileName !== null) {
-		let stream = await Sound.fromFile(fileName);
+		let stream = useAsyncLoading ? await Sound.fromFile(fileName)
+			: new Sound(fileName);
 		stream.repeat = true;
 		stream.volume = 0.0;
 		stream.play(mixer);
-		let fader = new Scene()
-			.tween(stream, frames, 'linear', { volume: 1.0 });
-		let newSound = { stream: stream, fader: fader };
+		let newSound = { stream, tween: new Tween(stream, Easing.Exponential) };
 		if (allowChange) {
+			newSound.tween.easeIn({ volume: 1.0 }, frames);
 			currentSound = newSound;
-			newSound.fader.run();
 		}
 		return newSound;
 	}

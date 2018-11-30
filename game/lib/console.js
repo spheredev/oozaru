@@ -30,11 +30,10 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import from from './from.js';
 import Logger from './logger.js';
 import Prim from './prim.js';
-import Scene from './scene.js';
 import Thread from './thread.js';
+import Tween, { Easing } from './tween.js';
 
 export default
 class Console extends Thread
@@ -67,6 +66,8 @@ class Console extends Thread
 		this.numLines = Math.floor((Surface.Screen.height - 32) / this.font.height);
 		this.prompt = options.prompt;
 		this.view = { visible: false, fade: 0.0, line: 0.0 };
+		this.tween = new Tween(this.view, Easing.Exponential);
+		this.cursorTween = new Tween(this.cursorColor, Easing.Sine);
 		this.wasKeyDown = false;
 
 		this.start();
@@ -117,12 +118,13 @@ class Console extends Thread
 		if (this.running)
 			throw new Error("the Console has already been started");
 
-		new Scene({ inBackground: true })
-			.doWhile(() => true)
-				.tween(this.cursorColor, 0.25 * Sphere.frameRate, 'easeInSine', { a: 1.0 })
-				.tween(this.cursorColor, 0.25 * Sphere.frameRate, 'easeOutSine', { a: 0.5 })
-			.end()
-			.run();
+		(async () => {
+			const fps = Sphere.frameRate;
+			while (true) {
+				await this.cursorTween.easeInOut({ a: 1.0 }, 0.25 * fps);
+				await this.cursorTween.easeInOut({ a: 0.5 }, 0.25 * fps);
+			}
+		})();
 
 		this.log(`initializing the Sphere Runtime Console`);
 		this.log(`  ${Sphere.Game.name} by ${Sphere.Game.author}`);
@@ -134,9 +136,7 @@ class Console extends Thread
 
 	undefineObject(name)
 	{
-		from.array(this.commands)
-			.where(it => it.entity === name)
-			.remove();
+		this.commands = this.commands.filter(it => it.entity !== name);
 	}
 
 	on_inputCheck()
@@ -167,15 +167,11 @@ class Console extends Thread
 				}
 				case Key.Home: {
 					let newLine = this.buffer.length - this.numLines;
-					new Scene()
-						.tween(this.view, 0.125 * fps, 'easeOut', { line: newLine })
-						.run();
+					this.tween.easeInOut({ line: newLine }, 0.125 * fps);
 					break;
 				}
 				case Key.End: {
-					new Scene()
-						.tween(this.view, 0.125 * fps, 'easeOut', { line: 0.0 })
-						.run();
+					this.tween.easeInOut({ line: 0.0 }, 0.125 * fps);
 					break;
 				}
 				case Key.Tab:
@@ -254,9 +250,7 @@ function executeCommand(console, command)
 	let instruction = tokens[1];
 
 	// check that the instruction is valid
-	if (!from.array(console.commands)
-		.any(it => it.entity === objectName))
-	{
+	if (!console.commands.some(it => it.entity === objectName)) {
 		console.log(`unrecognized object name '${objectName}'`);
 		return;
 	}
@@ -264,10 +258,7 @@ function executeCommand(console, command)
 		console.log(`missing instruction for '${objectName}'`);
 		return;
 	}
-	if (!from.array(console.commands)
-		.where(it => it.entity === objectName)
-		.any(it => it.instruction === instruction))
-	{
+	if (!console.commands.some(it => it.entity === objectName && it.instruction === instruction)) {
 		console.log(`instruction '${instruction}' not valid for '${objectName}'`);
 		return;
 	}
@@ -279,9 +270,8 @@ function executeCommand(console, command)
 	}
 
 	// execute the command
-	let matches = from.array(console.commands)
-		.where(it => it.entity === objectName)
-		.where(it => it.instruction === instruction);
+	let matches = console.commands.filter((it) =>
+		it.entity === objectName && it.instruction === instruction);
 	for (const command of matches) {
 		Dispatch.now(() => {
 			try {
@@ -294,24 +284,21 @@ function executeCommand(console, command)
 	}
 }
 
-function hideConsole(console)
+async function hideConsole(console)
 {
 	console.yieldFocus();
 	let fps = Sphere.frameRate;
-	new Scene()
-		.tween(console.view, 0.25 * fps, 'easeInQuad', { fade: 0.0 })
-		.call(() => { console.view.visible = false; console.entry = ""; })
-		.run();
+	await console.tween.easeIn({ fade: 0.0 }, 0.25 * fps);
+	console.view.visible = false;
+	console.entry = "";
 }
 
-function showConsole(console)
+async function showConsole(console)
 {
 	console.keyboard.clearQueue();
 	console.mouse.clearQueue();
 	console.takeFocus();
 	let fps = Sphere.frameRate;
-	new Scene()
-		.tween(console.view, 0.25 * fps, 'easeOutQuad', { fade: 1.0 })
-		.call(() => console.view.visible = true)
-		.run();
+	await console.tween.easeOut({ fade: 1.0 }, 0.25 * fps);
+	console.view.visible = true;
 }

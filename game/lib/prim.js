@@ -30,24 +30,17 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-const
-	HaveFastDraw = 'drawImmediate' in Shape,
-	White = Color.White;
+const haveFastImmediate = 'drawImmediate' in Shape;
 
 export default
-class Prim
+class Prim extends null
 {
-	constructor()
-	{
-		throw new TypeError(`'${new.target.name}' is a static class and cannot be instantiated`);
-	}
-
 	static blit(surface, x, y, texture, mask)
 	{
 		Prim.blitSection(surface, x, y, texture, 0, 0, texture.width, texture.height, mask);
 	}
 
-	static blitSection(surface, x, y, texture, sx, sy, width, height, mask = White)
+	static blitSection(surface, x, y, texture, sx, sy, width, height, mask = Color.White)
 	{
 		let x1 = x;
 		let y1 = y;
@@ -202,7 +195,7 @@ class Prim
 
 function drawShape(surface, type, vertices)
 {
-	if (HaveFastDraw) {
+	if (haveFastImmediate) {
 		Shape.drawImmediate(surface, type, vertices);
 	}
 	else {
@@ -214,7 +207,7 @@ function drawShape(surface, type, vertices)
 
 function drawTexturedShape(surface, type, texture, vertices)
 {
-	if (HaveFastDraw) {
+	if (haveFastImmediate) {
 		Shape.drawImmediate(surface, type, texture, vertices);
 	}
 	else {

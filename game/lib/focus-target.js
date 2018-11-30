@@ -60,16 +60,17 @@ class FocusTarget
 
 	takeFocus()
 	{
-		focusQueue = from.array(focusQueue)
-			.where(it => it !== this)
-			.including([ this ])
+		focusQueue = from(focusQueue)
+			.without(this)
+			.plus(this)
 			.ascending(it => it._priority)
 			.toArray();
 	}
 
 	yield()
 	{
-		from.array(focusQueue)
-			.remove(it => it === this);
+		focusQueue = from(focusQueue)
+			.without(this)
+			.toArray();
 	}
 }

@@ -30,683 +30,835 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
+const IdentityFunction = x => x;
+
 export default
-function from(...targets)
+function from(...sources)
 {
-	// for multiple targets, query against the list of targets and unroll with
-	// .from().
-	if (targets.length > 1)
-		return from(targets).from();
-
-	let target = Object(targets[0]);
-	if (typeof target.length === 'number')
-		return fromArray(target);
-	else if (typeof target[Symbol.iterator] === 'function' || typeof target.next === 'function')
-		return fromIterable(target);
-	else
-		return fromObject(target);
+	let query = new Query();
+	query.sources = sources;
+	return query;
 }
 
-from.array = fromArray;
-function fromArray(target)
+export
+class Query
 {
-	target = Object(target);
-	if (typeof target.length !== 'number')
-		throw new TypeError("object with 'length' required");
-	let itemSource = new ArraySource(target);
-	return new FromQuery(itemSource);
-}
+	get [Symbol.toStringTag]() { return 'Query'; }
 
-from.iterable = fromIterable;
-function fromIterable(target)
-{
-	target = Object(target);
-	if (typeof target[Symbol.iterator] !== 'function' && typeof target.next !== 'function')
-		throw new TypeError("object is not iterable");
-	let itemSource = new IterableSource(target);
-	return new FromQuery(itemSource);
-}
-
-from.object = fromObject;
-function fromObject(target)
-{
-	let itemSource = new ObjectSource(Object(target));
-	return new FromQuery(itemSource);
-}
-
-function MAKEPOINT(sourceType, op)
-{
-	return function (...args) {
-		let thisSource = this.itemSource;
-		let newSource = new sourceType(thisSource, ...args);
-
-		// if it's a terminal operator, run the query.  otherwise construct
-		// a new FromQuery.  this allows LINQ-style composition.
-		return op !== undefined ? op(newSource)
-			: new FromQuery(newSource);
-	};
-}
-
-function PROPDESC(flags, valueOrGetter, setter)
-{
-	let desc = {
-		writable:     flags.indexOf('w') !== -1,
-		enumerable:   flags.indexOf('e') !== -1,
-		configurable: flags.indexOf('c') !== -1,
-	};
-	if (flags.indexOf('a') === -1) {
-		desc.value = valueOrGetter;
+	constructor()
+	{
+		this.opcodes = [];
+		this.firstOp = null;
+		this.lastOp = null;
 	}
-	else {
-		desc.get = valueOrGetter;
-		desc.set = setter;
+
+	[Symbol.iterator]()
+	{
+		return this.toArray()[Symbol.iterator]();
 	}
-	return desc;
-}
 
-function FromQuery(source)
-{
-	this.itemSource = source;
-}
-
-Object.defineProperties(FromQuery.prototype, {
-	[Symbol.iterator]:
-	PROPDESC('wc', function* enumerate(withKeys)
+	addOp$(type, a, b)
 	{
-		let source = this.itemSource;
-		let item;
-		source.init();
-		while ((item = source.next()))
-			yield withKeys ? item : item.v;
-	}),
+		const opcode = { type, a, b };
+		const newQuery = new Query();
+		newQuery.sources = this.sources;
+		newQuery.opcodes = [ ...this.opcodes, opcode ];
+		return newQuery;
+	}
 
-	// from() query operators.
-	// refer to the miniRT API reference to find out what each of these does.
-	all:        PROPDESC('wc', MAKEPOINT(MapSource, allOp)),
-	allIn:      PROPDESC('wc', MAKEPOINT(InSource, allOp)),
-	any:        PROPDESC('wc', MAKEPOINT(MapSource, anyOp)),
-	anyIn:      PROPDESC('wc', MAKEPOINT(InSource, anyOp)),
-	anyIs:      PROPDESC('wc', MAKEPOINT(IsSource, anyOp)),
-	ascending:  PROPDESC('wc', MAKEPOINT(OrderedSource(false))),
-	besides:    PROPDESC('wc', MAKEPOINT(CallbackSource)),
-	count:      PROPDESC('wc', MAKEPOINT(FilterSource, countOp)),
-	descending: PROPDESC('wc', MAKEPOINT(OrderedSource(true))),
-	each:       PROPDESC('wc', MAKEPOINT(CallbackSource, nullOp)),
-	first:      PROPDESC('wc', MAKEPOINT(FilterSource, firstOp)),
-	from:       PROPDESC('wc', MAKEPOINT(FromSource)),
-	including:  PROPDESC('wc', MAKEPOINT(IncludeSource)),
-	last:       PROPDESC('wc', MAKEPOINT(FilterSource, lastOp)),
-	random:     PROPDESC('wc', MAKEPOINT(SampleSource(false))),
-	reduce:     PROPDESC('wc', MAKEPOINT(ReduceSource, firstOp)),
-	remove:     PROPDESC('wc', MAKEPOINT(FilterSource, removeOp)),
-	sample:     PROPDESC('wc', MAKEPOINT(SampleSource(true))),
-	select:     PROPDESC('wc', MAKEPOINT(MapSource)),
-	shuffle:    PROPDESC('wc', MAKEPOINT(ShuffledSource)),
-	skip:       PROPDESC('wc', MAKEPOINT(SkipSource)),
-	take:       PROPDESC('wc', MAKEPOINT(TakeSource)),
-	toArray:    PROPDESC('wc', MAKEPOINT(MapSource, collectOp)),
-	update:     PROPDESC('wc', MAKEPOINT(MapSource, updateOp)),
-	where:      PROPDESC('wc', MAKEPOINT(FilterSource)),
-});
-
-function ArraySource(target)
-{
-	let m_index;
-	let m_length;
-
-	this.init =
-	function init()
+	compile$()
 	{
-		m_index = 0;
-		m_length = target.length;
-	};
-
-	this.next =
-	function next()
-	{
-		if (m_index >= m_length)
-			return null;
-		return {
-			v: target[m_index],
-			k: m_index++,
-			t: target,
-		};
-	};
-}
-
-function IterableSource(target)
-{
-	let m_iter;
-
-	this.init =
-	function init()
-	{
-		if (typeof target[Symbol.iterator] === 'function')
-			m_iter = target[Symbol.iterator]();
-		else
-			m_iter = target;
-	};
-
-	this.next =
-	function next()
-	{
-		let result = m_iter.next();
-		if (result.done)
-			return null;
-		return {
-			v: result.value,
-			k: null,
-			t: target,
-		};
-	};
-}
-
-function ObjectSource(target)
-{
-	let m_index;
-	let m_keys;
-	let m_length;
-
-	this.init =
-	function init()
-	{
-		m_keys = Object.keys(target);
-		m_index = 0;
-		m_length = m_keys.length;
-	};
-
-	this.next =
-	function next()
-	{
-		if (m_index >= m_length)
-			return null;
-		let key = m_keys[m_index++];
-		return {
-			v: target[key],
-			k: key,
-			t: target,
-		};
-	};
-}
-
-function CallbackSource(source, callback)
-{
-	this.init =
-	function init()
-	{
-		source.init();
-	};
-
-	this.next =
-	function next()
-	{
-		let item = source.next();
-		if (item !== null)
-			callback(item.v, item.k, item.t);
-		return item;
-	};
-}
-
-function FilterSource(source, predicate)
-{
-	predicate = predicate || (() => true);
-
-	this.init =
-	function init()
-	{
-		source.init();
-	};
-
-	this.next =
-	function next()
-	{
-		let item;
-		while ((item = source.next())) {
-			if (predicate(item.v, item.k, item.t))
-				break;
+		if (this.firstOp !== null)
+			return;
+		this.firstOp = null;
+		this.lastOp = null;
+		for (let i = 0, len = this.opcodes.length; i < len; ++i) {
+			const opcode = this.opcodes[i];
+			const op = new opcode.type(opcode.a);
+			if (this.lastOp !== null)
+				this.lastOp.nextOp = op;
+			this.lastOp = op;
+			if (this.firstOp === null)
+				this.firstOp = this.lastOp;
 		}
-		return item;
-	};
-}
+		return this.firstOp;
+	}
 
-function FromSource(source, selector)
-{
-	let m_iterator;
-	let m_nextItem;
-	let m_selector = selector || (it => it);
-
-	this.init =
-	function init()
+	run$(reduceOp)
 	{
-		source.init();
-		m_iterator = null;
-	};
-
-	this.next =
-	function next()
-	{
-		while (m_iterator === null) {
-			let item = source.next();
-			if (item !== null) {
-				let target = m_selector(item.v, item.k, item.t);
-				m_iterator = from(target)[Symbol.iterator](true);
-				if ((m_nextItem = m_iterator.next()).done)
-					m_iterator = null;
-			}
-			else {
-				return null;
-			}
-		}
-
-		let item = m_nextItem.value;
-		if ((m_nextItem = m_iterator.next()).done)
-			m_iterator = null;
-		return item;
-	};
-}
-
-function InSource(source, values)
-{
-	this.init =
-	function init()
-	{
-		source.init();
-	};
-
-	this.next =
-	function next()
-	{
-		let item = source.next();
-		if (item !== null) {
-			for (let i = values.length - 1; i >= 0; --i) {
-				if (item.v === values[i]) {
-					item.v = true;
-					return item;
+		this.compile$();
+		let firstOp = this.firstOp;
+		let lastOp = this.lastOp;
+		const runQuery = (...sources) => {
+			if (lastOp !== null)
+				lastOp.nextOp = reduceOp;
+			else
+				firstOp = reduceOp;
+			firstOp.initialize(sources);
+			outer_loop: for (let i = 0, len = sources.length; i < len; ++i) {
+				const source = sources[i];
+				if (typeof source.length === 'number') {
+					let start = 0;
+					if (firstOp instanceof DropOp) {
+						start = firstOp.left;
+						firstOp.left -= source.length;
+						if (firstOp.left < 0)
+							firstOp.left = 0;
+					}
+					for (let i = start, len = source.length; i < len; ++i) {
+						const value = source[i];
+						if (!firstOp.push(value, source, i))
+							break outer_loop;
+					}
+				}
+				else if (typeof source[Symbol.iterator] === 'function') {
+					for (const value of source) {
+						if (!firstOp.push(value, source))
+							break outer_loop;
+					}
+				}
+				else {
+					const keys = Object.keys(source);
+					let start = 0;
+					if (firstOp instanceof DropOp) {
+						start = firstOp.left;
+						firstOp.left -= source.length;
+						if (firstOp.left < 0)
+							firstOp.left = 0;
+					}
+					for (let i = start, len = keys.length; i < len; ++i) {
+						const value = source[keys[i]];
+						if (!firstOp.push(value, source, keys[i]))
+							break outer_loop;
+					}
 				}
 			}
-			item.v = false;
-		}
-		return item;
-	};
-}
-
-function IncludeSource(source, ...targets)
-{
-	let m_iterator;
-
-	this.init =
-	function init()
-	{
-		source.init();
-		m_iterator = from(targets).from()[Symbol.iterator](true);
-	};
-
-	this.next =
-	function next()
-	{
-		let item = source.next();
-		if (item === null) {
-			let result;
-			if (!(result = m_iterator.next()).done)
-				item = result.value;
-		}
-		return item;
-	};
-}
-
-function IsSource(source, value)
-{
-	this.init =
-	function init()
-	{
-		source.init();
-	};
-
-	this.next =
-	function next()
-	{
-		let item = source.next();
-		if (item !== null)
-			item.v = item.v === value;
-		return item;
-	};
-}
-
-function MapSource(source, selector)
-{
-	selector = selector || (it => it);
-
-	this.init =
-	function init()
-	{
-		source.init();
-	};
-
-	this.next =
-	function next()
-	{
-		let item = source.next();
-		if (item !== null)
-			item.v = selector(item.v, item.k, item.t);
-		return item;
-	};
-}
-
-// this uses pigsort, which is awesome.  pigsort is based on the idea that if
-// you put a bunch of big fat eaty pigs in close proximity (i.e. within a
-// hundred-mile radius of each other) and leave them to their devices for a
-// while, the whole menagerie of pigs will have invariably come to resemble a
-// Matryoshka doll by the time you decide to come back.  so basically it's like
-// bubble sort, but with eaty pigs.
-function OrderedSource(descending)
-{
-	return function (source, keySelector) {
-		let m_index = 0;
-		let m_length;
-		let m_list = [];
-
-		this.init =
-		function init()
-		{
-			let index;
-			let item;
-			let order = descending ? -1 : 1;
-
-			// this is kind of ugly pulling all results in advance, but there's
-			// not much we can do about it here.  we could sort as we go, but
-			// since the rest of the query can't do anything until the results
-			// are fully sorted anyway, that doesn't buy us much.
-			source.init();
-			while ((item = source.next())) {
-				index = m_list.length;
-				m_list[index] = {
-					index: index,  // to stabilize the sort
-					item:  item,
-					key:   keySelector(item.v, item.k, item.t),
-				};
-			}
-
-			// Array#sort() is not guaranteed to be stable.  to stabilize it,
-			// we use the item's position in the input stream as a tiebreaker.
-			m_list.sort((a, b) => {
-				return a.key < b.key ? -1 * order
-					: a.key > b.key ? +1 * order
-					: a.index - b.index;
-			});
-			m_index = 0;
-			m_length = m_list.length;
+			firstOp.flush(sources);
+			return reduceOp.result;
 		};
+		return this.sources !== undefined
+			? runQuery(...this.sources)
+			: runQuery;
+	}
 
-		this.next =
-		function next()
-		{
-			if (m_index < m_length)
-				return m_list[m_index++].item;
-			else
-				return null;
-		};
-	};
-}
-
-function ReduceSource(source, reducer, initialValue)
-{
-	let m_sentValue = false;
-	let m_value = undefined;
-
-	this.init =
-	function init()
+	all(predicate)
 	{
-		let item;
+		return this.run$(new FindOp((it, key, memo) => !predicate(it) ? (memo.value = false, true) : false, true));
+	}
 
-		// as with the sorting operators, Fisher-Yates shuffle doesn't really
-		// lend itself to streaming so we just pull everything in advance.
-		source.init();
-		if (initialValue !== undefined) {
-			m_value = initialValue;
-		}
-		else {
-			if ((item = source.next()))
-				m_value = item.v;
-			else
-				return;
-		}
-		while ((item = source.next()))
-			m_value = reducer(m_value, item.v, item.k, item.t);
-	};
-
-	this.next =
-	function next()
+	allIn(values)
 	{
-		if (!m_sentValue) {
-			m_sentValue = true;
-			return { v: m_value };
-		}
-		else {
-			return null;
-		}
-	};
-}
+		return this.all(it => values.includes(it));
+	}
 
-function SampleSource(uniqueOnly)
-{
-	return function (source, count) {
-		let m_count = Number(count);
-		let m_items = [];
-		let m_numSamples;
+	any(predicate)
+	{
+		return this.run$(new FindOp((it, key, memo) => predicate(it) ? (memo.value = true, true) : false, false));
+	}
 
-		this.init =
-		function init()
-		{
-			let item;
+	anyIn(values)
+	{
+		return this.any(it => values.includes(it));
+	}
 
-			source.init();
-			while ((item = source.next()))
-				m_items[m_items.length] = item;
-			m_numSamples = 0;
-		};
+	anyIs(value)
+	{
+		const match = value !== value ? x => x !== x : x => x === value;
+		return this.any(it => match(it));
+	}
 
-		this.next =
-		function next()
-		{
-			let index;
-			let item;
+	ascending(keySelector = IdentityFunction)
+	{
+		return this.thru(all => {
+			const pairs = all.map(it => [ keySelector(it), it ]);
+			pairs.sort((a, b) => a[0] < b[0] ? -1 : b[0] < a[0] ? +1 : 0);
+			return pairs.map(it => it[1]);
+		});
+	}
 
-			if (m_numSamples++ < m_count) {
-				index = Math.floor(Math.random() * m_items.length);
-				item = m_items[index];
-				if (uniqueOnly)
-					m_items.splice(index, 1);
-				return item;
+	besides(iteratee)
+	{
+		return this.select((it, k) => (iteratee(it, k), it));
+	}
+
+	count(keySelector)
+	{
+		return this.reduce((a, it) => {
+			if (keySelector !== undefined) {
+				if (a === null)
+					a = Object.create(null);
+				const key = keySelector(it);
+				if (a[key] !== undefined)
+					++a[key];
+				else
+					a[key] = 1;
 			}
 			else {
-				return null;
+				if (a === null)
+					a = 0;
+				++a;
 			}
-		};
-	};
+			return a;
+		}, null);
+	}
+
+	descending(keySelector = IdentityFunction)
+	{
+		return this.thru(all => {
+			const pairs = all.map(it => [ keySelector(it), it ]);
+			pairs.sort((b, a) => a[0] < b[0] ? -1 : b[0] < a[0] ? +1 : 0);
+			return pairs.map(it => it[1]);
+		});
+	}
+
+	drop(count)
+	{
+		return this.addOp$(DropOp, count);
+	}
+
+	find(predicate)
+	{
+		return this.run$(new FindOp((it, key, memo) => predicate(it) ? (memo.value = it, true) : false));
+	}
+
+	findIndex(predicate)
+	{
+		return this.run$(new FindOp((it, key, memo) => predicate(it) ? (memo.value = key, true) : false));
+	}
+
+	first(selector)
+	{
+		return this.run$(new FindOp((it, key, memo) => (memo.value = selector ? selector(it) : it, true)));
+	}
+
+	forEach(iteratee)
+	{
+		this.reduce((a, it) => iteratee(it));
+	}
+
+	groupBy(keySelector)
+	{
+		return this.run$(new GroupOp(keySelector));
+	}
+
+	last(selector)
+	{
+		return this.run$(new LastOp(selector));
+	}
+
+	over(selector)
+	{
+		return this.addOp$(OverOp, selector);
+	}
+
+	plus(...sources)
+	{
+		return this.addOp$(PlusOp, sources);
+	}
+
+	random(count)
+	{
+		return this.thru(all => {
+			let samples = [];
+			for (let i = 0, len = all.length; i < count; ++i) {
+				const index = Math.floor(Math.random() * len);
+				samples.push(all[index]);
+			}
+			return samples;
+		});
+	}
+
+	reduce(reducer, initialValue)
+	{
+		return this.run$(new ReduceOp(reducer, initialValue));
+	}
+
+	remove(predicate)
+	{
+		return this.run$(new RemoveOp(predicate));
+	}
+
+	reverse()
+	{
+		return this.addOp$(ReverseOp);
+	}
+
+	sample(count)
+	{
+		return this.thru(all => {
+			const nSamples = Math.min(Math.max(count, 0), all.length);
+			for (let i = 0, len = all.length; i < nSamples; ++i) {
+				const pick = i + Math.floor(Math.random() * (len - i));
+				const value = all[pick];
+				all[pick] = all[i];
+				all[i] = value;
+			}
+			all.length = nSamples;
+			return all;
+		});
+	}
+
+	select(selector)
+	{
+		return this.addOp$(SelectOp, selector);
+	}
+
+	shuffle()
+	{
+		return this.thru(all => {
+			for (let i = 0, len = all.length - 1; i < len; ++i) {
+				const pick = i + Math.floor(Math.random() * (len - i));
+				const value = all[pick];
+				all[pick] = all[i];
+				all[i] = value;
+			}
+			return all;
+		});
+	}
+
+	take(count)
+	{
+		return this.addOp$(TakeOp, count);
+	}
+
+	tap(callback)
+	{
+		return this.thru(all => (callback(all), all));
+	}
+
+	thru(mapper)
+	{
+		return this.addOp$(ThruOp, mapper);
+	}
+
+	toArray()
+	{
+		return this.run$(new ToArrayOp());
+	}
+
+	uniq(keySelector = IdentityFunction)
+	{
+		return this.addOp$(UniqOp, keySelector);
+	}
+
+	update(selector)
+	{
+		return this.run$(new UpdateOp(selector));
+	}
+
+	where(predicate)
+	{
+		return this.addOp$(WhereOp, predicate);
+	}
+
+	without(...values)
+	{
+		return this.addOp$(WithoutOp, flatten(values));
+	}
 }
 
-function ShuffledSource(source)
+function flatten(array)
 {
-	let m_index = 0;
-	let m_length;
-	let m_list = [];
-
-	this.init =
-	function init()
-	{
-		let index;
-		let item;
-		let temp;
-
-		// as with the sorting operators, Fisher-Yates shuffle doesn't really
-		// lend itself to streaming so we just pull everything in advance.
-		source.init();
-		while ((item = source.next())) {
-			index = m_list.length;
-			m_list[index] = item;
+	const flattened = [];
+	let j = 0;
+	for (let i = 0, len = array.length; i < len; ++i) {
+		const item = array[i];
+		if (typeof item === 'object' && typeof item.length === 'number') {
+			for (let i = 0, len = item.length; i < len; ++i)
+				flattened[j++] = item[i];
 		}
-		for (let i = m_list.length - 1; i >= 1; --i) {
-			index = Math.floor(Math.random() * i);
-			temp = m_list[index];
-			m_list[index] = m_list[i];
-			m_list[i] = temp;
+		else {
+			flattened[j++] = item;
 		}
-		m_index = 0;
-		m_length = m_list.length;
-	};
-
-	this.next =
-	function next()
-	{
-		if (m_index < m_length)
-			return m_list[m_index++];
-		else
-			return null;
-	};
+	}
+	return flattened;
 }
 
-function SkipSource(source, count)
+class QueryOp
 {
-	let m_count = Number(count);
-	let m_numSkipped;
-
-	this.init =
-	function init()
+	flush(sources)
 	{
-		source.init();
-		m_numSkipped = 0;
-	};
+		if (this.nextOp !== undefined)
+			this.nextOp.flush(sources);
+	}
 
-	this.next =
-	function next()
+	initialize(sources)
 	{
-		let item;
+		if (this.nextOp !== undefined)
+			this.nextOp.initialize(sources);
+	}
 
-		item = m_numSkipped++ >= m_count
-			? source.next() : null;
-		return item;
-	};
+	push(value, source, key)
+	{
+		if (this.nextOp !== undefined)
+			this.nextOp.push(value, source, key);
+	}
 }
 
-function TakeSource(source, count)
+class ThruOp extends QueryOp
 {
-	let m_count = Number(count);
-	let m_numTaken;
-
-	this.init =
-	function init()
+	constructor(mapper)
 	{
-		source.init();
-		m_numTaken = 0;
-	};
+		super();
+		this.mapper = mapper;
+	}
 
-	this.next =
-	function next()
+	initialize()
 	{
-		let item;
+		this.values = [];
+		super.initialize();
+	}
 
-		item = m_numTaken++ < m_count
-			? source.next() : null;
-		return item;
-	};
+	flush()
+	{
+		let newList = this.mapper(this.values);
+		if (typeof newList.length !== 'number')
+			newList = [ ...newList ];
+		if (this.nextOp instanceof ThruOp) {
+			// if the next query op is a ThruOp, just give it our buffer since we don't need it anymore.
+			// this greatly speeds up queries with multiple consecutive ThruOps.
+			this.nextOp.values = newList;
+		}
+		else {
+			let start = 0;
+			if (this.nextOp instanceof DropOp) {
+				start = this.nextOp.left;
+				this.nextOp.left = 0;
+			}
+			for (let i = start, len = newList.length; i < len; ++i) {
+				if (!this.nextOp.push(newList[i], newList, i))
+					break;
+			}
+		}
+		super.flush();
+	}
+
+	push(value)
+	{
+		this.values.push(value);
+		return true;
+	}
 }
 
-function allOp(source)
+class DropOp extends QueryOp
 {
-	let item;
+	constructor(count)
+	{
+		super();
+		this.count = count;
+	}
 
-	source.init();
-	while ((item = source.next())) {
-		if (!item.v)
+	initialize(sources)
+	{
+		this.left = this.count;
+		super.initialize(sources);
+	}
+
+	push(value, source, key)
+	{
+		if (this.left-- <= 0)
+			this.nextOp.push(value, source, key);
+		return true;
+	}
+}
+
+class FindOp extends QueryOp
+{
+	constructor(finder, defaultValue)
+	{
+		super();
+		this.defaultValue = defaultValue;
+		this.finder = finder;
+	}
+
+	initialize(source)
+	{
+		this.memo = { value: this.defaultValue };
+		super.initialize(source);
+	}
+
+	push(value, source, key)
+	{
+		if (this.finder(value, key, this.memo)) {
+			this.result = this.memo.value;
 			return false;
-	}
-	return true;
-}
-
-function anyOp(source)
-{
-	let item;
-
-	source.init();
-	while ((item = source.next())) {
-		if (item.v)
-			return true;
-	}
-	return false;
-}
-
-function collectOp(source)
-{
-	let collection = [];
-	let item;
-
-	source.init();
-	while ((item = source.next()))
-		collection[collection.length] = item.v;
-	return collection;
-}
-
-function countOp(source)
-{
-	let numItems = 0;
-
-	source.init();
-	while (source.next())
-		++numItems;
-	return numItems;
-}
-
-function firstOp(source)
-{
-	let item;
-
-	source.init();
-	if ((item = source.next()))
-		return item.v;
-}
-
-function lastOp(source)
-{
-	let lastResult;
-	let item;
-
-	source.init();
-	while ((item = source.next()))
-		lastResult = item.v;
-	return lastResult;
-}
-
-function nullOp(source)
-{
-	source.init();
-	while (source.next()) {
-		/* no-op */
+		}
+		return true;
 	}
 }
 
-function removeOp(source)
+class GroupOp extends QueryOp
 {
-	let item;
-	let splice = Array.prototype.splice;
-	let toRemove = [];
+	constructor(keySelector)
+	{
+		super();
+		this.keySelector = keySelector;
+	}
 
-	source.init();
-	while ((item = source.next()))
-		toRemove[toRemove.length] = { k: item.k, t: item.t };
-	for (let i = toRemove.length - 1; i >= 0; --i) {
-		item = toRemove[i];
-		if (typeof item.t.length === 'number')
-			splice.call(item.t, item.k, 1);
-		else
-			delete item.t[item.k];
+	initialize()
+	{
+		this.result = new Map();
+	}
+
+	flush()
+	{
+		const mapEntries = this.result.entries();
+		this.result = {};
+		for (const entry of mapEntries)
+			this.result[entry[0]] = entry[1];
+	}
+
+	push(value)
+	{
+		const key = this.keySelector(value);
+		let list = this.result.get(key);
+		if (list === undefined)
+			this.result.set(key, list = []);
+		list.push(value);
+		return true;
 	}
 }
 
-function updateOp(source)
+class LastOp extends QueryOp
 {
-	let item;
+	constructor(selector)
+	{
+		super();
+		this.selector = selector;
+	}
 
-	source.init();
-	while ((item = source.next()))
-		item.t[item.k] = item.v;
+	initialize()
+	{
+		this.haveItem = false;
+		this.result = undefined;
+	}
+
+	flush()
+	{
+		if (this.selector !== undefined && this.haveItem)
+			this.result = this.selector(this.result);
+	}
+
+	push(value)
+	{
+		this.haveItem = true;
+		this.result = value;
+	}
+}
+
+class OverOp extends QueryOp
+{
+	constructor(selector)
+	{
+		super();
+		this.selector = selector;
+	}
+
+	initialize()
+	{
+		// don't pass the sources through.  OverOp is not implemented as a ThruOp to avoid the
+		// creation of a temp array but it's still a transformative operation so we don't want
+		// to allow use of remove() or update() after this.
+		super.initialize();
+	}
+
+	push(value)
+	{
+		const sublist = this.selector(value);
+		for (let i = 0, len = sublist.length; i < len; ++i) {
+			if (!this.nextOp.push(sublist[i], sublist, i))
+				return false;
+		}
+		return true;
+	}
+}
+
+class PlusOp extends QueryOp
+{
+	constructor(sources)
+	{
+		super();
+		this.sources = sources;
+	}
+
+	flush()
+	{
+		source_loop:
+		for (let i = 0, len = this.sources.length; i < len; ++i) {
+			const source = this.sources[i];
+			const isObject = typeof source === 'object';
+			if (isObject && typeof source.length === 'number') {
+				for (let i = 0, len = source.length; i < len; ++i) {
+					if (!this.nextOp.push(source[i], source, i))
+						break source_loop;
+				}
+			}
+			else if (isObject && Symbol.iterator in source) {
+				for (const value of source) {
+					if (!this.nextOp.push(value, source))
+						break source_loop;
+				}
+			}
+			else {
+				if (!this.nextOp.push(source))
+					break;
+			}
+		}
+		super.flush();
+	}
+
+	push(value, source, key)
+	{
+		return this.nextOp.push(value, source, key);
+	}
+}
+
+class ReduceOp extends QueryOp
+{
+	constructor(reducer, initialValue)
+	{
+		super();
+		this.initialValue = initialValue;
+		this.reducer = reducer;
+	}
+
+	initialize()
+	{
+		this.result = this.initialValue;
+		super.initialize();
+	}
+
+	push(value)
+	{
+		this.result = this.reducer(this.result, value);
+		return true;
+	}
+}
+
+class RemoveOp extends QueryOp
+{
+	constructor(predicate)
+	{
+		super();
+		this.predicate = predicate;
+	}
+
+	initialize(sources)
+	{
+		if (sources === undefined)
+			throw new TypeError("remove() cannot be used with transformations");
+		this.removals = [];
+	}
+
+	flush(sources)
+	{
+		let r = 0;
+		for (let m = 0, len = sources.length; m < len; ++m) {
+			const source = sources[m];
+			if (typeof source.length === 'number') {
+				let j = 0;
+				for (let i = 0, len = source.length; i < len; ++i) {
+					if (i !== this.removals[r][1])
+						source[j++] = source[i];
+					else
+						r++;
+				}
+				source.length = j;
+			}
+			else {
+				for (let i = 0, len = this.removals.length; i < len; ++i) {
+					if (this.removals[i][0] === source)
+						delete source[this.removals[i][1]];
+				}
+			}
+		}
+	}
+
+	push(value, source, key)
+	{
+		if (this.predicate === undefined || this.predicate(value, key))
+			this.removals.push([ source, key ]);
+		return true;
+	}
+}
+
+class ReverseOp extends ThruOp
+{
+	constructor()
+	{
+		super();
+	}
+
+	initialize()
+	{
+		this.values = [];
+		super.initialize();
+	}
+
+	flush()
+	{
+		if (this.nextOp instanceof ThruOp) {
+			this.values.reverse();
+			this.nextOp.values = this.values;
+		}
+		else {
+			const length = this.values.length;
+			let start = length - 1;
+			if (this.nextOp instanceof DropOp) {
+				start -= this.nextOp.left;
+				this.nextOp.left = 0;
+			}
+			for (let i = start; i >= 0; --i) {
+				if (!this.nextOp.push(this.values[i], this.values, i))
+					break;
+			}
+		}
+		this.nextOp.flush();
+	}
+
+	push(value)
+	{
+		this.values.push(value);
+		return true;
+	}
+}
+
+class SelectOp extends QueryOp
+{
+	constructor(selector)
+	{
+		super();
+		this.selector = selector;
+	}
+
+	push(value, source, key)
+	{
+		value = this.selector(value, key);
+		return this.nextOp.push(value, source, key);
+	}
+}
+
+class TakeOp extends QueryOp
+{
+	constructor(count)
+	{
+		super();
+		this.count = count;
+	}
+
+	initialize(sources)
+	{
+		this.left = this.count;
+		super.initialize(sources);
+	}
+
+	push(value, source, key)
+	{
+		return this.left-- > 0
+			? this.nextOp.push(value, source, key)
+			: false;
+	}
+}
+
+class ToArrayOp extends ThruOp
+{
+	constructor()
+	{
+		super();
+	}
+
+	initialize()
+	{
+		this.values = [];
+		super.initialize();
+	}
+
+	flush()
+	{
+		this.result = this.values;
+	}
+
+	push(value)
+	{
+		this.values.push(value);
+		return true;
+	}
+}
+
+class UniqOp extends QueryOp
+{
+	constructor(keySelector)
+	{
+		super();
+		this.keySelector = keySelector;
+	}
+
+	initialize()
+	{
+		this.keys = new Set();
+		super.initialize();
+	}
+
+	push(value, source, key)
+	{
+		const uniqKey = this.keySelector(value);
+		if (!this.keys.has(uniqKey)) {
+			this.keys.add(uniqKey);
+			return this.nextOp.push(value, source, key);
+		}
+		return true;
+	}
+}
+
+class UpdateOp extends QueryOp
+{
+	constructor(selector)
+	{
+		super();
+		this.selector = selector;
+	}
+
+	initialize(sources)
+	{
+		if (sources === undefined)
+			throw new TypeError("update() cannot be used with transformations");
+	}
+
+	push(value, source, key)
+	{
+		source[key] = this.selector(value, key);
+		return true;
+	}
+}
+
+class WhereOp extends QueryOp
+{
+	constructor(predicate)
+	{
+		super();
+		this.predicate = predicate;
+	}
+
+	push(value, source, key)
+	{
+		if (this.predicate(value, key))
+			return this.nextOp.push(value, source, key);
+		return true;
+	}
+}
+
+class WithoutOp extends QueryOp
+{
+	constructor(values)
+	{
+		super();
+		this.values = new Set(values);
+	}
+
+	push(value, source, key)
+	{
+		if (!this.values.has(value))
+			return this.nextOp.push(value, source, key);
+		return true;
+	}
 }

@@ -39,13 +39,12 @@ export { default as Pact } from './pact.js';
 export { default as Prim } from './prim.js';
 export { default as Scene } from './scene.js';
 export { default as Thread } from './thread.js';
+export { default as Tween, Easing } from './tween.js';
 
 // Sphere Runtime shared modules
-export { default as assert } from './assert.js';
 export { default as from } from './from.js';
 export { default as DataStream } from './data-stream.js';
 export { default as Delegate } from './delegate.js';
 export { default as Logger } from './logger.js';
 export { default as Random } from './random.js';
-export { default as Test } from './test.js';
 //export { default as XML } from './xml.js';

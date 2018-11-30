@@ -50,7 +50,7 @@ let screenCanvas: HTMLCanvasElement;
 export
 enum BlendOp
 {
-	AlphaBlend,
+	Default,
 	Add,
 	Average,
 	CopyAlpha,
@@ -162,7 +162,7 @@ class Color
 export
 class DrawTarget
 {
-	private blendOp_ = BlendOp.AlphaBlend;
+	private blendOp_ = BlendOp.Default;
 	private clipping: Rectangle;
 	private depthOp_ = DepthOp.LessOrEqual;
 	private frameBuffer: WebGLFramebuffer | null;
@@ -171,7 +171,7 @@ class DrawTarget
 	static get Screen()
 	{
 		const surface = Object.create(DrawTarget.prototype) as DrawTarget;
-		surface.blendOp_ = BlendOp.AlphaBlend;
+		surface.blendOp_ = BlendOp.Default;
 		surface.clipping = { x: 0, y: 0, w: screenCanvas.width, h: screenCanvas.height };
 		surface.depthOp_ = DepthOp.LessOrEqual;
 		surface.frameBuffer = null;
@@ -783,6 +783,14 @@ class Prim extends null
 	{
 		screenCanvas.width = width;
 		screenCanvas.height = height;
+		if (width <= 400 && height <= 300) {
+			screenCanvas.style.width = `${width * 2}px`;
+			screenCanvas.style.height = `${height * 2}px`;
+		}
+		else {
+			screenCanvas.style.width = `${width}px`;
+			screenCanvas.style.height = `${height}px`;
+		}
 		if (activeDrawTarget === DrawTarget.Screen)
 			gl.viewport(0, 0, screenCanvas.width, screenCanvas.height);
 	}
@@ -1187,7 +1195,7 @@ class VertexBuffer
 function applyBlendOp(op: BlendOp)
 {
 	switch (op) {
-		case BlendOp.AlphaBlend:
+		case BlendOp.Default:
 			gl.blendEquation(gl.FUNC_ADD);
 			gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 			break;
