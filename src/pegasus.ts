@@ -1268,7 +1268,10 @@ class Texture
 	constructor(...args: [ any, any?, any? ])
 	{
 		if (typeof args[0] === 'string') {
-			throw new RangeError(`'new Texture' with filename is unsupported, use 'Texture.fromFile' instead`);
+			this.texture = new galileo.Texture(1, 1, Color.Transparent);
+			const url = fs.Game.urlOf(game, args[0]);
+			util.fetchImage(url).then(image =>
+				this.texture = new galileo.Texture(image));
 		}
 		else if (args[0] instanceof HTMLImageElement) {
 			const image = args[0];
