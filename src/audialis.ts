@@ -30,6 +30,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
+import Queue from './queue.js';
 import * as util from './utility.js';
 
 export
@@ -141,7 +142,7 @@ class Sound
 export
 class Stream
 {
-	private buffers: Float32Array[] = [];
+	private buffers: Queue<Float32Array> = new Queue();
 	private inputPtr = 0.0;
 	private mixer: Mixer | null = null;
 	private node?: ScriptProcessorNode;
@@ -200,7 +201,7 @@ class Stream
 				if (this.timeBuffered < 0.0)
 					this.timeBuffered = 0.0;
 				const step = this.sampleRate / e.outputBuffer.sampleRate;
-				let input = this.buffers[0];
+				let input = this.buffers.head;
 				let inputPtr = this.inputPtr;
 				for (let i = 0, len = outputs[0].length; i < len; ++i) {
 					const t1 = Math.floor(inputPtr) * this.numChannels;
@@ -214,9 +215,11 @@ class Stream
 					inputPtr += step;
 					if (inputPtr >= Math.floor(input.length / this.numChannels)) {
 						this.buffers.shift();
-						input = this.buffers[0];
-						inputPtr -= Math.floor(input.length / this.numChannels);
-						if (input === undefined) {
+						if (!this.buffers.empty) {
+							input = this.buffers.head;
+							inputPtr -= Math.floor(input.length / this.numChannels);
+						}
+						else {
 							// no more data, fill the rest with silence and return
 							for (let j = 0; j < this.numChannels; ++j)
 								outputs[j].fill(0.0, i + 1);
@@ -237,7 +240,7 @@ class Stream
 			this.node.onaudioprocess = null;
 			this.node.disconnect();
 		}
-		this.buffers.length = 0;
+		this.buffers.clear();
 		this.inputPtr = 0.0;
 		this.mixer = null;
 		this.node = undefined;
