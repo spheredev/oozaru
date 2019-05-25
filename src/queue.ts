@@ -97,6 +97,7 @@ class Queue<T> implements Iterable<T>
 			const newStride = this.stride + this.overflowSize;
 			this.readPtr = this.stride % newStride;
 			this.writePtr = 0;
+			this.stride = newStride;
 			this.overflowSize = 0;
 		}
 		return value;
