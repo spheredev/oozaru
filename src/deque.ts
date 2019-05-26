@@ -37,12 +37,19 @@
 export default
 class Deque<T> implements Iterable<T>
 {
-	private entries: T[] = [];
-	private overflowPtr = 1;
-	private readPtr: number = 0;
-	private stride = 1;
+	private entries: T[];
+	private overflowPtr: number;
+	private readPtr = 0;
+	private stride: number;
 	private vips: T[] = [];
-	private writePtr: number = 0;
+	private writePtr = 0;
+
+	constructor(reserveSize = 8)
+	{
+		this.stride = reserveSize + 1;
+		this.entries = new Array<T>(this.stride);
+		this.overflowPtr = this.stride;
+	}
 
 	*[Symbol.iterator]()
 	{
