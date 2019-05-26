@@ -201,7 +201,7 @@ class Stream
 				if (this.timeBuffered < 0.0)
 					this.timeBuffered = 0.0;
 				const step = this.sampleRate / e.outputBuffer.sampleRate;
-				let input = this.buffers.head;
+				let input = this.buffers.first;
 				let inputPtr = this.inputPtr;
 				for (let i = 0, len = outputs[0].length; i < len; ++i) {
 					const t1 = Math.floor(inputPtr) * this.numChannels;
@@ -216,8 +216,8 @@ class Stream
 					if (inputPtr >= Math.floor(input.length / this.numChannels)) {
 						this.buffers.shift();
 						if (!this.buffers.empty) {
-							input = this.buffers.head;
 							inputPtr -= Math.floor(input.length / this.numChannels);
+							input = this.buffers.first;
 						}
 						else {
 							// no more data, fill the rest with silence and return

@@ -1,0 +1,28 @@
+{
+  "name": "oozaru",
+  "version": "0.0.0",
+  "description": "JavaScript game engine for the Web",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fatcerberus/oozaru.git"
+  },
+  "keywords": [
+    "javascript",
+    "game",
+    "engine",
+    "ssj"
+  ],
+  "author": "Fat Cerberus",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/fatcerberus/oozaru/issues"
+  },
+  "homepage": "https://github.com/fatcerberus/oozaru#readme",
+  "devDependencies": {
+    "typescript": "^3.4.5"
+  }
+}
