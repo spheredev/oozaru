@@ -35,17 +35,14 @@
 // https://blog.labix.org/2010/12/23/efficient-algorithm-for-expanding-circular-buffers
 
 export default
-class Queue<T> implements Iterable<T>
+class Deque<T> implements Iterable<T>
 {
 	private entries: T[] = [];
-	private overflowSize = 0;
+	private overflowPtr = 1;
 	private readPtr: number = 0;
 	private stride = 1;
+	private vips: T[] = [];
 	private writePtr: number = 0;
-
-	constructor()
-	{
-	}
 
 	*[Symbol.iterator]()
 	{
@@ -56,29 +53,60 @@ class Queue<T> implements Iterable<T>
 	get empty()
 	{
 		return this.readPtr === this.writePtr
-			&& this.overflowSize === 0;
+			&& this.overflowPtr === this.stride
+			&& this.vips.length === 0;
 	}
 
 	get head()
 	{
-		return this.entries[this.readPtr];
+		return this.vips.length > 0 ? this.vips[this.vips.length - 1]
+			: this.readPtr !== this.writePtr ? this.entries[this.readPtr]
+			: this.entries[this.overflowPtr - 1];
+	}
+
+	get last()
+	{
+		const ptr = this.writePtr > 0 ? this.writePtr - 1
+			: this.stride - 1;
+		return this.overflowPtr > this.stride ? this.entries[this.overflowPtr - 1]
+			: this.readPtr !== this.writePtr ? this.entries[ptr]
+			: this.vips[0];
 	}
 
 	clear()
 	{
 		this.entries.length = 0;
 		this.stride = 1;
-		this.overflowSize = 0;
+		this.overflowPtr = 1;
 		this.writePtr = 0;
 		this.readPtr = 0;
+	}
+
+	pop()
+	{
+		if (this.overflowPtr > this.stride) {
+			// take from overflow area first
+			return this.entries[--this.overflowPtr];
+		}
+		else if (this.readPtr !== this.writePtr) {
+			if (--this.writePtr < 0)
+				this.writePtr = this.stride - 1;
+			return this.entries[this.writePtr];
+		}
+		else {
+			// note: uses Array#shift so not O(1).  i'll fix it eventually but
+			//       ultimately, I don't expect this case to be common.
+			return this.vips.shift();
+		}
 	}
 
 	push(value: T)
 	{
 		const ringFull = (this.writePtr + 1) % this.stride === this.readPtr;
-		if (ringFull || this.overflowSize > 0) {
-			this.entries.push(value);
-			++this.overflowSize;
+		if (ringFull || this.overflowPtr > this.stride) {
+			// if there's already an overflow area established, we need to keep
+			// using it to maintain proper FIFO order.
+			this.entries[this.overflowPtr++] = value;
 		}
 		else {
 			this.entries[this.writePtr++] = value;
@@ -89,17 +117,33 @@ class Queue<T> implements Iterable<T>
 
 	shift()
 	{
-		const value = this.entries[this.readPtr++];
-		if (this.readPtr >= this.stride)
-			this.readPtr = 0;
-		if (this.readPtr === this.writePtr) {
-			// expand the window into the overflow area
-			const newStride = this.stride + this.overflowSize;
-			this.readPtr = this.stride % newStride;
-			this.writePtr = 0;
-			this.stride = newStride;
-			this.overflowSize = 0;
+		if (this.vips.length === 0) {
+			const value = this.entries[this.readPtr++];
+			if (this.readPtr >= this.stride)
+				this.readPtr = 0;
+			if (this.readPtr === this.writePtr) {
+				// absorb the overflow area back into the ring
+				this.readPtr = this.stride % this.overflowPtr;
+				this.writePtr = 0;
+				this.stride = this.overflowPtr;
+			}
+			return value;
 		}
-		return value;
+		else {
+			return this.vips.pop()!;
+		}
+	}
+
+	unshift(value: T)
+	{
+		const ringFull = (this.writePtr + 1) % this.stride === this.readPtr;
+		if (!ringFull) {
+			if (--this.readPtr < 0)
+				this.readPtr = this.stride - 1;
+			this.entries[this.readPtr] = value;
+		}
+		else {
+			this.vips.push(value);
+		}
 	}
 }

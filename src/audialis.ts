@@ -30,7 +30,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import Queue from './queue.js';
+import Deque from './deque.js';
 import * as util from './utility.js';
 
 export
@@ -142,7 +142,7 @@ class Sound
 export
 class Stream
 {
-	private buffers: Queue<Float32Array> = new Queue();
+	private buffers: Deque<Float32Array> = new Deque();
 	private inputPtr = 0.0;
 	private mixer: Mixer | null = null;
 	private node?: ScriptProcessorNode;
