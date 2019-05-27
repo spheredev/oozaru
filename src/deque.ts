@@ -59,7 +59,7 @@ class Deque<T> implements Iterable<T>
 
 	get empty()
 	{
-		return this.frontPtr === this.backPtr
+		return this.backPtr === this.frontPtr
 			&& this.overflowPtr === this.stride
 			&& this.vips.length === 0;
 	}
@@ -67,8 +67,8 @@ class Deque<T> implements Iterable<T>
 	get first()
 	{
 		return this.vips.length > 0 ? this.vips[this.vips.length - 1]
-			: this.frontPtr !== this.backPtr ? this.entries[this.frontPtr]
-			: this.entries[this.overflowPtr - 1];
+			: this.backPtr !== this.frontPtr ? this.entries[this.frontPtr]
+			: this.entries[this.stride];
 	}
 
 	get last()

@@ -35,7 +35,6 @@ import * as version from './version.js';
 import BufferStream from './buffer-stream.js';
 import EventLoop, { JobType } from './event-loop.js';
 import InputEngine, { MouseKey, Key } from './input-engine.js';
-import from from './from.js';
 import * as audialis from './audialis.js';
 import * as fs from './fs.js';
 import * as galileo from './galileo.js';
@@ -106,7 +105,6 @@ class Pegasus extends null
 			ShapeType: galileo.ShapeType,
 
 			// classes and namespaces
-			from,
 			Sphere,
 			Color,
 			Dispatch,
