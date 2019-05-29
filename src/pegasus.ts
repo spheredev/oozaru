@@ -1149,7 +1149,14 @@ class Shape
 
 class Sound
 {
-	private sound: audialis.Sound;
+	private sound?: audialis.Sound;
+	private initialState = {
+		mixer:    Mixer.Default,
+		playing:  false,
+		position: 0.0,
+		repeat:   true,
+		volume:   1.0,
+	};
 
 	static async fromFile(fileName: string)
 	{
@@ -1159,56 +1166,96 @@ class Sound
 		return sound;
 	}
 
-	constructor(_fileName: string)
+	constructor(fileName: string)
 	{
-		throw new RangeError(`'new Sound' is unsupported, use 'Sound.fromFile' instead`);
+		const url = fs.Game.urlOf(game, fileName);
+		audialis.Sound.fromFile(url).then((sound) => {
+			sound.position = this.initialState.position;
+			sound.repeat = this.initialState.repeat;
+			sound.volume = this.initialState.volume;
+			if (this.initialState.playing)
+				sound.play(this.initialState.mixer.mixer);
+			this.sound = sound;
+		})
 	}
 
 	get length()
 	{
-		return this.sound.length;
+		return this.sound !== undefined
+			? this.sound.length
+			: 0.0;
 	}
 
 	get position()
 	{
-		return this.sound.position;
+		return this.sound !== undefined
+			? this.sound.position
+			: this.initialState.position;
 	}
 	set position(value)
 	{
-		this.sound.position = value;
+		if (this.sound !== undefined)
+			this.sound.position = value;
+		else
+			this.initialState.position = value;
 	}
 
 	get repeat()
 	{
-		return this.sound.repeat;
+		return this.sound !== undefined
+			? this.sound.repeat
+			: this.initialState.repeat;
 	}
 	set repeat(value)
 	{
-		this.sound.repeat = value;
+		if (this.sound !== undefined)
+			this.sound.repeat = value;
+		else
+			this.initialState.repeat = value;
 	}
 
 	get volume()
 	{
-		return this.sound.volume;
+		return this.sound !== undefined
+			? this.sound.volume
+			: this.initialState.volume;
 	}
 	set volume(value)
 	{
-		this.sound.volume = value;
+		if (this.sound !== undefined)
+			this.sound.volume = value;
+		else
+			this.initialState.volume = value;
 	}
 
 	pause()
 	{
-		this.sound.pause();
+		if (this.sound !== undefined)
+			this.sound.pause();
+		else
+			this.initialState.playing = false;
 	}
 
 	play(mixer = Mixer.Default)
 	{
-		this.sound.play(mixer.mixer);
+		if (this.sound !== undefined) {
+			this.sound.play(mixer.mixer);
+		}
+		else {
+			this.initialState.playing = true;
+			this.initialState.mixer = mixer;
+		}
 	}
 
 	stop()
 	{
-		this.sound.stop();
+		if (this.sound !== undefined) {
+			this.sound.stop();
+		}
+		else {
+			this.initialState.playing = false;
+			this.initialState.position = 0.0;
+		}
 	}
 }
 
@@ -1268,8 +1315,9 @@ class Texture
 		if (typeof args[0] === 'string') {
 			this.texture = new galileo.Texture(1, 1, Color.Transparent);
 			const url = fs.Game.urlOf(game, args[0]);
-			util.fetchImage(url).then(image =>
-				this.texture = new galileo.Texture(image));
+			util.fetchImage(url).then(image => {
+				this.texture = new galileo.Texture(image)
+			});
 		}
 		else if (args[0] instanceof HTMLImageElement) {
 			const image = args[0];
