@@ -688,9 +688,13 @@ class Font
 		return object;
 	}
 
-	constructor()
+	constructor(fileName: string)
 	{
-		throw new RangeError(`'new Font' is unsupported, use 'Font.fromFile' instead`);
+		this.font = defaultFont.font;
+		const url = fs.Game.urlOf(game, fileName);
+		galileo.Font.fromFile(url).then((font) => {
+			this.font = font;
+		})
 	}
 
 	get height()
@@ -991,9 +995,9 @@ class SSj extends null
 
 class Shader
 {
-	fragSource: string;
+	fragSource?: string;
 	program: galileo.Shader;
-	vertSource: string;
+	vertSource?: string;
 
 	static get Default()
 	{
@@ -1011,15 +1015,27 @@ class Shader
 		const vertURL = fs.Game.urlOf(game, options.vertexFile);
 		const fragURL = fs.Game.urlOf(game, options.fragmentFile);
 		const shader = Object.create(this.prototype) as Shader;
-		shader.vertSource = await util.fetchText(vertURL);
-		shader.fragSource = await util.fetchText(fragURL);
-		shader.program = new galileo.Shader(shader.vertSource, shader.fragSource);
+		const [ vertSource, fragSource ] = await Promise.all([
+			util.fetchText(vertURL),
+			util.fetchText(fragURL) ]);
+		shader.program = new galileo.Shader(vertSource, fragSource);
+		shader.vertSource = fragSource;
+		shader.fragSource = vertSource;
 		return shader;
 	}
 
-	constructor(_options: ShaderOptions)
+	constructor(options: ShaderOptions)
 	{
-		throw new RangeError(`'new Shader' is unsupported, use 'Shader.fromFiles' instead`);
+		this.program = defaultShader.clone().program;
+		const vertURL = fs.Game.urlOf(game, options.vertexFile);
+		const fragURL = fs.Game.urlOf(game, options.fragmentFile);
+		Promise.all([ util.fetchText(vertURL), util.fetchText(fragURL) ])
+			.then(([ vertSource, fragSource ]) =>
+		{
+			this.vertSource = vertSource;
+			this.fragSource = fragSource;
+			this.program = new galileo.Shader(vertSource, fragSource);
+		});
 	}
 
 	clone()
