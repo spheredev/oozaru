@@ -79,7 +79,7 @@ async function fetchModule(url: string)
 			finishUp();
 		}
 		script.src = URL.createObjectURL(blob);
-		document.head!.appendChild(script);
+		document.head.appendChild(script);
 	});
 }
 
@@ -104,7 +104,7 @@ async function fetchScript(url: string)
 			script.remove();
 		}
 		script.src = url;
-		document.head!.appendChild(script);
+		document.head.appendChild(script);
 	});
 }
 
