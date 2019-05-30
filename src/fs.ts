@@ -70,7 +70,7 @@ class Game
 		const manifest = JSON.parse(manifestJSON);
 
 		this.url = directoryURL;
-		this.data = Object.freeze(manifest);
+		this.data = manifest;
 
 		// parse the screen resolution string
 		const matches = this.data.resolution.match(/^([0-9]*)x([0-9]*)$/);

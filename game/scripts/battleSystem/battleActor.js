@@ -27,7 +27,7 @@ class BattleActor
 		this.row = row;
 		this.spriteFileName = `spritesets/battlers/${name}.rss`;
 		this.x = isEnemy ? -32 : 320;
-		this.y = 168 - position * 32;
+		this.y = 208 - position * 32;
 	}
 
 	async initialize()

@@ -126,7 +126,7 @@ class BattleScreen extends Thread
 
 	on_render()
 	{
-		Prim.blit(Surface.Screen, 0, -56, this.background);
+		Prim.blit(Surface.Screen, 0, -16, this.background);
 		for (const type in this.actorTypes) {
 			for (let i = 0; i < this.actors[type].length; ++i)
 				this.actors[type][i].render();
