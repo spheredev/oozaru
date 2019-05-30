@@ -599,13 +599,9 @@ class FS extends null
 	static async require(fileName: string)
 	{
 		const url = fs.Game.urlOf(game, fileName);
-		if (url.endsWith('.js') || url.endsWith('.mjs')) {
-			return util.fetchModule(url);
-		}
-		else {
-			const text = await (await fetch(url)).text();
-			return JSON.parse(text);
-		}
+		return url.endsWith('.js') || url.endsWith('.mjs')
+			? util.fetchModule(url)
+			: util.fetchJSON(url);
 	}
 }
 
@@ -1033,8 +1029,8 @@ class Shader
 			util.fetchText(vertURL),
 			util.fetchText(fragURL) ]);
 		shader.program = new galileo.Shader(vertSource, fragSource);
-		shader.vertSource = fragSource;
-		shader.fragSource = vertSource;
+		shader.vertSource = vertSource;
+		shader.fragSource = fragSource;
 		return shader;
 	}
 
