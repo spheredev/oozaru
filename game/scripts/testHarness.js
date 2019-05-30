@@ -3,7 +3,7 @@
   *           Copyright (c) 2018 Power-Command
 ***/
 
-import { from, Scene } from '/game/lib/sphere-runtime.js';
+import { from, Scene } from '../lib/sphere-runtime.js';
 
 import { ItemUsable } from './battleSystem/index.js';
 import { Game } from './gameDef/index.js';

@@ -6,7 +6,7 @@
 // note: don't run more than one day/night clock at a time.  doing so will cause multiple
 //       filters to be applied to the screen, which won't look too nice. :o)
 
-import { Thread } from '/game/lib/sphere-runtime.js';
+import { Thread } from '../lib/sphere-runtime.js';
 
 const
 	DayMask      = [ 0.0, 0.0, 0.0, 0.0 ],
@@ -58,7 +58,7 @@ class DayNightClock extends Thread
 				{ x: 0,     y: height },
 				{ x: width, y: height },
 			]));
-		this.shader = await Shader.fromFiles({
+		this.shader = new Shader({
 			vertexFile:   'shaders/tintColor.vert.glsl',
 			fragmentFile: 'shaders/tintColor.frag.glsl',
 		});

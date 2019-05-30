@@ -3,7 +3,7 @@
   *           Copyright (c) 2018 Power-Command
 ***/
 
-import { DataStream, Prim } from '/game/lib/sphere-runtime.js';
+import { DataStream, Prim } from '../../lib/sphere-runtime.js';
 
 export default
 class SpriteImage

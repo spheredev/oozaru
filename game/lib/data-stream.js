@@ -1,5 +1,5 @@
 /**
- *  Sphere Runtime for Sphere games
+ *  miniSphere JavaScript game engine
  *  Copyright (c) 2015-2018, Fat Cerberus
  *  All rights reserved.
  *

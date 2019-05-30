@@ -3,7 +3,7 @@
   *           Copyright (c) 2018 Power-Command
 ***/
 
-import { from } from '/game/lib/sphere-runtime.js';
+import { from } from '../../lib/sphere-runtime.js';
 
 import { Characters, Weapons } from '../gameDef/index.js';
 

@@ -3,7 +3,7 @@
   *           Copyright (c) 2018 Power-Command
 ***/
 
-import { Console, Music, Scene } from '/game/lib/sphere-runtime.js';
+import { Console, Music, Scene } from '../lib/sphere-runtime.js';
 
 import DayNightClock from './dayNightClock.js';
 import TestHarness from './testHarness.js';

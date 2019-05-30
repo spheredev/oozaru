@@ -3,7 +3,7 @@
   *           Copyright (c) 2018 Power-Command
 ***/
 
-import { Scene } from '/game/lib/sphere-runtime.js';
+import { Scene } from '../../lib/sphere-runtime.js';
 
 export
 const Maps =

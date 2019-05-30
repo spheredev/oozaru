@@ -3,7 +3,7 @@
   *           Copyright (c) 2018 Power-Command
 ***/
 
-import { Prim, Scene, Thread } from '/game/lib/sphere-runtime.js';
+import { Prim, Scene, Thread } from '../../lib/sphere-runtime.js';
 
 import { drawTextEx } from '../utilities.js';
 
@@ -126,7 +126,7 @@ class BattleScreen extends Thread
 
 	on_render()
 	{
-		Prim.blit(Surface.Screen, 0, -16, this.background);
+		Prim.blit(Surface.Screen, 0, -56, this.background);
 		for (const type in this.actorTypes) {
 			for (let i = 0; i < this.actors[type].length; ++i)
 				this.actors[type][i].render();

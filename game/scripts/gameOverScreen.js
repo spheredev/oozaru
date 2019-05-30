@@ -3,7 +3,7 @@
   *           Copyright (c) 2018 Power-Command
 ***/
 
-import { Music, Prim, Scene, Thread } from '/game/lib/sphere-runtime.js';
+import { Music, Prim, Scene, Thread } from '../lib/sphere-runtime.js';
 
 import MenuStrip from './menuStrip.js';
 
@@ -33,7 +33,7 @@ class GameOverScreen extends Thread
 
 	async on_startUp()
 	{
-		this.image = await Texture.fromFile('images/gameOverScreen.png');
+		this.image = new Texture('images/gameOverScreen.png');
 		this.fadeness = 1.0;
 		this.transition = null;
 	}

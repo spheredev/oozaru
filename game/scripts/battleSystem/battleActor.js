@@ -3,7 +3,7 @@
   *           Copyright (c) 2018 Power-Command
 ***/
 
-import { from, Scene } from '/game/lib/sphere-runtime.js';
+import { from, Scene } from '../../lib/sphere-runtime.js';
 
 import { drawTextEx, range } from '../utilities.js';
 
@@ -27,7 +27,7 @@ class BattleActor
 		this.row = row;
 		this.spriteFileName = `spritesets/battlers/${name}.rss`;
 		this.x = isEnemy ? -32 : 320;
-		this.y = 208 - position * 32;
+		this.y = 168 - position * 32;
 	}
 
 	async initialize()

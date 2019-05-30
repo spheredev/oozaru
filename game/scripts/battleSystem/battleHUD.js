@@ -3,7 +3,7 @@
   *           Copyright (c) 2018 Power-Command
 ***/
 
-import { Prim, Scene, Thread } from '/game/lib/sphere-runtime.js';
+import { Prim, Scene, Thread } from '../../lib/sphere-runtime.js';
 
 import { Game } from '../gameDef/index.js';
 import { drawTextEx } from '../utilities.js';
@@ -20,7 +20,7 @@ class BattleHUD extends Thread
 		super({ priority: 20 });
 
 		this.enemyHPGaugeColor = Color.White;
-		this.partyHPGaugeColor = Color.Lime;
+		this.partyHPGaugeColor = Color.Chartreuse;
 		this.partyHighlightColor = Color.MidnightBlue;
 		this.partyMPGaugeColor = Color.DarkOrchid;
 

@@ -3,7 +3,7 @@
   *           Copyright (c) 2018 Power-Command
 ***/
 
-import { Prim, Scene, Thread } from '/game/lib/sphere-runtime.js';
+import { Prim, Scene, Thread } from '../../lib/sphere-runtime.js';
 
 import { Game, Elements, SkillCategories } from '../gameDef/index.js';
 import { drawTextEx } from '../utilities.js';
@@ -121,6 +121,8 @@ class MoveMenu extends Thread
 
 		this.drawMoveItem = function(x, y, item, isSelected, isLockedIn)
 		{
+			x = Math.floor(x);
+			y = Math.floor(y);
 			let alpha = this.fadeness * this.expansion;
 			let isEnabled = item.isEnabled;
 			let textColor = isSelected ? this.textColor : Color.Gray.fadeTo(alpha);

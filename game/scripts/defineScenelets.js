@@ -3,7 +3,7 @@
   *           Copyright (c) 2018 Power-Command
 ***/
 
-import { Music, Prim, Scene } from '/game/lib/sphere-runtime.js';
+import { Music, Prim, Scene } from '../lib/sphere-runtime.js';
 
 import { BattleEngine, BattleResult } from './battleSystem/index.js';
 import AutoColorMask from './autoColorMask.js';
@@ -11,11 +11,13 @@ import GameOverScreen, { GameOverAction } from './gameOverScreen.js';
 
 let fadeMask = new AutoColorMask();
 
-SSj.log("defineScenelets ran");
-
 Scene.defineOp('adjustBGM', {
-	async start(scene, volume, numFrames = 0) {
-		await Music.adjustVolume(volume, numFrames);
+	start(scene, volume, numFrames = 0) {
+		Music.adjustVolume(volume, numFrames);
+	},
+
+	update(scene) {
+		return Music.adjustingVolume;
 	},
 });
 
@@ -125,7 +127,7 @@ Scene.defineOp('pause', {
 
 Scene.defineOp('playSound', {
 	async start(scene, fileName) {
-		this.sound = Sound.fromFile(fileName);
+		this.sound = new Sound(fileName);
 		this.sound.play();
 	},
 	update(scene) {
@@ -190,9 +192,9 @@ Scene.defineOp('talk', {
 		let finalBoxY = Surface.Screen.height * 0.85 - boxHeight / 2;
 		let boxY = finalBoxY + (Surface.Screen.height - finalBoxY) * (1.0 - this.boxVisibility);
 		Prim.drawRectangle(Surface.Screen, -1, boxY - 1, Surface.Screen.width + 2, boxHeight + 2,
-			Color.Black.fadeTo(0.55 * this.boxVisibility));
+			Color.Black.fadeTo(0.75 * this.boxVisibility));
 		Prim.drawSolidRectangle(Surface.Screen, 0, boxY, Surface.Screen.width, boxHeight,
-			Color.Black.fadeTo(0.5 * this.boxVisibility));
+			Color.Black.fadeTo(0.66 * this.boxVisibility));
 		this.textSurface.blendOp = BlendOp.Replace;
 		Prim.drawSolidRectangle(this.textSurface, 0, 0, this.textSurface.width, this.textSurface.height, Color.Transparent);
 		this.textSurface.blendOp = BlendOp.Default;

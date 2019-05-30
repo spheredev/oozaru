@@ -3,7 +3,7 @@
   *           Copyright (c) 2018 Power-Command
 ***/
 
-import { from, Prim, Scene, Thread } from '/game/lib/sphere-runtime.js';
+import { from, Prim, Scene, Thread } from '../lib/sphere-runtime.js';
 
 export default
 class MenuStrip extends Thread
@@ -39,7 +39,7 @@ class MenuStrip extends Thread
 		this.mode = "open";
 		let carouselWidth = from(this.menuItems)
 			.select(it => this.font.widthOf(it.text) + 10)
-			.reduce((a, v) => Math.max(a, v));
+			.reduce((a, v) => Math.max(a, v), 0);
 		this.carousel = new Surface(carouselWidth, this.font.height + 10);
 		Keyboard.Default.clearQueue();
 		this.start();
@@ -108,7 +108,7 @@ class MenuStrip extends Thread
 		this.font.drawText(Surface.Screen, 5, menuY + 5, this.title, titleColor);
 		this.carousel.blendOp = BlendOp.Replace;
 		Prim.drawSolidRectangle(this.carousel, 0, 0, this.carousel.width, this.carousel.height, Color.Transparent);
-		this.carousel.blendOp = BlendOp.AlphaBlend;
+		this.carousel.blendOp = BlendOp.Default;
 		let xOffset = (this.selectedItem + this.scrollProgress * this.scrollDirection) * this.carousel.width;
 		let normalItemColor = Color.Orange.fadeTo(this.openness);
 		let litItemColor = Color.of('#808040').fadeTo(this.openness);

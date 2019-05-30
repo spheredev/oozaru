@@ -3,7 +3,7 @@
   *           Copyright (c) 2018 Power-Command
 ***/
 
-import { from, Random } from '/game/lib/sphere-runtime.js';
+import { from, Random } from '../../lib/sphere-runtime.js';
 
 import { AutoBattler } from '../battleSystem/index.js';
 

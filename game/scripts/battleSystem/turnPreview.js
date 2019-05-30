@@ -3,7 +3,7 @@
   *           Copyright (c) 2018 Power-Command
 ***/
 
-import { Prim, Scene, Thread } from '/game/lib/sphere-runtime.js';
+import { Prim, Scene, Thread } from '../../lib/sphere-runtime.js';
 
 const
 	BoxColor = Color.Black.fadeTo(0.75),

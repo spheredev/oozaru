@@ -3,7 +3,7 @@
   *           Copyright (c) 2018 Power-Command
 ***/
 
-import { from, Prim, Scene, Thread } from '/game/lib/sphere-runtime.js';
+import { from, Prim, Scene, Thread } from '../../lib/sphere-runtime.js';
 
 import { drawTextEx } from '../utilities.js';
 

@@ -3,7 +3,7 @@
   *           Copyright (c) 2018 Power-Command
 ***/
 
-import { Prim } from '/game/lib/sphere-runtime.js';
+import { Prim } from '../../lib/sphere-runtime.js';
 
 export default
 class HPGauge

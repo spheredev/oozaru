@@ -3,7 +3,7 @@
   *           Copyright (c) 2018 Power-Command
 ***/
 
-import { from, Music, Random, Thread } from '/game/lib/sphere-runtime.js';
+import { from, Music, Random, Thread } from '../../lib/sphere-runtime.js';
 
 import { Animations, Battles, Characters, Game, Maths, MoveEffects } from '../gameDef/index.js';
 import { clone } from '../utilities.js';

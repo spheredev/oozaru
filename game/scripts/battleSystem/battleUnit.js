@@ -3,7 +3,7 @@
   *           Copyright (c) 2018 Power-Command
 ***/
 
-import { from, Random, Scene } from '/game/lib/sphere-runtime.js';
+import { from, Random, Scene } from '../../lib/sphere-runtime.js';
 
 import { Characters, Elements, Enemies, Game, Items, Maths, StatNames, Statuses, Weapons } from '../gameDef/index.js';
 import { clone } from '../utilities.js';
@@ -452,7 +452,7 @@ class BattleUnit
 		let nextActions = this.moveUsed.usable.use(this, this.moveUsed.targets);
 		if (move.stance === Stance.Counter || move.stance === Stance.Charge) {
 			let damageEffects = from(nextActions)
-				.from(action => action.effects)
+				.over(action => action.effects)
 				.where(effect => 'power' in effect);
 			for (let effect of damageEffects) {
 				// note: statusChance being set to Infinity bypasses Guard
