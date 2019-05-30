@@ -43,18 +43,6 @@ async function fetchAudio(url: string)
 }
 
 export
-async function fetchImage(url: string)
-{
-	return new Promise<HTMLImageElement>((resolve, reject) => {
-		const image = new Image();
-		image.onload = () => resolve(image);
-		image.onerror = () =>
-			reject(new Error(`Unable to load image file '${url}'`));
-		image.src = url;
-	});
-}
-
-export
 async function fetchJSON(url: string)
 {
 	return (await fetch(url)).json();

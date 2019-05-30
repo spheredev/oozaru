@@ -34,6 +34,7 @@ import * as version from './version.js';
 
 import BufferStream from './buffer-stream.js';
 import EventLoop, { JobType } from './event-loop.js';
+import Fido from './fido.js';
 import InputEngine, { MouseKey, Key } from './input-engine.js';
 import * as audialis from './audialis.js';
 import * as fs from './fs.js';
@@ -61,12 +62,12 @@ interface ShaderOptions
 
 interface Vertex
 {
-	x: number,
-	y: number,
-	z?: number,
-	u?: number,
-	v?: number,
-	color?: Color
+	x: number;
+	y: number;
+	z?: number;
+	u?: number;
+	v?: number;
+	color?: Color;
 }
 
 const console = window.console;
@@ -74,6 +75,7 @@ const eventLoop = new EventLoop();
 
 let defaultFont: Font;
 let defaultShader: Shader;
+let fido: Fido;
 let game: fs.Game;
 let immediateVBO: galileo.VertexBuffer;
 let inputEngine: InputEngine;
@@ -162,6 +164,18 @@ class Pegasus extends null
 		} else {
 			main.default();
 		}
+
+		fido = new Fido();
+		eventLoop.addJob(JobType.Render, () => {
+			if (fido.progress >= 1.0)
+				return;
+			const status = `fido/${Math.floor(100.0 * fido.progress)}%`;
+			const textSize = defaultFont.getTextSize(status);
+			const x = Surface.Screen.width - textSize.width - 5;
+			const y = Surface.Screen.height - textSize.height - 5;
+			defaultFont.drawText(Surface.Screen, x + 1, y + 1, status, Color.Black);
+			defaultFont.drawText(Surface.Screen, x, y, status, Color.Silver);
+		}, true, Infinity);
 
 		// start the Sphere v2 event loop
 		eventLoop.start();
@@ -1040,7 +1054,9 @@ class Shader
 
 	clone()
 	{
-		const dolly = Object.create(Object.getPrototypeOf(this)) as this;
+		if (this.vertSource === undefined || this.fragSource === undefined)
+			throw new Error("Cannot clone shader before fully loaded");
+		const dolly = Object.create(Object.getPrototypeOf(this)) as Shader;
 		dolly.vertSource = this.vertSource;
 		dolly.fragSource = this.fragSource;
 		dolly.program = new galileo.Shader(dolly.vertSource, dolly.fragSource);
@@ -1319,7 +1335,7 @@ class Texture
 	static async fromFile(fileName: string)
 	{
 		const url = fs.Game.urlOf(game, fileName);
-		const image = await util.fetchImage(url);
+		const image = await fido.fetchImage(url);
 		return new Texture(image);
 	}
 
@@ -1331,8 +1347,8 @@ class Texture
 		if (typeof args[0] === 'string') {
 			this.texture = new galileo.Texture(1, 1, Color.Transparent);
 			const url = fs.Game.urlOf(game, args[0]);
-			util.fetchImage(url).then(image => {
-				this.texture = new galileo.Texture(image)
+			fido.fetchImage(url).then((image) => {
+				this.texture = new galileo.Texture(image);
 			});
 		}
 		else if (args[0] instanceof HTMLImageElement) {
