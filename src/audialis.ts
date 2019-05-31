@@ -30,8 +30,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import Deque from './deque.js';
-import * as util from './utility.js';
+import Deque from './deque';
+import * as util from './utility';
 
 export
 class Mixer

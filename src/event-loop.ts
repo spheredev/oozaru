@@ -30,8 +30,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import * as galileo from './galileo.js';
-import * as util from './utility.js';
+import * as galileo from './galileo';
+import * as util from './utility';
 
 let nextJobID = 1;
 
