@@ -30,8 +30,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import BufferStream from './buffer-stream.js';
-import * as util from './utility.js';
+import BufferStream from './buffer-stream';
+import * as util from './utility';
 
 interface Glyph
 {

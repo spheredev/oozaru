@@ -30,16 +30,16 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import * as version from './version.js';
+import * as version from './version';
 
-import BufferStream from './buffer-stream.js';
-import EventLoop, { JobType } from './event-loop.js';
-import Fido from './fido.js';
-import InputEngine, { MouseKey, Key } from './input-engine.js';
-import * as audialis from './audialis.js';
-import * as fs from './fs.js';
-import * as galileo from './galileo.js';
-import * as util from './utility.js';
+import BufferStream from './buffer-stream';
+import EventLoop, { JobType } from './event-loop';
+import Fido from './fido';
+import InputEngine, { MouseKey, Key } from './input-engine';
+import * as audialis from './audialis';
+import * as fs from './fs';
+import * as galileo from './galileo';
+import * as util from './utility';
 
 enum FileOp
 {

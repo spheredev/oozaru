@@ -30,11 +30,11 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import * as version from './version.js';
+import * as version from './version';
 
-import Galileo from './galileo.js';
-import InputEngine from './input-engine.js';
-import Pegasus from './pegasus.js';
+import Galileo from './galileo';
+import InputEngine from './input-engine';
+import Pegasus from './pegasus';
 
 const mainCanvas = document.getElementById('screen') as HTMLCanvasElement;
 const inputEngine = new InputEngine(mainCanvas);
