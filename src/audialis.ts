@@ -31,7 +31,11 @@
 **/
 
 import Deque from './deque';
+import preFIX from './prefix';
 import * as util from './utility';
+
+// @ts-ignore: TS doesn't define AudioContext on Window
+const AudioContext = preFIX('AudioContext');
 
 export
 class Mixer
@@ -39,11 +43,9 @@ class Mixer
 	context: AudioContext;
 	gainer: GainNode;
 
-	constructor(frequency: number)
+	constructor(sampleRate: number)
 	{
-		this.context = new AudioContext({
-			sampleRate: frequency,
-		});
+		this.context = new AudioContext({ sampleRate });
 		this.gainer = this.context.createGain();
 		this.gainer.gain.value = 1.0;
 		this.gainer.connect(this.context.destination);

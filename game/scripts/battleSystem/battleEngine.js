@@ -80,7 +80,7 @@ class BattleEngine extends Thread
 	findUnit(unitID)
 	{
 		let unit = from(this.enemyUnits, this.playerUnits)
-			.find(it => it.id == unitID);
+			.first(it => it.id == unitID);
 		return unit !== undefined ? unit : null;
 	}
 

@@ -148,7 +148,7 @@ class AutoBattler
 	itemsLeft(itemID)
 	{
 		let item = from(this.unit.items)
-			.find(it => it.itemID === itemID);
+			.first(it => it.itemID === itemID);
 		console.log(`${this.unit.name} has ${item.usesLeft}x ${item.name} left`);
 		return item.usesLeft;
 	}
