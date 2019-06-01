@@ -35,6 +35,7 @@ const path = require('path');
 module.exports =
 {
     mode: 'production',
+    devtool: 'source-maps',
 
     entry: './src/main.ts',
     module: {
@@ -46,11 +47,9 @@ module.exports =
         extensions: [ '.ts' ],
     },
 
-    devtool: 'source-map',
-
     output: {
-        chunkFilename: 'oozaru-dl-[id].js',
         filename: 'oozaru.js',
+        chunkFilename: 'oozaru-dl-[id].js',
         library: '[name]',
         libraryTarget: 'var',
         path: __dirname,
