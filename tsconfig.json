@@ -3,8 +3,8 @@
     "compilerOptions": {
         "target": "es2015",
         "module": "es6",
-        "lib": [ "es2017", "dom" ],
-        "outDir": "oozaru",
+        "lib": [ "es2015", "dom" ],
+        "outDir": "dist",
         "noEmitOnError": false,
         "noImplicitAny": true,
         "noImplicitReturns": true,
@@ -18,7 +18,6 @@
         "strictPropertyInitialization": true,
     },
     "exclude": [
-        "oozaru/*",
         "game/*",
     ],
 }

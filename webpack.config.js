@@ -1,6 +1,7 @@
 const path = require('path');
 
-module.exports = {
+module.exports =
+{
     /**
      * @see https://webpack.js.org/configuration/devtool#devtool
      */
@@ -31,11 +32,11 @@ module.exports = {
      * @see https://webpack.js.org/configuration/output/
      */
     output: {
-        chunkFilename: '[id].chunk.js',
-        filename: '[name].bundle.js',
+        chunkFilename: 'oozaru-dl-[id].js',
+        filename: 'oozaru.js',
         library: '[name]',
         libraryTarget: 'var',
-        path: path.resolve(__dirname, 'oozaru'),
+        path: __dirname,
         sourceMapFilename: '[file].map',
     },
     /**
