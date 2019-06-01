@@ -40,6 +40,7 @@ interface Job
 	jobID: number;
 	type: JobType;
 	callback: () => void;
+	cancelled: boolean,
 	priority: number;
 	recurring: boolean;
 	running: boolean;
@@ -79,6 +80,7 @@ class EventLoop
 			jobID: nextJobID,
 			type,
 			callback,
+			cancelled: false,
 			priority,
 			recurring,
 			running: false,
@@ -103,14 +105,11 @@ class EventLoop
 
 	cancelJob(jobID: number)
 	{
-		let ptr = 0;
 		for (let i = 0, len = this.jobQueue.length; i < len; ++i) {
 			const job = this.jobQueue[i];
 			if (job.jobID === jobID)
-				continue;  // delete
-			this.jobQueue[ptr++] = job;
+				job.cancelled = true;
 		}
-		this.jobQueue.length = ptr;
 	}
 
 	now()
@@ -131,14 +130,15 @@ class EventLoop
 		for (const job of this.jobQueue) {
 			if (job.type === type && !job.running && (job.recurring || job.timer-- <= 0)) {
 				job.running = true;
-				util.promiseTry(job.callback)
-					.then(() => job.running = false);
+				util.promiseTry(job.callback).then(() => {
+					job.running = false;
+				});
 			}
 		}
 		let ptr = 0;
 		for (let i = 0, len = this.jobQueue.length; i < len; ++i) {
 			const job = this.jobQueue[i];
-			if (!job.recurring && job.timer < 0)
+			if ((!job.recurring && job.timer < 0) || job.cancelled)
 				continue;  // delete
 			this.jobQueue[ptr++] = job;
 		}
