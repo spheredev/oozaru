@@ -35,7 +35,7 @@ const path = require('path');
 module.exports =
 {
     mode: 'production',
-    devtool: 'source-maps',
+    devtool: 'source-map',
 
     entry: './src/main.ts',
     module: {

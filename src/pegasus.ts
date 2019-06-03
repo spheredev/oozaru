@@ -88,6 +88,7 @@ class Pegasus extends null
 	{
 		inputEngine = input;
 		immediateVBO = new galileo.VertexBuffer();
+		fido = new Fido();
 
 		Object.defineProperty(window, 'global', {
 			writable: false,
@@ -166,7 +167,6 @@ class Pegasus extends null
 			main.default();
 		}
 
-		fido = new Fido();
 		eventLoop.addJob(JobType.Render, () => {
 			if (fido.progress >= 1.0)
 				return;
