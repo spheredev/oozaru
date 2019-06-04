@@ -33,9 +33,9 @@
 import * as version from './version';
 
 import BufferStream from './buffer-stream';
-import EventLoop, { JobType } from './event-loop';
 import Fido from './fido';
 import InputEngine, { MouseKey, Key } from './input-engine';
+import JobQueue, { JobType } from './job-queue';
 import * as audialis from './audialis';
 import * as fs from './fs';
 import * as galileo from './galileo';
@@ -71,7 +71,7 @@ interface Vertex
 }
 
 const console = window.console;
-const eventLoop = new EventLoop();
+const jobQueue = new JobQueue();
 
 let defaultFont: Font;
 let defaultShader: Shader;
@@ -167,7 +167,7 @@ class Pegasus extends null
 			main.default();
 		}
 
-		eventLoop.addJob(JobType.Render, () => {
+		jobQueue.add(JobType.Render, () => {
 			if (fido.progress >= 1.0)
 				return;
 			const status = `fido/${Math.floor(100.0 * fido.progress)}%`;
@@ -179,7 +179,7 @@ class Pegasus extends null
 		}, true, Infinity);
 
 		// start the Sphere v2 event loop
-		eventLoop.start();
+		jobQueue.start();
 
 		return game;
 	}
@@ -250,13 +250,13 @@ class Sphere extends null
 
 	static now()
 	{
-		return eventLoop.now();
+		return jobQueue.now();
 	}
 
 	static sleep(numFrames: number)
 	{
 		return new Promise(resolve => {
-			eventLoop.addJob(JobType.Update, resolve, false, numFrames);
+			jobQueue.add(JobType.Update, resolve, false, numFrames);
 		});
 	}
 
@@ -549,25 +549,25 @@ class Dispatch extends null
 
 	static later(numFrames: number, callback: () => void)
 	{
-		const jobID = eventLoop.addJob(JobType.Update, callback, false, numFrames);
+		const jobID = jobQueue.add(JobType.Update, callback, false, numFrames);
 		return new JobToken(jobID);
 	}
 
 	static now(callback: () => void)
 	{
-		const jobID = eventLoop.addJob(JobType.Immediate, callback);
+		const jobID = jobQueue.add(JobType.Immediate, callback);
 		return new JobToken(jobID);
 	}
 
 	static onRender(callback: () => void, options: JobOptions = {})
 	{
-		const jobID = eventLoop.addJob(JobType.Render, callback, true, options.priority);
+		const jobID = jobQueue.add(JobType.Render, callback, true, options.priority);
 		return new JobToken(jobID);
 	}
 
 	static onUpdate(callback: () => void, options: JobOptions = {})
 	{
-		const jobID = eventLoop.addJob(JobType.Update, callback, true, options.priority);
+		const jobID = jobQueue.add(JobType.Update, callback, true, options.priority);
 		return new JobToken(jobID);
 	}
 }
@@ -780,7 +780,7 @@ class JobToken
 
 	cancel()
 	{
-		eventLoop.cancelJob(this.jobID);
+		jobQueue.cancel(this.jobID);
 	}
 }
 

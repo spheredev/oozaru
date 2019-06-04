@@ -129,11 +129,9 @@ function isConstructor(func: Function)
 }
 
 export
-function promiseTry<T>(callback: () => T)
+function promiseTry<T>(callback: () => T | PromiseLike<T>)
 {
-	return new Promise<T>(resolve => {
-		resolve(callback());
-	});
+	return Promise.resolve(callback());
 }
 
 function toAbsoluteURL(url: string)

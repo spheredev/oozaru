@@ -33,8 +33,6 @@
 import * as galileo from './galileo';
 import * as util from './utility';
 
-let nextJobID = 1;
-
 interface Job
 {
 	jobID: number;
@@ -55,18 +53,20 @@ enum JobType
 	Update,
 }
 
+let nextJobID = 1;
+
 export default
-class EventLoop
+class JobQueue
 {
 	private frameCount = -1;
-	private jobQueue: Job[] = [];
+	private jobs: Job[] = [];
 	private rafCallback = this.animate.bind(this);
 	private rafID = 0;
 	private sortNeeded = false;
 
-	addJob(type: JobType, callback: () => void, recurring?: false, delay?: number): number;
-	addJob(type: JobType, callback: () => void, recurring: true, priority?: number): number;
-	addJob(type: JobType, callback: () => void, recurring = false, delayOrPriority = 0)
+	add(type: JobType, callback: () => void, recurring?: false, delay?: number): number;
+	add(type: JobType, callback: () => void, recurring: true, priority?: number): number;
+	add(type: JobType, callback: () => void, recurring = false, delayOrPriority = 0)
 	{
 		const timer = !recurring ? delayOrPriority : 0;
 		let priority = recurring ? delayOrPriority : 0.0;
@@ -76,7 +76,7 @@ class EventLoop
 		if (type === JobType.Render)
 			priority = -(priority);
 
-		this.jobQueue.push({
+		this.jobs.push({
 			jobID: nextJobID,
 			type,
 			callback,
@@ -90,23 +90,10 @@ class EventLoop
 		return nextJobID++;
 	}
 
-	animate(_timestamp: number)
+	cancel(jobID: number)
 	{
-		this.rafID = requestAnimationFrame(this.rafCallback);
-
-		++this.frameCount;
-		galileo.DrawTarget.Screen.activate();
-		galileo.DrawTarget.Screen.unclip();
-		galileo.Prim.clear();
-		this.runJobs(JobType.Render);
-		this.runJobs(JobType.Update);
-		this.runJobs(JobType.Immediate);
-	}
-
-	cancelJob(jobID: number)
-	{
-		for (let i = 0, len = this.jobQueue.length; i < len; ++i) {
-			const job = this.jobQueue[i];
+		for (let i = 0, len = this.jobs.length; i < len; ++i) {
+			const job = this.jobs[i];
 			if (job.jobID === jobID)
 				job.cancelled = true;
 		}
@@ -115,34 +102,6 @@ class EventLoop
 	now()
 	{
 		return Math.max(this.frameCount, 0);
-	}
-
-	runJobs(type: JobType)
-	{
-		if (this.sortNeeded) {
-			this.jobQueue.sort((a, b) => {
-				const delta = b.priority - a.priority;
-				const fifoDelta = a.jobID - b.jobID;
-				return delta !== 0 ? delta : fifoDelta;
-			});
-			this.sortNeeded = false;
-		}
-		for (const job of this.jobQueue) {
-			if (job.type === type && !job.running && (job.recurring || job.timer-- <= 0)) {
-				job.running = true;
-				util.promiseTry(job.callback).then(() => {
-					job.running = false;
-				});
-			}
-		}
-		let ptr = 0;
-		for (let i = 0, len = this.jobQueue.length; i < len; ++i) {
-			const job = this.jobQueue[i];
-			if ((!job.recurring && job.timer < 0) || job.cancelled)
-				continue;  // delete
-			this.jobQueue[ptr++] = job;
-		}
-		this.jobQueue.length = ptr;
 	}
 
 	start()
@@ -158,7 +117,48 @@ class EventLoop
 		if (this.rafID !== 0)
 			cancelAnimationFrame(this.rafID);
 		this.frameCount = 0;
-		this.jobQueue.length = 0;
+		this.jobs.length = 0;
 		this.rafID = 0;
+	}
+
+	private animate(_timestamp: number)
+	{
+		this.rafID = requestAnimationFrame(this.rafCallback);
+
+		++this.frameCount;
+		galileo.DrawTarget.Screen.activate();
+		galileo.DrawTarget.Screen.unclip();
+		galileo.Prim.clear();
+		this.runJobs(JobType.Render);
+		this.runJobs(JobType.Update);
+		this.runJobs(JobType.Immediate);
+	}
+
+	private runJobs(type: JobType)
+	{
+		if (this.sortNeeded) {
+			this.jobs.sort((a, b) => {
+				const delta = b.priority - a.priority;
+				const fifoDelta = a.jobID - b.jobID;
+				return delta !== 0 ? delta : fifoDelta;
+			});
+			this.sortNeeded = false;
+		}
+		for (const job of this.jobs) {
+			if (job.type === type && !job.running && (job.recurring || job.timer-- <= 0)) {
+				job.running = true;
+				util.promiseTry(job.callback).then(() => {
+					job.running = false;
+				});
+			}
+		}
+		let ptr = 0;
+		for (let i = 0, len = this.jobs.length; i < len; ++i) {
+			const job = this.jobs[i];
+			if ((!job.recurring && job.timer < 0) || job.cancelled)
+				continue;  // delete
+			this.jobs[ptr++] = job;
+		}
+		this.jobs.length = ptr;
 	}
 }
