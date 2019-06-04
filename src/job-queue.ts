@@ -145,7 +145,7 @@ class JobQueue
 			this.sortNeeded = false;
 		}
 		for (const job of this.jobs) {
-			if (job.type === type && !job.running && (job.recurring || job.timer-- <= 0)) {
+			if (job.type === type && !job.running && !job.cancelled && (job.recurring || job.timer-- <= 0)) {
 				job.running = true;
 				util.promiseTry(job.callback).then(() => {
 					job.running = false;

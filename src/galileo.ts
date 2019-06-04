@@ -191,12 +191,17 @@ class DrawTarget
 		const depthBuffer = gl.createRenderbuffer();
 		if (frameBuffer === null || depthBuffer === null)
 			throw new Error(`Unable to create WebGL framebuffer object`);
+
+		// save the last framebuffer binding and restore it afterwards.  Oozaru tries to minimize framebuffer switches
+		// and won't even realize it's been changed if we don't.
+		const previousFBO = gl.getParameter(gl.FRAMEBUFFER_BINDING);
 		gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
 		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
 			gl.TEXTURE_2D, texture.hwTexture, 0);
 		gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
 		gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, texture.width, texture.height);
 		gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, previousFBO);
 
 		this.clipping = { x: 0, y: 0, w: texture.width, h: texture.height };
 		this.frameBuffer = frameBuffer;
