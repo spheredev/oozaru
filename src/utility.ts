@@ -128,12 +128,6 @@ function isConstructor(func: Function)
 	}
 }
 
-export
-function promiseTry<T>(callback: () => T | PromiseLike<T>)
-{
-	return Promise.resolve(callback());
-}
-
 function toAbsoluteURL(url: string)
 {
 	const anchor = document.createElement('a');

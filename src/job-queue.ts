@@ -31,7 +31,6 @@
 **/
 
 import * as galileo from './galileo';
-import * as util from './utility';
 
 interface Job
 {
@@ -156,7 +155,7 @@ class JobQueue
 			const job = this.jobs[i];
 			if (!job.running && !job.cancelled && (job.recurring || job.timer-- <= 0)) {
 				job.running = true;
-				util.promiseTry(job.callback).then(() => {
+				Promise.resolve(job.callback()).then(() => {
 					job.running = false;
 				});
 			}

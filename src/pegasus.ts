@@ -163,7 +163,8 @@ class Pegasus extends null
 			mainObject = new main.default() as object;
 			if (typeof mainObject.start === 'function')
 				mainObject.start();
-		} else {
+		}
+		else {
 			main.default();
 		}
 
@@ -1059,9 +1060,9 @@ class SSj extends null
 
 class Shader
 {
-	fragSource?: string;
+	fragmentSource?: string;
 	program: galileo.Shader;
-	vertSource?: string;
+	vertexSource?: string;
 
 	static get Default()
 	{
@@ -1076,40 +1077,39 @@ class Shader
 
 	static async fromFiles(options: ShaderOptions)
 	{
-		const vertURL = fs.Game.urlOf(game, options.vertexFile);
-		const fragURL = fs.Game.urlOf(game, options.fragmentFile);
+		const vertexURL = fs.Game.urlOf(game, options.vertexFile);
+		const fragmentURL = fs.Game.urlOf(game, options.fragmentFile);
 		const shader = Object.create(this.prototype) as Shader;
-		const [ vertSource, fragSource ] = await Promise.all([
-			util.fetchText(vertURL),
-			util.fetchText(fragURL) ]);
-		shader.program = new galileo.Shader(vertSource, fragSource);
-		shader.vertSource = vertSource;
-		shader.fragSource = fragSource;
+		const [ vertexSource, fragmentSource ] =
+			await Promise.all([ util.fetchText(vertexURL), util.fetchText(fragmentURL) ]);
+		shader.program = new galileo.Shader(vertexSource, fragmentSource);
+		shader.vertexSource = vertexSource;
+		shader.fragmentSource = fragmentSource;
 		return shader;
 	}
 
 	constructor(options: ShaderOptions)
 	{
 		this.program = defaultShader.clone().program;
-		const vertURL = fs.Game.urlOf(game, options.vertexFile);
-		const fragURL = fs.Game.urlOf(game, options.fragmentFile);
-		Promise.all([ util.fetchText(vertURL), util.fetchText(fragURL) ])
-			.then(([ vertSource, fragSource ]) =>
+		const vertexURL = fs.Game.urlOf(game, options.vertexFile);
+		const fragmentURL = fs.Game.urlOf(game, options.fragmentFile);
+		Promise.all([ util.fetchText(vertexURL), util.fetchText(fragmentURL) ])
+			.then(([ vertexSource, fragmentSource ]) =>
 		{
-			this.vertSource = vertSource;
-			this.fragSource = fragSource;
-			this.program = new galileo.Shader(vertSource, fragSource);
+			this.vertexSource = vertexSource;
+			this.fragmentSource = fragmentSource;
+			this.program = new galileo.Shader(vertexSource, fragmentSource);
 		});
 	}
 
 	clone()
 	{
-		if (this.vertSource === undefined || this.fragSource === undefined)
-			throw new Error("Cannot clone shader before fully loaded");
+		if (this.vertexSource === undefined || this.fragmentSource === undefined)
+			throw new Error("Cannot clone shader before it's been fully loaded");
 		const dolly = Object.create(Object.getPrototypeOf(this)) as Shader;
-		dolly.vertSource = this.vertSource;
-		dolly.fragSource = this.fragSource;
-		dolly.program = new galileo.Shader(dolly.vertSource, dolly.fragSource);
+		dolly.vertexSource = this.vertexSource;
+		dolly.fragmentSource = this.fragmentSource;
+		dolly.program = new galileo.Shader(dolly.vertexSource, dolly.fragmentSource);
 		return dolly;
 	}
 
