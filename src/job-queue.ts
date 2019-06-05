@@ -48,9 +48,10 @@ interface Job
 export
 enum JobType
 {
-	Immediate,
+	// in order of execution
 	Render,
 	Update,
+	Immediate,
 }
 
 let nextJobID = 1;
@@ -60,9 +61,9 @@ class JobQueue
 {
 	private frameCount = -1;
 	private jobs: Job[] = [];
-	private rafCallback = this.animate.bind(this);
+	private rafCallback = () => this.animate();
 	private rafID = 0;
-	private sortNeeded = false;
+	private sortingNeeded = false;
 
 	add(type: JobType, callback: () => void, recurring?: false, delay?: number): number;
 	add(type: JobType, callback: () => void, recurring: true, priority?: number): number;
@@ -71,8 +72,8 @@ class JobQueue
 		const timer = !recurring ? delayOrPriority : 0;
 		let priority = recurring ? delayOrPriority : 0.0;
 
-		// note: priority is inverted for render jobs so that the highest-priority render
-		//       gets done last ("painter's algorithm").
+		// invert priority of render jobs so that the highest-priority render
+		// is done last (painter's algorithm).
 		if (type === JobType.Render)
 			priority = -(priority);
 
@@ -86,12 +87,14 @@ class JobQueue
 			running: false,
 			timer,
 		});
-		this.sortNeeded = true;
+		this.sortingNeeded = true;
 		return nextJobID++;
 	}
 
 	cancel(jobID: number)
 	{
+		// note that we can't safely delete entries from the job list here as
+		// it would interfere with the ongoing rAF callback.
 		for (let i = 0, len = this.jobs.length; i < len; ++i) {
 			const job = this.jobs[i];
 			if (job.jobID === jobID)
@@ -116,47 +119,49 @@ class JobQueue
 	{
 		if (this.rafID !== 0)
 			cancelAnimationFrame(this.rafID);
-		this.frameCount = 0;
+		this.frameCount = -1;
 		this.jobs.length = 0;
 		this.rafID = 0;
 	}
 
-	private animate(_timestamp: number)
+	private animate()
 	{
 		this.rafID = requestAnimationFrame(this.rafCallback);
 
 		++this.frameCount;
+
+		// reset clipping and clear the backbuffer
 		galileo.DrawTarget.Screen.activate();
 		galileo.DrawTarget.Screen.unclip();
 		galileo.Prim.clear();
-		this.runJobs(JobType.Render);
-		this.runJobs(JobType.Update);
-		this.runJobs(JobType.Immediate);
-	}
 
-	private runJobs(type: JobType)
-	{
-		if (this.sortNeeded) {
+		// run Dispatch jobs for this frame
+		if (this.sortingNeeded) {
+			// job queue sorting criteria, in order of key ranking:
+			// 1. all recurring jobs first, followed by all one-offs
+			// 2. renders, then updates, then immediates
+			// 3. highest to lowest priority
+			// 4. within the same priority bracket, maintain FIFO order
 			this.jobs.sort((a, b) => {
-				const delta = b.priority - a.priority;
+				const recurDelta = +b.recurring - +a.recurring;
+				const typeDelta = a.type - b.type;
+				const priorityDelta = b.priority - a.priority;
 				const fifoDelta = a.jobID - b.jobID;
-				return delta !== 0 ? delta : fifoDelta;
+				return recurDelta || typeDelta || priorityDelta || fifoDelta;
 			});
-			this.sortNeeded = false;
+			this.sortingNeeded = false;
 		}
-		for (const job of this.jobs) {
-			if (job.type === type && !job.running && !job.cancelled && (job.recurring || job.timer-- <= 0)) {
+		let ptr = 0;
+		for (let i = 0; i < this.jobs.length; ++i) {
+			const job = this.jobs[i];
+			if (!job.running && !job.cancelled && (job.recurring || job.timer-- <= 0)) {
 				job.running = true;
 				util.promiseTry(job.callback).then(() => {
 					job.running = false;
 				});
 			}
-		}
-		let ptr = 0;
-		for (let i = 0, len = this.jobs.length; i < len; ++i) {
-			const job = this.jobs[i];
-			if ((!job.recurring && job.timer < 0) || job.cancelled)
-				continue;  // delete
+			if (job.cancelled || (!job.recurring && job.timer < 0))
+				continue;  // delete it
 			this.jobs[ptr++] = job;
 		}
 		this.jobs.length = ptr;

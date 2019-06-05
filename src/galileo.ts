@@ -271,12 +271,7 @@ class DrawTarget
 
 	unclip()
 	{
-		this.clipping.x = 0;
-		this.clipping.y = 0;
-		this.clipping.w = this.width;
-		this.clipping.h = this.height;
-		if (this === activeDrawTarget)
-			gl.scissor(0, 0, this.width, this.height);
+		this.clipTo(0, 0, this.width, this.height);
 	}
 }
 
