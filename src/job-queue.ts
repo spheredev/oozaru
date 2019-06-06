@@ -40,7 +40,7 @@ interface Job
 	cancelled: boolean,
 	priority: number;
 	recurring: boolean;
-	running: boolean;
+	busy: boolean;
 	timer: number;
 }
 
@@ -71,8 +71,8 @@ class JobQueue
 		const timer = !recurring ? delayOrPriority : 0;
 		let priority = recurring ? delayOrPriority : 0.0;
 
-		// invert priority of render jobs so that the highest-priority render
-		// is done last (painter's algorithm).
+		// invert priority of render jobs so that the highest-priority render is done last
+		// (painter's algorithm).
 		if (type === JobType.Render)
 			priority = -(priority);
 
@@ -83,7 +83,7 @@ class JobQueue
 			cancelled: false,
 			priority,
 			recurring,
-			running: false,
+			busy: false,
 			timer,
 		});
 		this.sortingNeeded = true;
@@ -92,8 +92,8 @@ class JobQueue
 
 	cancel(jobID: number)
 	{
-		// note that we can't safely delete entries from the job list here as
-		// it would interfere with the ongoing rAF callback.
+		// note that we can't safely delete entries from the job list here as that might interfere
+		// with any ongoing rAF callbacks.
 		for (let i = 0, len = this.jobs.length; i < len; ++i) {
 			const job = this.jobs[i];
 			if (job.jobID === jobID)
@@ -134,7 +134,7 @@ class JobQueue
 		galileo.DrawTarget.Screen.unclip();
 		galileo.Prim.clear();
 
-		// run Dispatch jobs for this frame
+		// sort the Dispatch jobs for this frame
 		if (this.sortingNeeded) {
 			// job queue sorting criteria, in order of key ranking:
 			// 1. all recurring jobs first, followed by all one-offs
@@ -150,13 +150,24 @@ class JobQueue
 			});
 			this.sortingNeeded = false;
 		}
+
+		// this is a bit tricky.  Dispatch.now() is required to be processed in the same frame it's
+		// issued, but we also want to avoid doing updates and renders out of turn.  to that end,
+		// the loop below is split into two phases.  in phase one, we run through the sorted part of
+		// the list.  in phase two, we process all jobs added since the frame started, but skip over
+		// the update and render jobs, leaving them for the next frame.  conveniently for us,
+		// Dispatch.now() jobs are not prioritized so they're guaranteed to be in the correct order
+		// (FIFO) naturally!
 		let ptr = 0;
+		const initialLength = this.jobs.length;
 		for (let i = 0; i < this.jobs.length; ++i) {
 			const job = this.jobs[i];
-			if (!job.running && !job.cancelled && (job.recurring || job.timer-- <= 0)) {
-				job.running = true;
+			if ((i < initialLength || job.type === JobType.Immediate)
+				&& !job.busy && !job.cancelled && (job.recurring || job.timer-- <= 0))
+			{
+				job.busy = true;
 				Promise.resolve(job.callback()).then(() => {
-					job.running = false;
+					job.busy = false;
 				});
 			}
 			if (job.cancelled || (!job.recurring && job.timer < 0))

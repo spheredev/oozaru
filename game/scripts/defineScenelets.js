@@ -340,7 +340,7 @@ Scene.defineOp('talk', {
 	getInput(scene) {
 		if (this.mode != "idle")
 			return;
-		if ((Keyboard.Default.isPressed(Key.Z) || Joystick.P1.isPressed(0))
+		if ((Keyboard.Default.isPressed(Key.Z) || Joystick.P1.isPressed(0) || Mouse.Default.isPressed(MouseKey.Left))
 			&& this.timeout == Infinity)
 		{
 			if (this.topLine + 3 >= this.text[this.currentPage].length) {
