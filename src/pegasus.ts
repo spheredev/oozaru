@@ -1019,6 +1019,11 @@ class Mouse
 		return mouse;
 	}
 
+	get position()
+	{
+		return [ inputEngine.mouseX, inputEngine.mouseY ];
+	}
+
 	get x()
 	{
 		return inputEngine.mouseX;

@@ -307,7 +307,7 @@ class InputEngine
 	getMouseEvent()
 	{
 		const event = this.mouseQueue.pop();
-		return event !== undefined ? event : null;
+		return event !== undefined ? event : { key: null };
 	}
 
 	isKeyDown(key: Key)
