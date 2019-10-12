@@ -52,6 +52,7 @@ async function main()
 		let game;
 		try {
 			game = await Pegasus.launchGame('./game/');
+			document.body.style.backgroundColor = '#000';
 			headingDiv.innerHTML = `
 				<tt><i>${game.title}</i> by <b>${game.author}</b></tt><br>
 				<tt>- <b>${version.name} ${version.version}</b> implementing <b>API v${version.apiVersion} level ${version.apiLevel}</b></tt><br>
@@ -63,7 +64,8 @@ async function main()
 			`;
 		}
 		catch (e) {
-			headingDiv.innerHTML = `<font color=#C88><tt>Unable to load Sphere game.  Check the console for more info.</tt></font>`;
+			const msg = e.stack.replace(/\r?\n/g, '<br>');
+			headingDiv.innerHTML = `<font color=#C88><tt>Unable to load Sphere game.  Check the console for more info.<br><br>${msg}</tt></font>`;
 			throw e;
 		}
 	};
