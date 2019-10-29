@@ -30,7 +30,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import * as galileo from './galileo';
+import * as galileo from './galileo.js';
 
 interface Job
 {

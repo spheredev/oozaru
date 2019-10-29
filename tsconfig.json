@@ -4,7 +4,7 @@
         "target": "es2015",
         "module": "es2015",
         "lib": [ "es2015", "dom" ],
-        "outDir": "dist",
+        "outDir": "engine",
         "noEmitOnError": false,
         "noImplicitAny": true,
         "noImplicitReturns": true,

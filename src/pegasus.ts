@@ -30,16 +30,16 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import * as version from './version';
+import * as version from './version.js';
 
-import BufferStream from './buffer-stream';
-import Fido from './fido';
-import InputEngine, { MouseKey, Key } from './input-engine';
-import JobQueue, { JobType } from './job-queue';
-import * as audialis from './audialis';
-import * as fs from './fs';
-import * as galileo from './galileo';
-import * as util from './utility';
+import BufferStream from './buffer-stream.js';
+import Fido from './fido.js';
+import InputEngine, { MouseKey, Key } from './input-engine.js';
+import JobQueue, { JobType } from './job-queue.js';
+import * as audialis from './audialis.js';
+import * as fs from './fs.js';
+import * as galileo from './galileo.js';
+import * as util from './utility.js';
 
 enum FileOp
 {

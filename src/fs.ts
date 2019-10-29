@@ -30,7 +30,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import * as util from './utility'
+import * as util from './utility.js'
 
 export
 class Game

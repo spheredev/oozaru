@@ -1,6 +1,6 @@
 node_modules/
 .DS_STORE
 
-dist/
+engine/
 oozaru.js
 oozaru.js.map

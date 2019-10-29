@@ -30,9 +30,9 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import Deque from './deque';
-import preFIX from './prefix';
-import * as util from './utility';
+import Deque from './deque.js';
+import preFIX from './prefix.js';
+import * as util from './utility.js';
 
 // @ts-ignore: TS doesn't define AudioContext on Window
 const AudioContext = preFIX('AudioContext');
