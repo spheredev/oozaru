@@ -232,16 +232,12 @@ class DrawTarget
 
 	get height()
 	{
-		return this.texture !== null
-			? this.texture.height
-			: screenCanvas.height;
+		return this.texture?.height ?? screenCanvas.height;
 	}
 
 	get width()
 	{
-		return this.texture !== null
-			? this.texture.width
-			: screenCanvas.width;
+		return this.texture?.width ?? screenCanvas.width;
 	}
 
 	activate()

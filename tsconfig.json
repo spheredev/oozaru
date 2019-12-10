@@ -1,23 +1,21 @@
 {
     "compileOnSave" : true,
+
     "compilerOptions": {
-        "target": "es2015",
-        "module": "es2015",
-        "lib": [ "es2015", "dom" ],
+        "target": "es2017",
+        "lib": [ "es2017", "dom" ],
+        "module": "es6",
+
         "outDir": "engine",
-        "noEmitOnError": false,
-        "noImplicitAny": true,
-        "noImplicitReturns": true,
-        "noImplicitThis": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
+
+        "noEmitOnError": true,
         "removeComments": true,
+        "strict": true,
         "sourceMap": true,
-        "strictFunctionTypes": true,
-        "strictNullChecks": true,
-        "strictPropertyInitialization": true,
+        "useDefineForClassFields": true
     },
+
     "exclude": [
         "game/*",
-    ],
+    ]
 }
