@@ -31,13 +31,14 @@
 **/
 
 import * as galileo from './galileo.js';
+import { Awaitable } from './types.js';
 
 interface Job
 {
 	jobID: number;
 	type: JobType;
-	callback: () => void;
-	cancelled: boolean,
+	callback: () => Awaitable<void>;
+	cancelled: boolean;
 	priority: number;
 	recurring: boolean;
 	busy: boolean;
@@ -64,9 +65,9 @@ class JobQueue
 	private rafID = 0;
 	private sortingNeeded = false;
 
-	add(type: JobType, callback: () => void, recurring?: false, delay?: number): number;
-	add(type: JobType, callback: () => void, recurring: true, priority?: number): number;
-	add(type: JobType, callback: () => void, recurring = false, delayOrPriority = 0)
+	add(type: JobType, callback: () => Awaitable<void>, recurring?: false, delay?: number): number;
+	add(type: JobType, callback: () => Awaitable<void>, recurring: true, priority?: number): number;
+	add(type: JobType, callback: () => Awaitable<void>, recurring = false, delayOrPriority = 0)
 	{
 		const timer = !recurring ? delayOrPriority : 0;
 		let priority = recurring ? delayOrPriority : 0.0;

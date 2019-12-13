@@ -45,7 +45,7 @@ interface Glyph
 let activeDrawTarget: DrawTarget | null = null;
 let activeShader: Shader | null = null;
 let gl: WebGLRenderingContext;
-let screenCanvas: HTMLCanvasElement;
+let screen: HTMLCanvasElement;
 
 export
 enum BlendOp
@@ -136,7 +136,7 @@ class Galileo extends null
 		webGL.enable(webGL.SCISSOR_TEST);
 
 		gl = webGL;
-		screenCanvas = canvas;
+		screen = canvas;
 
 		DrawTarget.Screen.activate();
 	}
@@ -172,7 +172,7 @@ class DrawTarget
 	{
 		const surface = Object.create(DrawTarget.prototype) as DrawTarget;
 		surface.blendOp_ = BlendOp.Default;
-		surface.clipping = { x: 0, y: 0, w: screenCanvas.width, h: screenCanvas.height };
+		surface.clipping = { x: 0, y: 0, w: screen.width, h: screen.height };
 		surface.depthOp_ = DepthOp.LessOrEqual;
 		surface.frameBuffer = null;
 		surface.texture = null;
@@ -232,12 +232,12 @@ class DrawTarget
 
 	get height()
 	{
-		return this.texture?.height ?? screenCanvas.height;
+		return this.texture?.height ?? screen.height;
 	}
 
 	get width()
 	{
-		return this.texture?.width ?? screenCanvas.width;
+		return this.texture?.width ?? screen.width;
 	}
 
 	activate()
@@ -248,7 +248,7 @@ class DrawTarget
 		if (this.texture !== null)
 			gl.viewport(0, 0, this.texture.width, this.texture.height);
 		else
-			gl.viewport(0, 0, screenCanvas.width, screenCanvas.height);
+			gl.viewport(0, 0, screen.width, screen.height);
 		gl.scissor(this.clipping.x, this.clipping.y, this.clipping.w, this.clipping.h);
 		applyBlendOp(this.blendOp_);
 		applyDepthOp(this.depthOp_);
@@ -777,18 +777,18 @@ class Prim extends null
 
 	static rerez(width: number, height: number)
 	{
-		screenCanvas.width = width;
-		screenCanvas.height = height;
+		screen.width = width;
+		screen.height = height;
 		if (width <= 400 && height <= 300) {
-			screenCanvas.style.width = `${width * 2}px`;
-			screenCanvas.style.height = `${height * 2}px`;
+			screen.style.width = `${width * 2}px`;
+			screen.style.height = `${height * 2}px`;
 		}
 		else {
-			screenCanvas.style.width = `${width}px`;
-			screenCanvas.style.height = `${height}px`;
+			screen.style.width = `${width}px`;
+			screen.style.height = `${height}px`;
 		}
 		if (activeDrawTarget === DrawTarget.Screen)
-			gl.viewport(0, 0, screenCanvas.width, screenCanvas.height);
+			gl.viewport(0, 0, screen.width, screen.height);
 	}
 }
 
