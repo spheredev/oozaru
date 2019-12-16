@@ -1,6 +1,5 @@
 node_modules/
 .DS_STORE
 
-engine/
-oozaru.js
-oozaru.js.map
+web/game/
+web/scripts/

@@ -51,7 +51,7 @@ async function main()
 		await Pegasus.initialize(inputEngine);
 		let game;
 		try {
-			game = await Pegasus.launchGame('./game/');
+			game = await Pegasus.launchGame('game');
 			document.body.style.backgroundColor = '#000';
 			headingDiv.innerHTML = `
 				<tt><i>${game.title}</i> by <b>${game.author}</b></tt><br>

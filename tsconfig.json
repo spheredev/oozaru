@@ -6,12 +6,12 @@
         "lib": [ "es2017", "dom" ],
         "module": "es6",
 
-        "outDir": "engine",
+        "outDir": "web/scripts",
 
         "noEmitOnError": true,
         "removeComments": true,
-        "strict": true,
         "sourceMap": true,
+        "strict": true,
         "useDefineForClassFields": true
     },
 
