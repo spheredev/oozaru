@@ -30,6 +30,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
+import { reportException } from "./main.js";
 import * as galileo from './galileo.js';
 import { Awaitable } from './types.js';
 
@@ -167,9 +168,15 @@ class JobQueue
 				&& !job.busy && !job.cancelled && (job.recurring || job.timer-- <= 0))
 			{
 				job.busy = true;
-				Promise.resolve(job.callback()).then(() => {
-					job.busy = false;
-				});
+				(async () => job.callback())()
+					.then(() => {
+						job.busy = false;
+					})
+					.catch(exception => {
+						reportException(exception);
+						cancelAnimationFrame(this.rafID);
+						this.rafID = 0;
+					});
 			}
 			if (job.cancelled || (!job.recurring && job.timer < 0))
 				continue;  // delete it

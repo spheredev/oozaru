@@ -64,9 +64,20 @@ async function main()
 			`;
 		}
 		catch (e) {
-			const msg = e.stack.replace(/\r?\n/g, '<br>');
-			headingDiv.innerHTML = `<font color=#C88><tt>Unable to load Sphere game.  Check the console for more info.<br><br>${msg}</tt></font>`;
-			throw e;
+			reportException(e);
 		}
 	};
+}
+
+export
+async function reportException(exception: unknown)
+{
+	let msg;
+	if (exception instanceof Error && exception.stack !== undefined)
+		msg = exception.stack.replace(/\r?\n/g, '<br>');
+	else
+		msg = String(exception);
+	const headingDiv = document.getElementById('prompt') as HTMLDivElement;
+	headingDiv.innerHTML = `<font color=#C88><tt>Uncaught JavaScript exception!<br><pre>${msg}</pre></tt></font>`;
+	console.error(exception);
 }
