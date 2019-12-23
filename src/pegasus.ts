@@ -870,9 +870,17 @@ class Keyboard
 	charOf(key: Key, shifted = false): string
 	{
 		return key === Key.Space ? " "
+			: key === Key.Apostrophe ? shifted ? "\"" : "'"
 			: key === Key.Backslash ? shifted ? "|" : "\\"
+			: key === Key.Comma ? shifted ? "<" : ","
+			: key === Key.CloseBrace ? shifted ? "}" : "]"
+			: key === Key.Equals ? shifted ? "+" : "="
+			: key === Key.Hyphen ? shifted ? "_" : "-"
+			: key === Key.OpenBrace ? shifted ? "{" : "["
 			: key === Key.Period ? shifted ? ">" : "."
+			: key === Key.Semicolon ? shifted ? ":" : ";"
 			: key === Key.Slash ? shifted ? "?" : "/"
+			: key === Key.Tab ? "\t"
 			: key === Key.Tilde ? shifted ? "~" : "`"
 			: key === Key.D0 ? shifted ? ")" : "0"
 			: key === Key.D1 ? shifted ? "!" : "1"
