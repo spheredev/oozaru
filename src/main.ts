@@ -52,15 +52,14 @@ async function main()
 		let game;
 		try {
 			game = await Pegasus.launchGame('game');
-			document.body.style.backgroundColor = '#000';
 			headingDiv.innerHTML = `
-				<tt><i>${game.title}</i> by <b>${game.author}</b></tt><br>
-				<tt>- <b>${version.name} ${version.version}</b> implementing <b>API v${version.apiVersion} level ${version.apiLevel}</b></tt><br>
-				<tt>- game was built using <b>${game.compiler}</b></tt><br>
-				<tt>- backbuffer resolution is <b>${game.resolution.x}x${game.resolution.y}</b></tt><br>
-				<br>
-				<tt><b>About this Game:</b></tt><br>
-				<tt>${game.summary}</tt>
+				<b><i>${game.title}</i></b> by <b>${game.author}</b><br><br>
+				${game.summary}<br>
+				<ul>
+					<li><b>${version.name} ${version.version}</b> implementing <b>API v${version.apiVersion} level ${version.apiLevel}</b></li>
+					<li>compiler used was <b>${game.compiler}</b>.</li>
+					<li>backbuffer resolution is <b>${game.resolution.x}x${game.resolution.y}</b>.</li>
+				</ul>
 			`;
 		}
 		catch (e) {

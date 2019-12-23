@@ -11,23 +11,21 @@
 		}</script>
 		<script type="module" src="scripts/main.js"></script>
 	</head>
-	<body style="color:#888; background-color:#111">
+	<body style="font-family: system-ui; color: #888; background-color: #111">
 		<br>
 		<center>
-			<table cellpadding=20 width=75%>
+			<table style="border-radius: 1em; color: #AAC; background-color: #113" cellpadding=20>
 				<tr valign=top>
 					<td>
 						<canvas id="screen" width=320 height=240 tabindex=1 style="border:1px solid #000; image-rendering: pixelated"></canvas>
 					</td>
-					<td width=100%>
-						<a href="./index.html"><img src="./logo.svg" width=64 height=64></a><br>
-						<font size=+3><b>Oozaru</b> JavaScript game engine</font><br>
+					<td width=400>
+						<a href="index.html"><img src="logo.svg" width=64 height=64></a><br><br>
+						<font size=+3><b>Oozaru</b>: JS game engine</font><br>
 						<font size=-1>Sphere for the Web - &copy; 2016-2019 Fat Cerberus</font><br>
 						<div id="game_info"></div><br>
 						<div id="prompt">
-							<tt>
-								Click on the canvas to launch a Sphere game for testing.
-							</tt>
+							Click on the canvas to launch the engine and start playing.
 						</div><br><br>
 						<button onclick='window.location.reload(true)'>turn it off and on again</button>
 					</td>
