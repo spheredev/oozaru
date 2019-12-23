@@ -56,7 +56,7 @@ async function main()
 			headingDiv.innerHTML = `
 				<tt><i>${game.title}</i> by <b>${game.author}</b></tt><br>
 				<tt>- <b>${version.name} ${version.version}</b> implementing <b>API v${version.apiVersion} level ${version.apiLevel}</b></tt><br>
-				<tt>- game compiled with <b>${game.compiler}</b></tt><br>
+				<tt>- game was built using <b>${game.compiler}</b></tt><br>
 				<tt>- backbuffer resolution is <b>${game.resolution.x}x${game.resolution.y}</b></tt><br>
 				<br>
 				<tt><b>About this Game:</b></tt><br>

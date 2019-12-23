@@ -174,8 +174,8 @@ class JobQueue
 					})
 					.catch(exception => {
 						reportException(exception);
-						cancelAnimationFrame(this.rafID);
-						this.rafID = 0;
+						this.jobs.length = 0;
+						return;
 					});
 			}
 			if (job.cancelled || (!job.recurring && job.timer < 0))
