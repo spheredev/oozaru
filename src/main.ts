@@ -46,15 +46,18 @@ async function main()
 	await Galileo.initialize(mainCanvas);
 	mainCanvas.onclick = async () => {
 		mainCanvas.onclick = null;
-		const headingDiv = document.getElementById('prompt') as HTMLDivElement;
-		headingDiv.innerHTML = `<tt><i>loading...</i></tt>`;
+		const readout = document.getElementById('readout') as HTMLDivElement;
+		readout.innerHTML = `<p>loading...</p>`;
 		await Pegasus.initialize(inputEngine);
 		let game;
 		try {
 			game = await Pegasus.launchGame('game');
-			headingDiv.innerHTML = `
-				<b><i>${game.title}</i></b> by <b>${game.author}</b><br><br>
-				${game.summary}<br>
+			readout.innerHTML = `
+				<p>
+					<strong><cite>${game.title}</cite></strong><br>
+					by <strong>${game.author}</strong><br>
+				</p>
+				<p>${game.summary}</p>
 				<ul>
 					<li><b>${version.name} ${version.version}</b> implementing <b>API v${version.apiVersion} level ${version.apiLevel}</b></li>
 					<li>compiler used was <b>${game.compiler}</b>.</li>
@@ -76,7 +79,7 @@ async function reportException(exception: unknown)
 		msg = exception.stack.replace(/\r?\n/g, '<br>');
 	else
 		msg = String(exception);
-	const headingDiv = document.getElementById('prompt') as HTMLDivElement;
+	const headingDiv = document.getElementById('readout') as HTMLDivElement;
 	headingDiv.innerHTML = `<font color=#C88><tt>Uncaught JavaScript exception!<br><pre>${msg}</pre></tt></font>`;
 	console.error(exception);
 }

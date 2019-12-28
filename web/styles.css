@@ -1,0 +1,43 @@
+body {
+    align-items: center;
+    background-color: #120;
+    color: #CC7;
+    display: flex;
+    flex-direction: column;
+    font-family: monospace;
+    font-size: 11pt;
+    height: 100vh;
+    justify-items: center;
+    margin: 0;
+    text-align: center;
+}
+
+#flow {
+    align-items: center;
+    background-color: #224;
+    border-radius: 2rem;
+    box-shadow: 4pt 4pt 8pt #000;
+    color: #CCF;
+    display: inline-flex;
+    flex-direction: row;
+    margin: auto;
+    padding: 1rem;
+}
+
+#flow > canvas {
+    border: 1px solid #000;
+    flex: none;
+    image-rendering: pixelated;
+    max-width: unset;
+}
+
+#flow > * {
+    margin: 1rem;
+    max-width: 350px;
+}
+
+#readout > ul {
+    list-style-position: inside;
+    margin: 0;
+    padding: 0;
+}

@@ -2,6 +2,7 @@
 <html>
 	<head> <meta charset="utf-8">
 		<title>Oozaru: Sphere for the Web</title>
+		<link rel="stylesheet" href="styles.css">
 		<script type="importmap">{
             "imports": {
                 "sphere-runtime": "./runtime/sphere-runtime.js",
@@ -11,26 +12,18 @@
 		}</script>
 		<script type="module" src="scripts/main.js"></script>
 	</head>
-	<body style="font-family: system-ui; color: #888; background-color: #111">
-		<br>
-		<center>
-			<table style="border-radius: 1em; color: #AAC; background-color: #113" cellpadding=20>
-				<tr valign=top>
-					<td>
-						<canvas id="screen" width=320 height=240 tabindex=1 style="border:1px solid #000; image-rendering: pixelated"></canvas>
-					</td>
-					<td width=400>
-						<a href="index.html"><img src="logo.svg" width=64 height=64></a><br><br>
-						<font size=+3><b>Oozaru</b>: JS game engine</font><br>
-						<font size=-1>Sphere for the Web - &copy; 2016-2019 Fat Cerberus</font><br>
-						<div id="game_info"></div><br>
-						<div id="prompt">
-							Click on the canvas to launch the engine and start playing.
-						</div><br><br>
-						<button onclick='window.location.reload(true)'>turn it off and on again</button>
-					</td>
-				</tr>
-			</table>
-		</center>
+	<body>
+		<div id="flow">
+			<canvas id="screen" width=320 height=240 tabindex=0></canvas>
+			<div>
+				<a href="index.html"><img src="logo.svg"></a>
+				<p>
+					<b>Oozaru</b>: JavaScript game engine
+					<br>
+					&copy; 2016-2019 Fat Cerberus
+				</p>
+				<div id="readout"></div>
+			</div>
+		</div>
 	</body>
 </html>
