@@ -162,10 +162,10 @@ class Pegasus extends null
 		if (util.isConstructor(main.default)) {
 			mainObject = new main.default() as object;
 			if (typeof mainObject.start === 'function')
-				mainObject.start();
+				await mainObject.start();
 		}
 		else {
-			main.default();
+			await main.default();
 		}
 
 		jobQueue.add(JobType.Render, () => {

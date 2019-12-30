@@ -9,7 +9,7 @@
 			"request": "launch",
 			"name": "Run in Google Chrome",
 			"url": "http://localhost:5500",
-			"webRoot": "${workspaceFolder}"
+			"webRoot": "${workspaceFolder}/web"
 		}
 	]
 }

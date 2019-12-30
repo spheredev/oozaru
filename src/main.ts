@@ -55,7 +55,7 @@ async function main()
 			readout.innerHTML = `
 				<p>
 					<strong><cite>${game.title}</cite></strong><br>
-					by <strong>${game.author}</strong><br>
+					by: <strong>${game.author}</strong><br>
 				</p>
 				<p>${game.summary}</p>
 				<ul>
@@ -80,6 +80,6 @@ async function reportException(exception: unknown)
 	else
 		msg = String(exception);
 	const headingDiv = document.getElementById('readout') as HTMLDivElement;
-	headingDiv.innerHTML = `<font color=#C88><tt>Uncaught JavaScript exception!<br><pre>${msg}</pre></tt></font>`;
+	headingDiv.innerHTML = `<p>uncaught JavaScript exception!<br><pre>${msg}</pre><p>`;
 	console.error(exception);
 }

@@ -16,7 +16,7 @@ body {
     align-items: center;
     background-color: #224;
     border-radius: 2rem;
-    box-shadow: 4pt 4pt 8pt #000;
+    box-shadow: 4pt 4pt 8pt #000, -4pt -4pt 8pt #000;
     color: #CCF;
     display: inline-flex;
     flex-direction: row;
@@ -24,20 +24,34 @@ body {
     padding: 1rem;
 }
 
-#flow > canvas {
+#flow > * {
+    margin: 1rem;
+}
+
+#flow canvas {
     border: 1px solid #000;
     flex: none;
     image-rendering: pixelated;
     max-width: unset;
 }
 
-#flow > * {
-    margin: 1rem;
-    max-width: 350px;
+#flow hr {
+    background-color: #448;
+    border-color: #336;
+    width: 75%;
 }
 
-#readout > ul {
+#flow pre {
+    border: 1px solid #448;
+    overflow: auto;
+    padding: 1em;
+}
+
+#flow ul {
     list-style-position: inside;
-    margin: 0;
     padding: 0;
+}
+
+#info {
+    max-width: 350px;
 }
