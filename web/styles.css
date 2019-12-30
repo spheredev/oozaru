@@ -42,9 +42,12 @@ body {
 }
 
 #flow pre {
-    border: 1px solid #448;
+    background-color: #300;
+    border: 1px solid #700;
+    box-shadow: 4px 4px 8px #200, -4px -4px 8px #200;
     overflow: auto;
     padding: 1em;
+    color: #FCC;
 }
 
 #flow ul {
