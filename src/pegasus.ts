@@ -144,6 +144,9 @@ class Pegasus extends null
 
 	static async launchGame(directoryURL: string)
 	{
+		const readout = document.getElementById('readout') as HTMLDivElement;
+		readout.innerHTML = `<p>loading...</p>`;
+
 		// load the game's JSON manifest
 		game = await fs.Game.fromDirectory(directoryURL);
 		galileo.Prim.rerez(game.resolution.x, game.resolution.y);
@@ -154,6 +157,33 @@ class Pegasus extends null
 			vertexFile: '#/default.vert.glsl',
 			fragmentFile: '#/default.frag.glsl',
 		});
+
+		jobQueue.add(JobType.Render, () => {
+			if (fido.progress >= 1.0)
+				return;
+			const status = `fido/${Math.floor(100.0 * fido.progress)}%`;
+			const textSize = defaultFont.getTextSize(status);
+			const x = Surface.Screen.width - textSize.width - 5;
+			const y = Surface.Screen.height - textSize.height - 5;
+			defaultFont.drawText(Surface.Screen, x + 1, y + 1, status, Color.Black);
+			defaultFont.drawText(Surface.Screen, x, y, status, Color.Silver);
+		}, true, Infinity);
+
+		readout.innerHTML = `
+			<p>
+				<strong><cite>${game.title}</cite></strong><br>
+				by: <strong>${game.author}</strong><br>
+			</p>
+			<p>${game.summary}</p>
+			<ul>
+				<li><b>${version.name} ${version.version}</b> implementing <b>API v${version.apiVersion} level ${version.apiLevel}</b></li>
+				<li>compiler used was <b>${game.compiler}</b>.</li>
+				<li>backbuffer resolution is <b>${game.resolution.x}x${game.resolution.y}</b>.</li>
+			</ul>
+		`;
+
+		// start the Sphere v2 event loop
+		jobQueue.start();
 
 		// load and execute the game's main module.  if it exports a startup
 		// function or class, call it.
@@ -167,20 +197,6 @@ class Pegasus extends null
 		else {
 			await main.default();
 		}
-
-		jobQueue.add(JobType.Render, () => {
-			if (fido.progress >= 1.0)
-				return;
-			const status = `fido/${Math.floor(100.0 * fido.progress)}%`;
-			const textSize = defaultFont.getTextSize(status);
-			const x = Surface.Screen.width - textSize.width - 5;
-			const y = Surface.Screen.height - textSize.height - 5;
-			defaultFont.drawText(Surface.Screen, x + 1, y + 1, status, Color.Black);
-			defaultFont.drawText(Surface.Screen, x, y, status, Color.Silver);
-		}, true, Infinity);
-
-		// start the Sphere v2 event loop
-		jobQueue.start();
 
 		return game;
 	}

@@ -46,24 +46,9 @@ async function main()
 	await Galileo.initialize(mainCanvas);
 	mainCanvas.onclick = async () => {
 		mainCanvas.onclick = null;
-		const readout = document.getElementById('readout') as HTMLDivElement;
-		readout.innerHTML = `<p>loading...</p>`;
-		await Pegasus.initialize(inputEngine);
-		let game;
 		try {
-			game = await Pegasus.launchGame('game');
-			readout.innerHTML = `
-				<p>
-					<strong><cite>${game.title}</cite></strong><br>
-					by: <strong>${game.author}</strong><br>
-				</p>
-				<p>${game.summary}</p>
-				<ul>
-					<li><b>${version.name} ${version.version}</b> implementing <b>API v${version.apiVersion} level ${version.apiLevel}</b></li>
-					<li>compiler used was <b>${game.compiler}</b>.</li>
-					<li>backbuffer resolution is <b>${game.resolution.x}x${game.resolution.y}</b>.</li>
-				</ul>
-			`;
+			await Pegasus.initialize(inputEngine);
+			await Pegasus.launchGame('game');
 		}
 		catch (e) {
 			reportException(e);

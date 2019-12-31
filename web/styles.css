@@ -4,8 +4,8 @@ body {
     color: #CC7;
     display: flex;
     flex-direction: column;
-    font-family: monospace;
-    font-size: 11pt;
+    font-family: system-ui;
+    font-size: 12pt;
     height: 100vh;
     justify-items: center;
     margin: 0;
@@ -38,7 +38,7 @@ body {
 #flow hr {
     background-color: #448;
     border-color: #336;
-    width: 75%;
+    width: 100%;
 }
 
 #flow pre {
@@ -56,5 +56,5 @@ body {
 }
 
 #info {
-    max-width: 350px;
+    width: 350px;
 }
