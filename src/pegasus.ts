@@ -1,6 +1,6 @@
 /*
  *  Oozaru JavaScript game engine
- *  Copyright (c) 2015-2019, Fat Cerberus
+ *  Copyright (c) 2015-2020, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -169,6 +169,9 @@ class Pegasus extends null
 			defaultFont.drawText(Surface.Screen, x, y, status, Color.Silver);
 		}, true, Infinity);
 
+		// start the Sphere v2 event loop
+		jobQueue.start();
+
 		readout.innerHTML = `
 			<p>
 				<strong><cite>${game.title}</cite></strong><br>
@@ -181,9 +184,6 @@ class Pegasus extends null
 				<li>backbuffer resolution is <b>${game.resolution.x}x${game.resolution.y}</b>.</li>
 			</ul>
 		`;
-
-		// start the Sphere v2 event loop
-		jobQueue.start();
 
 		// load and execute the game's main module.  if it exports a startup
 		// function or class, call it.

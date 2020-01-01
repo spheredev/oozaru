@@ -1,6 +1,6 @@
 /**
  *  Oozaru JavaScript game engine
- *  Copyright (c) 2015-2019, Fat Cerberus
+ *  Copyright (c) 2015-2020, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,7 @@ async function main()
 	mainCanvas.onclick = async () => {
 		mainCanvas.onclick = null;
 		try {
-			await Pegasus.initialize(inputEngine);
+			Pegasus.initialize(inputEngine);
 			await Pegasus.launchGame('game');
 		}
 		catch (e) {
