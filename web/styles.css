@@ -4,8 +4,8 @@ body {
     color: #CC7;
     display: flex;
     flex-direction: column;
-    font-family: system-ui;
-    font-size: 12pt;
+    font-family: monospace;
+    font-size: 11pt;
     height: 100vh;
     justify-items: center;
     margin: 0;
@@ -18,7 +18,7 @@ body {
     border-radius: 2rem;
     box-shadow: 4pt 4pt 8pt #000, -4pt -4pt 8pt #000;
     color: #CCF;
-    display: inline-flex;
+    display: flex;
     flex-direction: row;
     margin: auto;
     padding: 1rem;

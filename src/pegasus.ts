@@ -180,8 +180,8 @@ class Pegasus extends null
 			<p>${game.summary}</p>
 			<ul>
 				<li><b>${version.name} ${version.version}</b> implementing <b>API v${version.apiVersion} level ${version.apiLevel}</b></li>
-				<li>compiler used was <b>${game.compiler}</b>.</li>
-				<li>backbuffer resolution is <b>${game.resolution.x}x${game.resolution.y}</b>.</li>
+				<li>game built using <b>${game.compiler}</b></li>
+				<li>backbuffer resolution is <b>${game.resolution.x}x${game.resolution.y}</b></li>
 			</ul>
 		`;
 
