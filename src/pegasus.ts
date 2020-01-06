@@ -1409,6 +1409,7 @@ class SoundStream
 
 class Texture
 {
+	hasLoaded = false;
 	texture: galileo.Texture;
 
 	static async fromFile(fileName: string)
@@ -1428,27 +1429,34 @@ class Texture
 			const url = fs.Game.urlOf(game, args[0]);
 			fido.fetchImage(url).then((image) => {
 				this.texture = new galileo.Texture(image);
+				this.hasLoaded = true;
 			});
 		}
 		else if (args[0] instanceof HTMLImageElement) {
 			const image = args[0];
 			this.texture = new galileo.Texture(image);
+			this.hasLoaded = true;
 		}
 		else {
 			const width: number = args[0];
 			const height: number = args[1];
 			const content: ArrayBufferView | Color | undefined = args[2];
 			this.texture = new galileo.Texture(width, height, content);
+			this.hasLoaded = true;
 		}
 	}
 
 	get height()
 	{
+		if (!this.hasLoaded)
+			throw new RangeError("Cannot get 'height' of not-yet-loaded Texture");
 		return this.texture.height;
 	}
 
 	get width()
 	{
+		if (!this.hasLoaded)
+			throw new RangeError("Cannot get 'width' of not-yet-loaded Texture");
 		return this.texture.width;
 	}
 }
