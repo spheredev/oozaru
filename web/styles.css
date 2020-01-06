@@ -45,9 +45,10 @@ body {
     background-color: #300;
     border: 1px solid #700;
     box-shadow: 4px 4px 8px #200, -4px -4px 8px #200;
+    color: #FCC;
     overflow: auto;
     padding: 1em;
-    color: #FCC;
+    white-space: pre-wrap;
 }
 
 #flow ul {
