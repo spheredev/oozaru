@@ -173,9 +173,8 @@ class JobQueue
 						job.busy = false;
 					})
 					.catch(exception => {
-						reportException(exception);
 						this.jobs.length = 0;
-						return;
+						throw exception;
 					});
 			}
 			if (job.cancelled || (!job.recurring && job.timer < 0))

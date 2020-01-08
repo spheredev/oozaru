@@ -36,23 +36,27 @@ import Galileo from './galileo.js';
 import InputEngine from './input-engine.js';
 import Pegasus from './pegasus.js';
 
-const mainCanvas = document.getElementById('screen') as HTMLCanvasElement;
-const inputEngine = new InputEngine(mainCanvas);
-
 main();
-
 async function main()
 {
-	await Galileo.initialize(mainCanvas);
-	mainCanvas.onclick = async () => {
-		mainCanvas.onclick = null;
-		try {
-			Pegasus.initialize(inputEngine);
-			await Pegasus.launchGame('game');
-		}
-		catch (e) {
-			reportException(e);
-		}
+	// use event handling to intercept errors originating inside the Sphere sandbox, rather than a
+	// try-catch.  otherwise the debugger thinks the error is handled and doesn't do a breakpoint,
+	// making diagnosing bugs in the engine harder than necessary.
+	window.addEventListener('error', e => {
+		reportException(e.error);
+	});
+	window.addEventListener('unhandledrejection', e => {
+		reportException(e.reason);
+	});
+
+	const canvas = document.getElementById('screen') as HTMLCanvasElement;
+	const inputEngine = new InputEngine(canvas);
+	await Galileo.initialize(canvas);
+
+	canvas.onclick = async () => {
+		canvas.onclick = null;
+		Pegasus.initialize(inputEngine);
+		await Pegasus.launchGame('game');
 	};
 }
 
@@ -65,6 +69,5 @@ async function reportException(exception: unknown)
 	else
 		msg = String(exception);
 	const headingDiv = document.getElementById('readout') as HTMLDivElement;
-	headingDiv.innerHTML = `<p>uncaught JavaScript exception!<br><pre>${msg}</pre><p>`;
-	console.error(exception);
+	headingDiv.innerHTML = `<pre>${msg}</pre>`;
 }

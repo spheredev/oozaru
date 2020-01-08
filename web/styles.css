@@ -48,7 +48,6 @@ body {
     color: #FCC;
     overflow: auto;
     padding: 1em;
-    white-space: pre-wrap;
 }
 
 #flow ul {
