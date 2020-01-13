@@ -1448,15 +1448,11 @@ class Texture
 
 	get height()
 	{
-		if (!this.hasLoaded)
-			throw new Error("Cannot get 'height' of texture before it's done loading");
 		return this.texture.height;
 	}
 
 	get width()
 	{
-		if (!this.hasLoaded)
-			throw new Error("Cannot get 'width' of texture before it's done loading");
 		return this.texture.width;
 	}
 }

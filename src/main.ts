@@ -30,13 +30,12 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import * as version from './version.js';
-
 import Galileo from './galileo.js';
 import InputEngine from './input-engine.js';
 import Pegasus from './pegasus.js';
 
 main();
+
 async function main()
 {
 	// use event handling to intercept errors originating inside the Sphere sandbox, rather than a
@@ -61,13 +60,13 @@ async function main()
 }
 
 export
-async function reportException(exception: unknown)
+function reportException(value: unknown)
 {
 	let msg;
-	if (exception instanceof Error && exception.stack !== undefined)
-		msg = exception.stack.replace(/\r?\n/g, '<br>');
+	if (value instanceof Error && value.stack !== undefined)
+		msg = value.stack.replace(/\r?\n/g, '<br>');
 	else
-		msg = String(exception);
+		msg = String(value);
 	const headingDiv = document.getElementById('readout') as HTMLDivElement;
 	headingDiv.innerHTML = `<pre>${msg}</pre>`;
 }
