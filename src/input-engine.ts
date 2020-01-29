@@ -197,6 +197,7 @@ class InputEngine
 				case 'End': this.keyQueue.push(Key.End); break;
 				case 'Enter': this.keyQueue.push(Key.Enter); break;
 				case 'Equal': this.keyQueue.push(Key.Equals); break;
+				case 'Escape': this.keyQueue.push(Key.Escape); break;
 				case 'F1': this.keyQueue.push(Key.F1); break;
 				case 'F2': this.keyQueue.push(Key.F2); break;
 				case 'F3': this.keyQueue.push(Key.F3); break;
