@@ -799,6 +799,16 @@ class JobToken
 	{
 		jobQueue.cancel(this.jobID);
 	}
+
+	pause()
+	{
+		jobQueue.pause(this.jobID, true);
+	}
+
+	resume()
+	{
+		jobQueue.pause(this.jobID, false);
+	}
 }
 
 class Joystick

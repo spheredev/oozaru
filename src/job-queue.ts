@@ -40,6 +40,7 @@ interface Job
 	type: JobType;
 	callback: () => Awaitable<void>;
 	cancelled: boolean;
+	paused: boolean;
 	priority: number;
 	recurring: boolean;
 	busy: boolean;
@@ -86,6 +87,7 @@ class JobQueue
 			priority,
 			recurring,
 			busy: false,
+			paused: false,
 			timer,
 		});
 		this.sortingNeeded = true;
@@ -106,6 +108,15 @@ class JobQueue
 	now()
 	{
 		return Math.max(this.frameCount, 0);
+	}
+
+	pause(jobID: number, paused: boolean)
+	{
+		for (let i = 0, len = this.jobs.length; i < len; ++i) {
+			const job = this.jobs[i];
+			if (job.jobID === jobID)
+				job.paused = paused;
+		}
 	}
 
 	start()
@@ -165,7 +176,8 @@ class JobQueue
 		for (let i = 0; i < this.jobs.length; ++i) {
 			const job = this.jobs[i];
 			if ((i < initialLength || job.type === JobType.Immediate)
-				&& !job.busy && !job.cancelled && (job.recurring || job.timer-- <= 0))
+				&& !job.busy && !job.cancelled && (job.recurring || job.timer-- <= 0)
+				&& !job.paused)
 			{
 				job.busy = true;
 				(async () => job.callback())()
