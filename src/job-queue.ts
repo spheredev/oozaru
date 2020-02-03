@@ -30,7 +30,6 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import { reportException } from "./main.js";
 import * as galileo from './galileo.js';
 import { Awaitable } from './types.js';
 
