@@ -34,10 +34,19 @@ import Galileo from './galileo.js';
 import InputEngine from './input-engine.js';
 import Pegasus from './pegasus.js';
 
+const GameList =
+[
+	{ name: "Tovarishch Smert", path: 'game/comradeDeath' },
+	{ name: "Spectacles Battle Demo", path: 'game/specs' },
+];
+
 main();
 
 async function main()
 {
+	const urlQuery = new URL(location.href).searchParams;
+	const gamePath = urlQuery.get('path');
+	
 	// use event handling to intercept errors originating inside the Sphere sandbox, rather than a
 	// try-catch.  otherwise the debugger thinks the error is handled and doesn't do a breakpoint,
 	// making diagnosing bugs in the engine harder than necessary.
@@ -52,11 +61,26 @@ async function main()
 	const inputEngine = new InputEngine(canvas);
 	await Galileo.initialize(canvas);
 
-	canvas.onclick = async () => {
-		canvas.onclick = null;
+	const menu = document.getElementById('menu')!;
+	for (const game of GameList) {
+		const iconImage = document.createElement('img');
+		iconImage.src = `${game.path}/icon.png`;
+		iconImage.width = 48;
+		iconImage.height = 48;
+		const anchor = document.createElement('a');
+		anchor.className = 'game';
+		if (game.path === gamePath)
+			anchor.classList.add('running');
+		anchor.title = game.name;
+		anchor.href = `${location.origin}${location.pathname}?path=${game.path}`;
+		anchor.appendChild(iconImage);
+		menu.appendChild(anchor);
+	}
+	if (gamePath !== null) {
 		Pegasus.initialize(inputEngine);
-		await Pegasus.launchGame('game');
-	};
+		canvas.focus();
+		await Pegasus.launchGame(gamePath);
+	}
 }
 
 export

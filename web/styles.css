@@ -4,12 +4,63 @@ body {
     color: #CC7;
     display: flex;
     flex-direction: column;
-    font-family: monospace;
     font-size: 11pt;
     height: 100vh;
     justify-items: center;
     margin: 0;
-    text-align: center;
+}
+
+#menu {
+    align-items: center;
+    background-color: #DDD;
+    display: flex;
+    color: #000;
+    border-bottom-left-radius: 0.5rem;
+    border-bottom-right-radius: 0.5rem;
+    box-shadow: 2pt 2pt 4pt #000, -2pt -2pt 4pt #000;
+    font-family: system-ui;
+    flex-direction: row;
+    padding: 0.25em 0.5em;
+}
+
+#menu > * {
+    margin: 0.25rem;
+}
+
+#menu > #title {
+    color: #444;
+    line-height: 1;
+    padding-right: 1em;
+    text-align: right;
+}
+
+#menu > #title > #name {
+    color: #000;
+    font-variant: small-caps;
+    font-weight: bold;
+}
+
+#menu > #title > #copyright {
+    font-size: x-small;
+    padding-right: 1em;
+}
+
+#menu > .game {
+    cursor: pointer;
+    filter: grayscale(100%);
+    transition: filter 0.1s ease;
+}
+
+#menu > .game.running {
+    filter: unset;
+}
+
+#menu > .game:hover {
+    filter: unset;
+}
+
+#menu > .game:active {
+    filter: brightness(150%);
 }
 
 #flow {
@@ -19,9 +70,11 @@ body {
     box-shadow: 4pt 4pt 8pt #000, -4pt -4pt 8pt #000;
     color: #CCF;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
+    font-family: monospace;
     margin: auto;
     padding: 1rem;
+    text-align: center;
 }
 
 #flow > * {

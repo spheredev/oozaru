@@ -144,13 +144,10 @@ class Pegasus extends null
 
 	static async launchGame(directoryURL: string)
 	{
-		const readout = document.getElementById('readout') as HTMLDivElement;
-		readout.innerHTML = `<p>loading...</p>`;
-
 		// load the game's JSON manifest
 		game = await fs.Game.fromDirectory(directoryURL);
 		galileo.Prim.rerez(game.resolution.x, game.resolution.y);
-		document.title = game.title;
+		document.title = `${game.title} - ${version.name} ${version.version}`;
 
 		defaultFont = await Font.fromFile('#/default.rfn');
 		defaultShader = await Shader.fromFiles({
@@ -171,19 +168,6 @@ class Pegasus extends null
 
 		// start the Sphere v2 event loop
 		jobQueue.start();
-
-		readout.innerHTML = `
-			<p>
-				<strong><cite>${game.title}</cite></strong><br>
-				by: <strong>${game.author}</strong><br>
-			</p>
-			<p>${game.summary}</p>
-			<ul>
-				<li><b>${version.name} ${version.version}</b> implementing <b>API v${version.apiVersion} level ${version.apiLevel}</b></li>
-				<li>game built using <b>${game.compiler}</b></li>
-				<li>backbuffer resolution is <b>${game.resolution.x}x${game.resolution.y}</b></li>
-			</ul>
-		`;
 
 		// load and execute the game's main module.  if it exports a startup
 		// function or class, call it.
