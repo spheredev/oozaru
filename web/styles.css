@@ -66,7 +66,7 @@ body {
 #tv {
     align-items: center;
     background-color: #224;
-    border-radius: 2rem;
+    border-radius: 1rem;
     box-shadow: 4pt 4pt 8pt #000, -4pt -4pt 8pt #000;
     color: #CCF;
     display: flex;
@@ -95,18 +95,14 @@ body {
 }
 
 #tv pre {
-    background-color: #300;
-    border: 1px solid #700;
-    box-shadow: 4px 4px 8px #200, -4px -4px 8px #200;
-    color: #FCC;
+    background-color: #111;
+    border: 1px solid #444;
+    box-shadow: 4px 4px 8px #000, -4px -4px 8px #000;
+    color: #CCC;
     margin: 0;
     overflow: auto;
-    padding: 1em;
+    padding: 1em !important;
     text-align: left;
-}
-
-#tv pre::first-line {
-    font-weight: bold;
 }
 
 #tv ul {
@@ -114,23 +110,30 @@ body {
     padding: 0;
 }
 
-#tv > #panel {
+#tv #panel {
     align-items: flex-start;
     display: flex;
     flex-direction: row-reverse;
     justify-content: center;
     padding: 0.5rem;
-    width: 80%;
 }
 
-#tv > #panel > * {
+#tv #panel > * {
     padding: 0;
 }
 
-#tv > #panel > #emblem {
+#tv #emblem {
     padding: 0 2rem;
 }
 
-#tv > #panel > #readout {
-    max-width: 450px;
+#tv #readout {
+    background-color: #300;
+    border: 1px solid #700;
+    box-shadow: 4px 4px 8px #200, -4px -4px 8px #200;
+    color: #FCC;
+    width: 425px;
+}
+
+#tv #readout::first-line {
+    font-weight: bold;
 }

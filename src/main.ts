@@ -92,6 +92,6 @@ function reportException(value: unknown)
 		msg = value.stack.replace(/\r?\n/g, '<br>');
 	else
 		msg = String(value);
-	const readout = document.getElementById('readout') as HTMLDivElement;
-	readout.innerHTML = `<pre>uncaught JavaScript exception!\r\n\r\n${msg}</pre>`;
+	const readout = document.getElementById('readout') as HTMLPreElement;
+	readout.innerHTML = `uncaught JavaScript exception!\r\n\r\n${msg}`;
 }
