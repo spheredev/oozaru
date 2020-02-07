@@ -34,6 +34,7 @@ export
 interface FetchJob
 {
 	bytesDone: number;
+	finished: boolean;
 	totalSize: number | null;
 	url:  string;
 }
@@ -49,6 +50,7 @@ class Fido
 			url,
 			bytesDone: 0,
 			totalSize: null,
+			finished: false,
 		};
 		this.jobs.push(job);
 		const response = await fetch(url);
@@ -58,15 +60,14 @@ class Fido
 		const length = response.headers.get('Content-Length');
 		if (length !== null)
 			job.totalSize = parseInt(length);
-		let finished = false;
 		const chunks = [];
-		while (!finished) {
+		while (!job.finished) {
 			const { value: data, done } = await reader.read();
 			if (!done) {
 				chunks.push(data);
 				job.bytesDone += data.length;
 			}
-			finished = done;
+			job.finished = done;
 		}
 		return new Blob(chunks);
 	}
@@ -97,8 +98,16 @@ class Fido
 	{
 		let bytesTotal = 0;
 		let bytesDone = 0;
-		for (let i = 0, len = this.jobs.length; i < len; ++i) {
+		for (let i = 0; i < this.jobs.length; ++i) {
 			const job = this.jobs[i];
+			
+			// check if job is finished and delete it if so.  this should actually be handled in
+			// `fetch()`, but some refactoring will be needed first.
+			if (job.finished) {
+				this.jobs.splice(i--, 1);
+				continue;
+			}
+			
 			if (job.totalSize === null)
 				continue;
 			bytesTotal += job.totalSize;
