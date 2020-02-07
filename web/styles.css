@@ -63,7 +63,7 @@ body {
     filter: brightness(150%);
 }
 
-#flow {
+#tv {
     align-items: center;
     background-color: #224;
     border-radius: 2rem;
@@ -73,41 +73,64 @@ body {
     flex-direction: column;
     font-family: monospace;
     margin: auto;
+    fill-opacity: 50%;
     padding: 1rem;
     text-align: center;
 }
 
-#flow > * {
+#tv > * {
     margin: 1rem;
 }
 
-#flow canvas {
+#tv canvas {
     border: 1px solid #000;
     flex: none;
     image-rendering: pixelated;
-    max-width: unset;
 }
 
-#flow hr {
+#tv hr {
     background-color: #448;
     border-color: #336;
     width: 100%;
 }
 
-#flow pre {
+#tv pre {
     background-color: #300;
     border: 1px solid #700;
     box-shadow: 4px 4px 8px #200, -4px -4px 8px #200;
     color: #FCC;
+    margin: 0;
     overflow: auto;
     padding: 1em;
+    text-align: left;
 }
 
-#flow ul {
+#tv pre::first-line {
+    font-weight: bold;
+}
+
+#tv ul {
     list-style-position: inside;
     padding: 0;
 }
 
-#info {
-    width: 350px;
+#tv > #panel {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: center;
+    padding: 0.5rem;
+    width: 80%;
+}
+
+#tv > #panel > * {
+    padding: 0;
+}
+
+#tv > #panel > #emblem {
+    padding: 0 2rem;
+}
+
+#tv > #panel > #readout {
+    max-width: 450px;
 }

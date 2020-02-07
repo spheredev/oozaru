@@ -36,8 +36,8 @@ import Pegasus from './pegasus.js';
 
 const GameList =
 [
-	{ name: "Tovarishch Smert", path: 'game/comradeDeath' },
-	{ name: "Spectacles Battle Demo", path: 'game/specs' },
+	{ name: "Tovarishch Smert", gameID: 'comradeDeath' },
+	{ name: "Spectacles Battle Demo", gameID: 'specs' },
 ];
 
 main();
@@ -45,7 +45,7 @@ main();
 async function main()
 {
 	const urlQuery = new URL(location.href).searchParams;
-	const gamePath = urlQuery.get('path');
+	const gameID = urlQuery.get('game');
 	
 	// use event handling to intercept errors originating inside the Sphere sandbox, rather than a
 	// try-catch.  otherwise the debugger thinks the error is handled and doesn't do a breakpoint,
@@ -64,22 +64,23 @@ async function main()
 	const menu = document.getElementById('menu')!;
 	for (const game of GameList) {
 		const iconImage = document.createElement('img');
-		iconImage.src = `${game.path}/icon.png`;
+		iconImage.src = `game/${game.gameID}/icon.png`;
 		iconImage.width = 48;
 		iconImage.height = 48;
 		const anchor = document.createElement('a');
 		anchor.className = 'game';
-		if (game.path === gamePath)
+		if (game.gameID === gameID)
 			anchor.classList.add('running');
 		anchor.title = game.name;
-		anchor.href = `${location.origin}${location.pathname}?path=${game.path}`;
+		anchor.href = `${location.origin}${location.pathname}?game=${game.gameID}`;
 		anchor.appendChild(iconImage);
 		menu.appendChild(anchor);
 	}
-	if (gamePath !== null) {
+
+	if (gameID !== null) {
 		Pegasus.initialize(inputEngine);
 		canvas.focus();
-		await Pegasus.launchGame(gamePath);
+		await Pegasus.launchGame(`game/${gameID}`);
 	}
 }
 
@@ -91,6 +92,6 @@ function reportException(value: unknown)
 		msg = value.stack.replace(/\r?\n/g, '<br>');
 	else
 		msg = String(value);
-	const headingDiv = document.getElementById('readout') as HTMLDivElement;
-	headingDiv.innerHTML = `<pre>${msg}</pre>`;
+	const readout = document.getElementById('readout') as HTMLDivElement;
+	readout.innerHTML = `<pre>uncaught JavaScript exception!\r\n\r\n${msg}</pre>`;
 }
