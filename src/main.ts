@@ -46,7 +46,7 @@ async function main()
 {
 	const urlQuery = new URL(location.href).searchParams;
 	const gameID = urlQuery.get('game');
-	
+
 	// use event handling to intercept errors originating inside the Sphere sandbox, rather than a
 	// try-catch.  otherwise the debugger thinks the error is handled and doesn't do a breakpoint,
 	// making diagnosing bugs in the engine harder than necessary.
@@ -93,5 +93,6 @@ function reportException(value: unknown)
 	else
 		msg = String(value);
 	const readout = document.getElementById('readout') as HTMLPreElement;
+	readout.classList.add('visible');
 	readout.innerHTML = `uncaught JavaScript exception!\r\n\r\n${msg}`;
 }

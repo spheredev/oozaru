@@ -6,7 +6,6 @@ body {
     flex-direction: column;
     font-size: 11pt;
     height: 100vh;
-    justify-items: center;
     margin: 0;
 }
 
@@ -72,8 +71,8 @@ body {
     display: flex;
     flex-direction: column;
     font-family: monospace;
-    margin: auto;
     fill-opacity: 50%;
+    margin: auto;
     padding: 1rem;
     text-align: center;
 }
@@ -131,9 +130,14 @@ body {
     border: 1px solid #700;
     box-shadow: 4px 4px 8px #200, -4px -4px 8px #200;
     color: #FCC;
+    display: none;
     width: 425px;
 }
 
 #tv #readout::first-line {
     font-weight: bold;
+}
+
+#tv #readout.visible {
+    display: unset;
 }
