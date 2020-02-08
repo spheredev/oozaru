@@ -77,11 +77,21 @@ async function main()
 		menu.appendChild(anchor);
 	}
 
-	if (gameID !== null) {
-		Pegasus.initialize(inputEngine);
-		canvas.focus();
-		await Pegasus.launchGame(`game/${gameID}`);
-	}
+	const powerButton = document.getElementById('power')!;
+	powerButton.onclick = async () => {
+		if (powerButton.classList.contains('on')) {
+			location.reload();
+		}
+		else if (gameID !== null) {
+			powerButton.classList.toggle('on');
+			canvas.focus();
+			Pegasus.initialize(inputEngine);
+			await Pegasus.launchGame(`game/${gameID}`);
+		}
+		else {
+			reportException("Please select a game from the menu first.");
+		}
+	};
 }
 
 export
@@ -94,5 +104,5 @@ function reportException(value: unknown)
 		msg = String(value);
 	const readout = document.getElementById('readout') as HTMLPreElement;
 	readout.classList.add('visible');
-	readout.innerHTML = `uncaught JavaScript exception!\r\n\r\n${msg}`;
+	readout.innerHTML = `an error occurred.\r\n\r\n${msg}`;
 }
