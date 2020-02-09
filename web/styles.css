@@ -9,9 +9,25 @@ body {
 	margin: 0;
 }
 
+.tv-button {
+	position: relative;
+}
+
+.tv-button .placard {
+	border: 1px solid #000;
+	background: #112;
+	bottom: 20px;
+	color: #850;
+	left: -32px;
+	padding: 0.25em;
+	pointer-events: none;
+	position: absolute;
+	text-shadow: 1px 1px #000;
+}
+
 #menu {
 	align-items: center;
-	background-color: #DDD;
+	background-color: #CCC;
 	display: flex;
 	color: #000;
 	border-bottom-left-radius: 0.5rem;
@@ -27,7 +43,6 @@ body {
 }
 
 #menu > #title {
-	color: #444;
 	line-height: 1;
 	padding-right: 1em;
 	text-align: right;
@@ -64,14 +79,13 @@ body {
 
 #tv {
 	align-items: center;
-	background-color: #224;
+	background: #224;
 	border-radius: 1rem;
 	box-shadow: 4pt 4pt 8pt #000, -4pt -4pt 8pt #000;
 	color: #CCF;
 	display: flex;
 	flex-direction: column;
 	font-family: monospace;
-	fill-opacity: 50%;
 	margin: auto;
 	padding: 1rem;
 	text-align: center;
@@ -123,7 +137,6 @@ body {
 
 #tv #power {
 	filter: brightness(33%);
-	padding: 0 2rem;
 }
 
 #tv #power.on {
@@ -144,6 +157,7 @@ body {
 	box-shadow: 4px 4px 8px #200, -4px -4px 8px #200;
 	color: #FCC;
 	display: none;
+	margin-right: 1rem;
 	width: auto;
 }
 
