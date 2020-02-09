@@ -78,12 +78,16 @@ async function main()
 	}
 
 	const powerButton = document.getElementById('power')!;
+	const powerText = document.getElementById('power-text')!;
+	if (gameID !== null)
+		powerText.classList.add('visible');
 	powerButton.onclick = async () => {
 		if (powerButton.classList.contains('on')) {
 			location.reload();
 		}
 		else if (gameID !== null) {
 			powerButton.classList.toggle('on');
+			powerText.classList.remove('visible');
 			canvas.focus();
 			Pegasus.initialize(inputEngine);
 			await Pegasus.launchGame(`game/${gameID}`);
