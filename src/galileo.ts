@@ -797,9 +797,6 @@ class Shader
 {
 	program: WebGLProgram;
 	deferredValues: { [x: string]: { type: string, value: any } } = {};
-	hasTextureLoc: WebGLUniformLocation | null;
-	modelViewLoc: WebGLUniformLocation | null;
-	textureLoc: WebGLUniformLocation | null;
 	modelView: Matrix;
 	projection: Matrix;
 	uniformIDs: { [x: string]: WebGLUniformLocation | null } = {};
@@ -839,21 +836,19 @@ class Shader
 		}
 
 		this.program = program;
-		this.hasTextureLoc = gl.getUniformLocation(program, 'al_use_tex');
-		this.modelViewLoc = gl.getUniformLocation(program, 'al_projview_matrix');
-		this.textureLoc = gl.getUniformLocation(program, 'al_tex');
 		this.projection = Matrix.Identity;
 		this.modelView = Matrix.Identity;
+
+		let transformation = this.modelView.clone()
+			.composeWith(this.projection);
+		this.setMatrixValue('al_projview_matrix', transformation);
+		this.setIntValue('al_tex', 0);
 	}
 
 	activate(useTexture: boolean)
 	{
 		if (activeShader !== this) {
-			let transformation = this.modelView.clone()
-				.composeWith(this.projection);
 			gl.useProgram(this.program);
-			gl.uniformMatrix4fv(this.modelViewLoc, false, transformation.values);
-			gl.uniform1i(this.textureLoc, 0);
 			for (const name of Object.keys(this.deferredValues)) {
 				const entry = this.deferredValues[name];
 				const slot = this.uniformIDs[name];
@@ -896,17 +891,15 @@ class Shader
 			this.deferredValues = {};
 			activeShader = this;
 		}
-		gl.uniform1i(this.hasTextureLoc, useTexture ? 1 : 0);
+		this.setBoolValue('al_use_tex', useTexture);
 	}
 
 	project(matrix: Matrix)
 	{
 		this.projection = matrix.clone();
-		if (activeShader === this) {
-			let transformation = this.modelView.clone()
-				.composeWith(this.projection);
-			gl.uniformMatrix4fv(this.modelViewLoc, false, transformation.values);
-		}
+		let transformation = this.modelView.clone()
+			.composeWith(this.projection);
+		this.setMatrixValue('al_projview_matrix', transformation);
 	}
 
 	setBoolValue(name: string, value: boolean)
@@ -1028,11 +1021,9 @@ class Shader
 	transform(matrix: Matrix)
 	{
 		this.modelView = matrix.clone();
-		if (activeShader === this) {
-			let transformation = this.modelView.clone()
-				.composeWith(this.projection);
-			gl.uniformMatrix4fv(this.modelViewLoc, false, transformation.values);
-		}
+		let transformation = this.modelView.clone()
+			.composeWith(this.projection);
+		this.setMatrixValue('al_projview_matrix', transformation);
 	}
 }
 
