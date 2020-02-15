@@ -771,7 +771,7 @@ class Prim extends null
 		else {
 			if (numVertices === undefined)
 				numVertices = vertexBuffer.length - offset;
-			gl.drawArrays(drawMode, 0, numVertices);
+			gl.drawArrays(drawMode, offset, numVertices);
 		}
 	}
 
@@ -1114,7 +1114,6 @@ class VertexBuffer
 {
 	hwBuffer: WebGLBuffer | null = null;
 	length: number = 0;
-	maxItems: number = 0;
 	streamable: boolean;
 
 	constructor(vertices?: ArrayLike<Vertex>)
@@ -1163,19 +1162,12 @@ class VertexBuffer
 			}
 		}
 		this.length = vertices.length;
-		if (this.length <= this.maxItems && this.hwBuffer != null) {
-			gl.bindBuffer(gl.ARRAY_BUFFER, this.hwBuffer);
-			gl.bufferSubData(gl.ARRAY_BUFFER, 0, data);
-		}
-		else {
-			gl.deleteBuffer(this.hwBuffer);
-			this.hwBuffer = gl.createBuffer();
-			if (this.hwBuffer === null)
-				throw new Error(`Unable to create WebGL vertex buffer object`);
-			gl.bindBuffer(gl.ARRAY_BUFFER, this.hwBuffer);
-			gl.bufferData(gl.ARRAY_BUFFER, data, this.streamable ? gl.STREAM_DRAW : gl.STATIC_DRAW);
-			this.maxItems = this.length;
-		}
+		gl.deleteBuffer(this.hwBuffer);
+		this.hwBuffer = gl.createBuffer();
+		if (this.hwBuffer === null)
+			throw new Error(`Unable to create WebGL vertex buffer object`);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.hwBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, data, this.streamable ? gl.STREAM_DRAW : gl.STATIC_DRAW);
 	}
 }
 
