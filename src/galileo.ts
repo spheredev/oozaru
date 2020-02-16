@@ -540,7 +540,6 @@ class IndexBuffer
 {
 	hwBuffer: WebGLBuffer | null = null;
 	length: number = 0;
-	maxItems: number = 0;
 	streamable: boolean;
 
 	constructor(indices?: Iterable<number>)
@@ -558,21 +557,14 @@ class IndexBuffer
 	upload(indices: Iterable<number>)
 	{
 		const values = new Uint16Array(indices);
+		const hwBuffer = gl.createBuffer();
+		if (hwBuffer === null)
+			throw new Error(`Unable to create WebGL index buffer object`);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, hwBuffer);
+		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, values, this.streamable ? gl.STREAM_DRAW : gl.STATIC_DRAW);
+		gl.deleteBuffer(this.hwBuffer);
+		this.hwBuffer = hwBuffer;
 		this.length = values.length;
-		if (this.length <= this.maxItems && this.hwBuffer !== null) {
-			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.hwBuffer);
-			gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, values);
-		}
-		else {
-			gl.deleteBuffer(this.hwBuffer);
-			this.hwBuffer = gl.createBuffer();
-			if (this.hwBuffer === null)
-				throw new Error(`Unable to create WebGL index buffer object`);
-			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.hwBuffer);
-			gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, values, this.streamable ? gl.STREAM_DRAW : gl.STATIC_DRAW);
-			this.length = values.length;
-			this.maxItems = this.length;
-		}
 	}
 }
 
@@ -1141,33 +1133,23 @@ class VertexBuffer
 			const vertex = vertices[i];
 			data[0 + i * 10] = vertex.x;
 			data[1 + i * 10] = vertex.y;
-			if (vertex.z !== undefined)
-				data[2 + i * 10] = vertex.z;
+			data[2 + i * 10] = vertex.z ?? 0.0;
 			data[3 + i * 10] = 1.0;
-			if (vertex.color !== undefined) {
-				data[4 + i * 10] = vertex.color.r;
-				data[5 + i * 10] = vertex.color.g;
-				data[6 + i * 10] = vertex.color.b;
-				data[7 + i * 10] = vertex.color.a;
-			}
-			else {
-				data[4 + i * 10] = 1.0;
-				data[5 + i * 10] = 1.0;
-				data[6 + i * 10] = 1.0;
-				data[7 + i * 10] = 1.0;
-			}
-			if (vertex.u !== undefined && vertex.v !== undefined) {
-				data[8 + i * 10] = vertex.u;
-				data[9 + i * 10] = vertex.v;
-			}
+			data[4 + i * 10] = vertex.color?.r ?? 1.0;
+			data[5 + i * 10] = vertex.color?.g ?? 1.0;
+			data[6 + i * 10] = vertex.color?.b ?? 1.0;
+			data[7 + i * 10] = vertex.color?.a ?? 1.0;
+			data[8 + i * 10] = vertex.u ?? 0.0;
+			data[9 + i * 10] = vertex.v ?? 0.0;
 		}
-		this.length = vertices.length;
-		gl.deleteBuffer(this.hwBuffer);
-		this.hwBuffer = gl.createBuffer();
-		if (this.hwBuffer === null)
+		const hwBuffer = gl.createBuffer();
+		if (hwBuffer === null)
 			throw new Error(`Unable to create WebGL vertex buffer object`);
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.hwBuffer);
+		gl.bindBuffer(gl.ARRAY_BUFFER, hwBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, data, this.streamable ? gl.STREAM_DRAW : gl.STATIC_DRAW);
+		gl.deleteBuffer(this.hwBuffer);
+		this.hwBuffer = hwBuffer;
+		this.length = vertices.length;
 	}
 }
 
