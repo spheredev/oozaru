@@ -612,7 +612,7 @@ class FileStream
 	fullPath: string;
 	stream: BufferStream | null;
 
-	static async open(fileName: string, fileOp: FileOp)
+	static async fromFile(fileName: string, fileOp: FileOp)
 	{
 		if (fileOp !== FileOp.Read)
 			throw new RangeError(`Oozaru currently only supports FileStreams in read mode`);
