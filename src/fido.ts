@@ -62,12 +62,12 @@ class Fido
 			job.totalSize = parseInt(length);
 		const chunks = [];
 		while (!job.finished) {
-			const { value: data, done } = await reader.read();
-			if (!done) {
-				chunks.push(data);
-				job.bytesDone += data.length;
+			const result = await reader.read();
+			if (!result.done) {
+				chunks.push(result.value);
+				job.bytesDone += result.value.length;
 			}
-			job.finished = done;
+			job.finished = result.done;
 		}
 		return new Blob(chunks);
 	}

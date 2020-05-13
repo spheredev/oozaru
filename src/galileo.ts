@@ -192,12 +192,11 @@ class DrawTarget
 		if (frameBuffer === null || depthBuffer === null)
 			throw new Error(`Unable to create WebGL framebuffer object`);
 
-		// save the last framebuffer binding and restore it afterwards.  Oozaru tries to minimize framebuffer switches
-		// and won't even realize it's been changed if we don't.
+		// in order to set up the FBO we need to change the current FB binding, so make sure it gets
+		// changed back afterwards.
 		const previousFBO = gl.getParameter(gl.FRAMEBUFFER_BINDING);
 		gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
-		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
-			gl.TEXTURE_2D, texture.hwTexture, 0);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture.hwTexture, 0);
 		gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
 		gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, texture.width, texture.height);
 		gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
