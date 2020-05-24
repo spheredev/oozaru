@@ -98,21 +98,17 @@ class Fido
 	{
 		let bytesTotal = 0;
 		let bytesDone = 0;
+		let allDone = true;
 		for (let i = 0; i < this.jobs.length; ++i) {
 			const job = this.jobs[i];
-			
-			// check if job is finished and delete it if so.  this should actually be handled in
-			// `fetch()`, but some refactoring will be needed first.
-			if (job.finished) {
-				this.jobs.splice(i--, 1);
-				continue;
-			}
-			
+			allDone = allDone && job.finished;
 			if (job.totalSize === null)
 				continue;
 			bytesTotal += job.totalSize;
 			bytesDone += job.bytesDone;
 		}
+		if (allDone)
+			this.jobs.length = 0;
 		return bytesTotal > 0 ? bytesDone / bytesTotal : 1.0;
 	}
 }

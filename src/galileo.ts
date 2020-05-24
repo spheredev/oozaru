@@ -1055,7 +1055,6 @@ class Texture
 		this.hwTexture = hwTexture;
 		const oldBinding = gl.getParameter(gl.TEXTURE_BINDING_2D);
 		gl.bindTexture(gl.TEXTURE_2D, this.hwTexture);
-		// @ts-ignore: TypeScript has the wrong signature for `gl.pixelStorei()`
 		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 		if (arg1 instanceof HTMLImageElement) {
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, arg1);
