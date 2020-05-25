@@ -158,7 +158,7 @@ class Pegasus extends null
 		jobQueue.add(JobType.Render, () => {
 			if (fido.progress >= 1.0)
 				return;
-			const status = `fido/${Math.floor(100.0 * fido.progress)}%`;
+			const status = `fido ${Math.floor(100.0 * fido.progress)}%`;
 			const textSize = defaultFont.getTextSize(status);
 			const x = Surface.Screen.width - textSize.width - 5;
 			const y = Surface.Screen.height - textSize.height - 5;

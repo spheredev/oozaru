@@ -69,6 +69,11 @@ class Fido
 			}
 			job.finished = result.done;
 		}
+		let allDone = true;
+		for (const job of this.jobs)
+			allDone = allDone && job.finished;
+		if (allDone)
+			this.jobs.length = 0;
 		return new Blob(chunks);
 	}
 
@@ -98,17 +103,12 @@ class Fido
 	{
 		let bytesTotal = 0;
 		let bytesDone = 0;
-		let allDone = true;
-		for (let i = 0; i < this.jobs.length; ++i) {
-			const job = this.jobs[i];
-			allDone = allDone && job.finished;
+		for (const job of this.jobs) {
 			if (job.totalSize === null)
 				continue;
 			bytesTotal += job.totalSize;
 			bytesDone += job.bytesDone;
 		}
-		if (allDone)
-			this.jobs.length = 0;
 		return bytesTotal > 0 ? bytesDone / bytesTotal : 1.0;
 	}
 }
