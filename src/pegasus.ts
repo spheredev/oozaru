@@ -716,7 +716,7 @@ class Font
 
 	drawText(surface: Surface, x: number, y: number, text: any, color = Color.White, wrapWidth?: number)
 	{
-		const matrix = galileo.Matrix.Identity.translate(x, y);
+		const matrix = galileo.Matrix.Identity.translate(Math.trunc(x), Math.trunc(y));
 		surface.drawTarget.activate();
 		Shader.Default.program.activate(false);
 		Shader.Default.program.project(surface.projection.matrix);

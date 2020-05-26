@@ -23,6 +23,6 @@
   },
   "homepage": "https://github.com/fatcerberus/oozaru#readme",
   "devDependencies": {
-    "typescript": "^3.9.2"
+    "typescript": "^3.9.3"
   }
 }
