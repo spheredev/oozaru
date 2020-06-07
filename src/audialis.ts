@@ -207,8 +207,15 @@ class Stream
 				let inputPtr = this.inputPtr;
 				for (let i = 0, len = outputs[0].length; i < len; ++i) {
 					const t1 = Math.floor(inputPtr) * this.numChannels;
-					const t2 = t1 + this.numChannels;
+					let t2 = t1 + this.numChannels;
 					const frac = inputPtr % 1.0;
+
+					// FIXME: if `t2` is past the end of the buffer, the first sample from the
+					//        NEXT buffer should be used, but actually doing that requires some
+					//        reorganization, so just skip the interpolation for now.
+					if (t2 >= input.length)
+						t2 = t1;
+
 					for (let j = 0; j < this.numChannels; ++j) {
 						const a = input[t1 + j];
 						const b = input[t2 + j];
