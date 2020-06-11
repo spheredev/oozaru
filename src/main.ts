@@ -38,7 +38,7 @@ const GameList =
 [
 	{ name: "Tovarishch Smert", gameID: 'comradeDeath' },
 	{ name: "Spectacles Battle Demo", gameID: 'specs' },
-	{ name: "mp3 Demo", gameID: 'mp3' },
+	{ name: "mp3 SoundStream", gameID: 'mp3' },
 ];
 
 main();
