@@ -8,6 +8,7 @@
 
         "outDir": "web/scripts",
 
+        "allowJs": true,
         "noEmitOnError": true,
         "removeComments": true,
         "sourceMap": true,
@@ -15,7 +16,7 @@
         "useDefineForClassFields": true
     },
 
-    "exclude": [
-        "game/*",
+    "include": [
+        "src/**/*",
     ]
 }
