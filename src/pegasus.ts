@@ -627,7 +627,7 @@ class FileStream
 
 	constructor()
 	{
-		throw new RangeError(`'new FileStream' is unsupported, use 'FileStream.open' instead`);
+		throw new RangeError(`new FileStream() with filename is not supported`);
 	}
 
 	get fileName()
@@ -702,11 +702,7 @@ class Font
 
 	constructor(fileName: string)
 	{
-		this.font = defaultFont.font;
-		const url = fs.Game.urlOf(game, fileName);
-		galileo.Font.fromFile(url).then((font) => {
-			this.font = font;
-		})
+		throw new RangeError("new Font() with filename is not supported");
 	}
 
 	get height()
@@ -1083,9 +1079,9 @@ class SSj extends null
 
 class Shader
 {
-	fragmentSource?: string;
+	fragmentSource: string;
 	program: galileo.Shader;
-	vertexSource?: string;
+	vertexSource: string;
 
 	static get Default()
 	{
@@ -1113,22 +1109,11 @@ class Shader
 
 	constructor(options: ShaderOptions)
 	{
-		this.program = defaultShader.clone().program;
-		const vertexURL = fs.Game.urlOf(game, options.vertexFile);
-		const fragmentURL = fs.Game.urlOf(game, options.fragmentFile);
-		Promise.all([ util.fetchText(vertexURL), util.fetchText(fragmentURL) ])
-			.then(([ vertexSource, fragmentSource ]) =>
-		{
-			this.vertexSource = vertexSource;
-			this.fragmentSource = fragmentSource;
-			this.program = new galileo.Shader(vertexSource, fragmentSource);
-		});
+		throw new RangeError("new Shader() with filename is not supported");
 	}
 
 	clone()
 	{
-		if (this.vertexSource === undefined || this.fragmentSource === undefined)
-			throw new Error("Cannot clone shader before it's been fully loaded");
 		const dolly = Object.create(Object.getPrototypeOf(this)) as Shader;
 		dolly.vertexSource = this.vertexSource;
 		dolly.fragmentSource = this.fragmentSource;
@@ -1254,14 +1239,7 @@ class Shape
 
 class Sound
 {
-	private sound?: audialis.Sound;
-	private initialState = {
-		mixer:    Mixer.Default,
-		playing:  false,
-		position: 0.0,
-		repeat:   true,
-		volume:   1.0,
-	};
+	private sound: audialis.Sound;
 
 	static async fromFile(fileName: string)
 	{
@@ -1273,94 +1251,54 @@ class Sound
 
 	constructor(fileName: string)
 	{
-		const url = fs.Game.urlOf(game, fileName);
-		audialis.Sound.fromFile(url).then((sound) => {
-			sound.position = this.initialState.position;
-			sound.repeat = this.initialState.repeat;
-			sound.volume = this.initialState.volume;
-			if (this.initialState.playing)
-				sound.play(this.initialState.mixer.mixer);
-			this.sound = sound;
-		})
+		throw new RangeError("new Sound() with filename is not supported");
 	}
 
 	get length()
 	{
-		return this.sound !== undefined
-			? this.sound.length
-			: 0.0;
+		return this.sound.length;
 	}
 
 	get position()
 	{
-		return this.sound !== undefined
-			? this.sound.position
-			: this.initialState.position;
+		return this.sound.position;
 	}
 	set position(value)
 	{
-		if (this.sound !== undefined)
-			this.sound.position = value;
-		else
-			this.initialState.position = value;
+		this.sound.position = value;
 	}
 
 	get repeat()
 	{
-		return this.sound !== undefined
-			? this.sound.repeat
-			: this.initialState.repeat;
+		return this.sound.repeat;
 	}
 	set repeat(value)
 	{
-		if (this.sound !== undefined)
-			this.sound.repeat = value;
-		else
-			this.initialState.repeat = value;
+		this.sound.repeat = value;
 	}
 
 	get volume()
 	{
-		return this.sound !== undefined
-			? this.sound.volume
-			: this.initialState.volume;
+		return this.sound.volume;
 	}
 	set volume(value)
 	{
-		if (this.sound !== undefined)
-			this.sound.volume = value;
-		else
-			this.initialState.volume = value;
+		this.sound.volume = value;
 	}
 
 	pause()
 	{
-		if (this.sound !== undefined)
-			this.sound.pause();
-		else
-			this.initialState.playing = false;
+		this.sound.pause();
 	}
 
 	play(mixer = Mixer.Default)
 	{
-		if (this.sound !== undefined) {
-			this.sound.play(mixer.mixer);
-		}
-		else {
-			this.initialState.playing = true;
-			this.initialState.mixer = mixer;
-		}
+		this.sound.play(mixer.mixer);
 	}
 
 	stop()
 	{
-		if (this.sound !== undefined) {
-			this.sound.stop();
-		}
-		else {
-			this.initialState.playing = false;
-			this.initialState.position = 0.0;
-		}
+		this.sound.stop();
 	}
 }
 
@@ -1419,12 +1357,7 @@ class Texture
 	constructor(...args: [ any, any?, any? ])
 	{
 		if (typeof args[0] === 'string') {
-			this.texture = new galileo.Texture(1, 1, Color.Transparent);
-			const url = fs.Game.urlOf(game, args[0]);
-			fido.fetchImage(url).then((image) => {
-				this.texture = new galileo.Texture(image);
-				this.hasLoaded = true;
-			});
+			throw new RangeError("new Texture() with filename is not supported");
 		}
 		else if (args[0] instanceof HTMLImageElement) {
 			const image = args[0];
