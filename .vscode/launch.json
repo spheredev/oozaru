@@ -5,9 +5,16 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"name": "Microsoft Edge",
+			"request": "launch",
+			"type": "pwa-msedge",
+			"url": "http://localhost:5500",
+			"webRoot": "${workspaceFolder}/web"
+		},
+		{
 			"type": "chrome",
 			"request": "launch",
-			"name": "Chrome",
+			"name": "Google Chrome",
 			"url": "http://localhost:5500",
 			"webRoot": "${workspaceFolder}/web"
 		}
