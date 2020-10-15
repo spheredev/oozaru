@@ -1,5 +1,5 @@
 node_modules/
 .DS_STORE
 
+web/engine/
 web/game/
-web/scripts/

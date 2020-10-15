@@ -6,7 +6,7 @@
         "lib": [ "es2017", "dom" ],
         "module": "es6",
 
-        "outDir": "web/scripts",
+        "outDir": "web/engine",
 
         "noEmitOnError": true,
         "removeComments": true,

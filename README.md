@@ -24,7 +24,7 @@ engine based on established Web and JavaScript technologies wherever possible.
 The engine should be fully usable in a reasonably modern browser without the
 user having to install external plugins or extensions, and it should be
 possible to write JavaScript code which will execute in both Oozaru and
-[miniSphere](https://github.com/fatcerberus/minisphere) without modifications.
+[miniSphere](https://github.com/fatcerberus/miniSphere) without modifications.
 
 ### License 📜
 
