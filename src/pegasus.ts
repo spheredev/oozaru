@@ -147,7 +147,9 @@ class Pegasus extends null
 		// load the game's JSON manifest
 		game = await fs.Game.fromDirectory(directoryURL);
 		galileo.Prim.rerez(game.resolution.x, game.resolution.y);
-		document.title = `${game.title} [${version.name} ${version.version}]`;
+		document.title = game.title;
+		document.getElementById('gameTitle')!.innerHTML = game.title;
+		document.getElementById('copyright')!.innerHTML = `Sphere v${game.manifest.version} API level ${game.manifest.apiLevel}`;
 
 		defaultFont = await Font.fromFile('#/default.rfn');
 		defaultShader = await Shader.fromFiles({

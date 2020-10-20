@@ -34,13 +34,6 @@ import Galileo from './galileo.js';
 import InputEngine from './input-engine.js';
 import Pegasus from './pegasus.js';
 
-const GameList =
-[
-	{ name: "Tovarishch Smert", gameID: 'comradeDeath' },
-	{ name: "Spectacles Battle Demo", gameID: 'specs' },
-	{ name: "mp3 SoundStream", gameID: 'mp3' },
-];
-
 main();
 
 async function main()
@@ -63,38 +56,25 @@ async function main()
 	await Galileo.initialize(canvas);
 
 	const menu = document.getElementById('menu')!;
-	for (const game of GameList) {
-		const iconImage = document.createElement('img');
-		iconImage.src = `game/${game.gameID}/icon.png`;
-		iconImage.width = 48;
-		iconImage.height = 48;
-		const anchor = document.createElement('a');
-		anchor.className = 'game';
-		if (game.gameID === gameID)
-			anchor.classList.add('running');
-		anchor.title = game.name;
-		anchor.href = `${location.origin}${location.pathname}?game=${game.gameID}`;
-		anchor.appendChild(iconImage);
-		menu.appendChild(anchor);
-	}
+	const iconImage = document.createElement('img');
+	iconImage.src = `dist/icon.png`;
+	iconImage.width = 48;
+	iconImage.height = 48;
+	menu.appendChild(iconImage);
 
 	const powerButton = document.getElementById('power')!;
 	const powerText = document.getElementById('power-text')!;
-	if (gameID !== null)
-		powerText.classList.add('visible');
+	powerText.classList.add('visible');
 	powerButton.onclick = async () => {
 		if (powerButton.classList.contains('on')) {
 			location.reload();
 		}
-		else if (gameID !== null) {
+		else {
 			powerButton.classList.toggle('on');
 			powerText.classList.remove('visible');
 			canvas.focus();
 			Pegasus.initialize(inputEngine);
-			await Pegasus.launchGame(`game/${gameID}`);
-		}
-		else {
-			reportException("Please select a game from the menu first.");
+			await Pegasus.launchGame(`dist`);
 		}
 	};
 }
