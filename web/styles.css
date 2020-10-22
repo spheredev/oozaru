@@ -1,12 +1,17 @@
 body {
 	align-items: center;
-	background-color: #222;
+	background-color: #020;
 	color: #CC7;
 	display: flex;
 	flex-direction: column;
 	font-size: 11pt;
 	height: 100vh;
 	margin: 0;
+	transition: background-color 5.0s ease;
+}
+
+body.darkened {
+	background-color: #111;
 }
 
 .tv-button {

@@ -70,6 +70,7 @@ async function main()
 			location.reload();
 		}
 		else {
+			document.body.classList.add('darkened');
 			powerButton.classList.toggle('on');
 			powerText.classList.remove('visible');
 			canvas.focus();
