@@ -149,7 +149,7 @@ class Pegasus extends null
 		galileo.Prim.rerez(game.resolution.x, game.resolution.y);
 		document.title = game.title;
 		document.getElementById('gameTitle')!.innerHTML = game.title;
-		document.getElementById('copyright')!.innerHTML = `Sphere v${game.manifest.version} API level ${game.manifest.apiLevel}`;
+		document.getElementById('copyright')!.innerHTML = `game by ${game.author}`;
 
 		defaultFont = await Font.fromFile('#/default.rfn');
 		defaultShader = await Shader.fromFiles({

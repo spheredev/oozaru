@@ -31,6 +31,6 @@
 **/
 
 export const name = "Oozaru";
-export const version = "X.X.X";
+export const version = "x.x.x";
 export const apiVersion = 2;
 export const apiLevel = 3;

@@ -15,7 +15,7 @@
         "useDefineForClassFields": true
     },
 
-    "exclude": [
-        "game/*",
+    "include": [
+        "src/*.ts",
     ]
 }
