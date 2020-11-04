@@ -1,6 +1,6 @@
 /*
  *  Oozaru JavaScript game engine
- *  Copyright (c) 2015-2020, Fat Cerberus
+ *  Copyright (c) 2016-2020, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,6 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-export
 interface FetchJob
 {
 	bytesDone: number;

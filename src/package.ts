@@ -1,6 +1,6 @@
 /*
  *  Oozaru JavaScript game engine
- *  Copyright (c) 2015-2020, Fat Cerberus
+ *  Copyright (c) 2016-2020, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,7 @@
 **/
 
 import BufferStream from './buffer-stream.js';
+import Fido from './fido.js';
 
 interface FileRecord
 {
@@ -46,11 +47,9 @@ class Package
 	private stream: BufferStream;
 	private toc: Record<string, FileRecord> = {};
 	
-	static async fromFile(url: string)
+	static async fromFile(fido: Fido, url: string)
 	{
-		const response = await fetch(url);
-		if (response.status !== 200)
-			throw Error(`'${response.status}' response while fetching SPK '${url}'`);
+		const response = await fido.fetch(url);
 		const buffer = await response.arrayBuffer();
 		const stream = new BufferStream(buffer);
 		return new this(stream);

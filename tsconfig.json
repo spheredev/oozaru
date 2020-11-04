@@ -1,6 +1,4 @@
 {
-    "compileOnSave" : true,
-
     "compilerOptions": {
         "target": "es2017",
         "lib": [ "es2017", "dom" ],
@@ -12,7 +10,6 @@
         "removeComments": true,
         "sourceMap": true,
         "strict": true,
-        "useDefineForClassFields": true
     },
 
     "include": [

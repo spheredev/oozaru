@@ -1,6 +1,6 @@
 /*
  *  Oozaru JavaScript game engine
- *  Copyright (c) 2015-2020, Fat Cerberus
+ *  Copyright (c) 2016-2020, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -75,7 +75,7 @@ const jobQueue = new JobQueue();
 
 let defaultFont: Font;
 let defaultShader: Shader;
-let fido: Fido;
+let theFido: Fido;
 let game: fs.Game;
 let immediateVBO: galileo.VertexBuffer;
 let inputEngine: InputEngine;
@@ -84,11 +84,11 @@ let mainObject: { [x: string]: any } | undefined;
 export default
 class Pegasus extends null
 {
-	static initialize(input: InputEngine)
+	static initialize(fido: Fido, input: InputEngine)
 	{
 		inputEngine = input;
 		immediateVBO = new galileo.VertexBuffer();
-		fido = new Fido();
+		theFido = fido;
 
 		Object.defineProperty(window, 'global', {
 			writable: false,
@@ -158,9 +158,9 @@ class Pegasus extends null
 		});
 
 		jobQueue.add(JobType.Render, () => {
-			if (fido.progress >= 1.0)
+			if (theFido.progress >= 1.0)
 				return;
-			const status = `fido ${Math.floor(100.0 * fido.progress)}%`;
+			const status = `fido ${Math.floor(100.0 * theFido.progress)}%`;
 			const textSize = defaultFont.getTextSize(status);
 			const x = Surface.Screen.width - textSize.width - 5;
 			const y = Surface.Screen.height - textSize.height - 5;
@@ -1349,7 +1349,7 @@ class Texture
 	static async fromFile(fileName: string)
 	{
 		const url = fs.Game.urlOf(game, fileName);
-		const image = await fido.fetchImage(url);
+		const image = await theFido.fetchImage(url);
 		return new Texture(image);
 	}
 

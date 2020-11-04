@@ -1,6 +1,6 @@
 /**
  *  Oozaru JavaScript game engine
- *  Copyright (c) 2015-2020, Fat Cerberus
+ *  Copyright (c) 2016-2020, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -30,14 +30,19 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
+import Fido from './fido.js';
 import Galileo from './galileo.js';
 import InputEngine from './input-engine.js';
 import Pegasus from './pegasus.js';
+import * as util from './utility.js';
 
 main();
 
 async function main()
 {
+	const urlQuery = new URL(location.href).searchParams;
+	const gameID = urlQuery.get('game');
+
 	// use event handling to intercept errors originating inside the Sphere sandbox, rather than a
 	// try-catch.  otherwise the debugger thinks the error is handled and doesn't do a breakpoint,
 	// making diagnosing bugs in the engine harder than necessary.
@@ -52,27 +57,41 @@ async function main()
 	const inputEngine = new InputEngine(canvas);
 	await Galileo.initialize(canvas);
 
+	const gameList = await util.fetchJSON('games/index.json');
 	const menu = document.getElementById('menu')!;
-	const iconImage = document.createElement('img');
-	iconImage.src = `dist/icon.png`;
-	iconImage.width = 48;
-	iconImage.height = 48;
-	menu.appendChild(iconImage);
+	for (const game of gameList) {
+		const iconImage = document.createElement('img');
+		iconImage.src = `games/${game.gameID}/icon.png`;
+		iconImage.width = 48;
+		iconImage.height = 48;
+		const anchor = document.createElement('a');
+		anchor.className = 'game';
+		if (game.gameID === gameID)
+			anchor.classList.add('running');
+		anchor.title = game.title;
+		anchor.href = `${location.origin}${location.pathname}?game=${game.gameID}`;
+		anchor.appendChild(iconImage);
+		menu.appendChild(anchor);
+	}
 
 	const powerButton = document.getElementById('power')!;
 	const powerText = document.getElementById('power-text')!;
-	powerText.classList.add('visible');
+	if (gameID !== null)
+		powerText.classList.add('visible');
 	powerButton.onclick = async () => {
 		if (powerButton.classList.contains('on')) {
 			location.reload();
 		}
-		else {
+		else if (gameID !== null) {
 			document.body.classList.add('darkened');
 			powerButton.classList.toggle('on');
 			powerText.classList.remove('visible');
 			canvas.focus();
-			Pegasus.initialize(inputEngine);
-			await Pegasus.launchGame(`dist`);
+			Pegasus.initialize(new Fido(), inputEngine);
+			await Pegasus.launchGame(`games/${gameID}`);
+		}
+		else {
+			reportException("Please select a game from the top menu first.");
 		}
 	};
 }
