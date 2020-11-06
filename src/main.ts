@@ -59,17 +59,17 @@ async function main()
 
 	const gameList = await util.fetchJSON('games/index.json');
 	const menu = document.getElementById('menu')!;
-	for (const game of gameList) {
+	for (const entry of gameList) {
 		const iconImage = document.createElement('img');
-		iconImage.src = `games/${game.gameID}/icon.png`;
+		iconImage.src = `games/${entry.gameID}/icon.png`;
 		iconImage.width = 48;
 		iconImage.height = 48;
 		const anchor = document.createElement('a');
 		anchor.className = 'game';
-		if (game.gameID === gameID)
+		if (entry.gameID === gameID)
 			anchor.classList.add('running');
-		anchor.title = game.title;
-		anchor.href = `${location.origin}${location.pathname}?game=${game.gameID}`;
+		anchor.title = entry.title;
+		anchor.href = `${location.origin}${location.pathname}?game=${entry.gameID}`;
 		anchor.appendChild(iconImage);
 		menu.appendChild(anchor);
 	}
