@@ -57,38 +57,49 @@ async function main()
 	const inputEngine = new InputEngine(canvas);
 	await Galileo.initialize(canvas);
 
-	const gameList = await util.fetchJSON('games/index.json');
 	const menu = document.getElementById('menu')!;
-	for (const entry of gameList) {
+	let useDistDir = true;
+	try {
+		const gameList = await util.fetchJSON('games/index.json');
+		for (const entry of gameList) {
+			const iconImage = document.createElement('img');
+			iconImage.src = `games/${entry.gameID}/icon.png`;
+			iconImage.width = 48;
+			iconImage.height = 48;
+			const anchor = document.createElement('a');
+			anchor.className = 'game';
+			if (entry.gameID === gameID)
+				anchor.classList.add('running');
+			anchor.title = entry.title;
+			anchor.href = `${location.origin}${location.pathname}?game=${entry.gameID}`;
+			anchor.appendChild(iconImage);
+			menu.appendChild(anchor);
+		}
+		useDistDir = false;
+	}
+	catch {
 		const iconImage = document.createElement('img');
-		iconImage.src = `games/${entry.gameID}/icon.png`;
+		iconImage.src = `dist/icon.png`;
 		iconImage.width = 48;
 		iconImage.height = 48;
-		const anchor = document.createElement('a');
-		anchor.className = 'game';
-		if (entry.gameID === gameID)
-			anchor.classList.add('running');
-		anchor.title = entry.title;
-		anchor.href = `${location.origin}${location.pathname}?game=${entry.gameID}`;
-		anchor.appendChild(iconImage);
-		menu.appendChild(anchor);
-	}
+		menu.appendChild(iconImage);
+}
 
 	const powerButton = document.getElementById('power')!;
 	const powerText = document.getElementById('power-text')!;
-	if (gameID !== null)
+	if (gameID !== null || useDistDir)
 		powerText.classList.add('visible');
 	powerButton.onclick = async () => {
 		if (powerButton.classList.contains('on')) {
 			location.reload();
 		}
-		else if (gameID !== null) {
+		else if (gameID !== null || useDistDir) {
 			document.body.classList.add('darkened');
 			powerButton.classList.toggle('on');
 			powerText.classList.remove('visible');
 			canvas.focus();
 			Pegasus.initialize(new Fido(), inputEngine);
-			await Pegasus.launchGame(`games/${gameID}`);
+			await Pegasus.launchGame(gameID !== null ? `games/${gameID}` : 'dist');
 		}
 		else {
 			reportException("Please select a game from the top menu first.");
