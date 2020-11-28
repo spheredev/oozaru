@@ -83,7 +83,7 @@ async function main()
 		iconImage.width = 48;
 		iconImage.height = 48;
 		menu.appendChild(iconImage);
-}
+	}
 
 	const powerButton = document.getElementById('power')!;
 	const powerText = document.getElementById('power-text')!;

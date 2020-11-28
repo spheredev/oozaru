@@ -120,6 +120,7 @@ class Pegasus extends null
 			Mixer,
 			Model,
 			Mouse,
+			RNG,
 			SSj,
 			Shader,
 			Shape,
@@ -258,7 +259,7 @@ class Sphere extends null
 
 	static sleep(numFrames: number)
 	{
-		return new Promise(resolve => {
+		return new Promise<void>(resolve => {
 			jobQueue.add(JobType.Update, resolve, false, numFrames);
 		});
 	}
@@ -1063,6 +1064,42 @@ class Mouse
 	isPressed(key: MouseKey)
 	{
 		return inputEngine.isMouseKeyDown(key);
+	}
+}
+
+class RNG
+{
+	static fromSeed(seed: number)
+	{
+		return new RNG();
+	}
+	
+	static fromState(state: string)
+	{
+		return new RNG();
+	}
+
+	constructor()
+	{
+	}
+
+	[Symbol.iterator](): Iterator<number>
+	{
+		return this;
+	}
+
+	get state()
+	{
+		return "";
+	}
+
+	set state(value: string)
+	{
+	}
+
+	next(): IteratorResult<number>
+	{
+		return { done: false, value: Math.random() };
 	}
 }
 
