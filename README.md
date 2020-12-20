@@ -1,7 +1,14 @@
 # Oozaru: Sphere for the Web
 
-**Oozaru** is an implementation of the **Sphere v2 API** for the Web.  It is
-currently in beta.
+**Oozaru** is a lightweight implementation of the
+[Sphere](https://github.com/fatcerberus/sphere) game engine for the Web,
+written entirely in TypeScript and based only on existing HTML and JavaScript
+technologies; no third-party browser plugin is required and the engine runs
+out of the box on all mainstream browsers.
+
+While Oozaru is currently an incomplete implementation of the Sphere API, it
+remains in active development and is planned to be fully integrated into the
+official Sphere toolchain once API parity has been achieved.
 
 ## Download
 
@@ -18,16 +25,17 @@ compiler; and **SSj**, the Sphere debugger.
 
 ### Goal ✔
 
-The goal of the Oozaru project is to make a lightweight browser-based game
-engine based on established Web and JavaScript technologies wherever possible.
-The engine should be fully usable in a reasonably modern browser without the
-user having to install external plugins or extensions, and it should be
-possible to write JavaScript code which will execute in both Oozaru and
-[miniSphere](https://github.com/fatcerberus/miniSphere) without modifications.
+The goal of the Oozaru project is to develop a lightweight browser-based game
+engine which is based on established Web and JavaScript technologies wherever
+possible.  The engine should be fully usable in a reasonably modern browser
+without the user having to install external plugins or extensions, and it
+should also be possible to write JavaScript code which will execute in both
+Oozaru and [neoSphere](https://github.com/fatcerberus/sphere) without
+modifications.
 
 ### License 📜
 
-Like miniSphere, the engine it's based on, Oozaru is licensed under the terms
-of the BSD-3-clause license. The engine can be used for any purpose, even
+Like the rest of the Sphere platform, Oozaru is licensed under the terms of a
+BSD-3-clause license. The engine can be used for any purpose, even
 commercially, with no other requirements except to maintain the accompanying
 copyright notice and license text.
