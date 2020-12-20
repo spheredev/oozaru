@@ -4,6 +4,7 @@ Oozaru Changelog
 v0.4.0 - TBD
 ------------
 
+* Adds a check to prevent launching games targeting future API levels.
 * Changes Oozaru's maximum supported API level to `4`.
 
 
@@ -20,7 +21,7 @@ v0.3.1 - November 4, 2020
 
 * Adds a cinematic darkening effect for the page background when launching a
   game.
-* Adds support for multiple games via a JSON index in `./games`.
+* Adds full support for multiple games via a JSON index in `./games`.
 * Removes support for loading games from `./dist`.
 
 v0.3.0 - October 20, 2020
@@ -45,8 +46,7 @@ v0.2.8 - June 11, 2020
 v0.2.7 - May 28, 2020
 ---------------------
 
-* Fixes a bug where if an asset is fetched immediately after the previous one
-  finished, Fido would start the new job at a nonzero percentage.
+* Fixes a bug where Fido shows incorrect progress for sequential fetches.
 * Fixes a bug where text drawn using `Font#drawText` can come out blurry when
   drawn at non-integer coordinates.
 
@@ -54,7 +54,7 @@ v0.2.6 - May 24, 2020
 ---------------------
 
 * Fixes a bug where the Fido progress percentage could jump around erratically
-  while fetching multiple files simultaneously.
+  while fetching multiple files.
 
 v0.2.5 - February 24, 2020
 --------------------------
@@ -67,7 +67,7 @@ v0.2.5 - February 24, 2020
 v0.2.4 - February 19, 2020
 --------------------------
 
-* Improves the performance of `IndexBuffer` on macOS.
+* Improves performance of `IndexBuffer#upload()` on macOS.
 
 v0.2.3 - February 15, 2020
 --------------------------
@@ -110,8 +110,7 @@ v0.1.2 - January 29, 2020
 v0.1.1 - January 13, 2020
 -------------------------
 
-* Improves readability of crash messages by word-wrapping the exception text
-  and stack trace.
+* Improves readability of crash messages by word-wrapping the exception text.
 * Fixes an issue where an uncaught exception thrown while executing Sphere code
   gets caught by the engine and thus may not be intercepted by JS debuggers.
 
@@ -119,5 +118,5 @@ v0.1.0 - January 5, 2020
 ------------------------
 
 First official Oozaru release.  API parity with miniSphere is passable, but far
-from complete. A lot of Sphere v2 code will run unchanged, with the caveat that
-import maps are required in order to import from `sphere-runtime`.
+from complete. A lot of Sphere v2 code will run as-is, with the caveat that
+the browser must support import maps in order to import from `sphere-runtime`.

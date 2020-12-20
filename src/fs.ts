@@ -31,6 +31,9 @@
 **/
 
 import * as util from './utility.js'
+import * as version from './version.js';
+
+const MIN_API_LEVEL = 4;
 
 export
 class Game
@@ -68,6 +71,14 @@ class Game
 	constructor(directoryURL: string, manifestJSON: string)
 	{
 		const manifest = JSON.parse(manifestJSON);
+		
+		// note: Oozaru doesn't support games targeting API 3 or below, as that entails some
+		//       Web-unfriendly compatibility baggage.
+		const apiTarget = manifest.apiLevel ?? 1;
+		if (apiTarget > version.apiLevel)
+			throw Error(`Game targets unsupported API level ${apiTarget}`);
+		/*if (apiTarget < MIN_API_LEVEL)
+			throw Error(`Game targets API level ${MIN_API_LEVEL - 1} or below`);*/
 
 		this.url = directoryURL.endsWith('/')
 			? directoryURL.substr(0, directoryURL.length - 1)
