@@ -4,7 +4,7 @@ Oozaru Changelog
 v0.4.0 - TBD
 ------------
 
-* No changes since the last release.
+* Changes Oozaru's maximum supported API level to `4`.
 
 
 v0.3.2 - November 28, 2020
