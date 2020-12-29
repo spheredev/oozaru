@@ -4,7 +4,8 @@ Oozaru Changelog
 v0.4.0 - TBD
 ------------
 
-* Adds a check to prevent launching games targeting future API levels.
+* Adds a check to prevent launching games targeting a higher API level than the
+  engine currently supports.
 * Changes Oozaru's maximum supported API level to `4`.
 
 

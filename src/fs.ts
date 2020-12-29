@@ -1,6 +1,6 @@
 /*
  *  Oozaru JavaScript game engine
- *  Copyright (c) 2016-2020, Fat Cerberus
+ *  Copyright (c) 2016-2021, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -71,14 +71,7 @@ class Game
 	constructor(directoryURL: string, manifestJSON: string)
 	{
 		const manifest = JSON.parse(manifestJSON);
-		
-		// note: Oozaru doesn't support games targeting API 3 or below, as that entails some
-		//       Web-unfriendly compatibility baggage.
-		const apiTarget = manifest.apiLevel ?? 1;
-		if (apiTarget > version.apiLevel)
-			throw Error(`Game targets unsupported API level ${apiTarget}`);
-		/*if (apiTarget < MIN_API_LEVEL)
-			throw Error(`Game targets API level ${MIN_API_LEVEL - 1} or below`);*/
+		verifyManifest(this, manifest);
 
 		this.url = directoryURL.endsWith('/')
 			? directoryURL.substr(0, directoryURL.length - 1)
@@ -161,4 +154,24 @@ class Game
 		}
 		return output.join('/');
 	}
+}
+
+function verifyManifest(game: Game, manifest: Record<string, any>)
+{
+	// check if the targeted API version and level are supported
+	const apiVersion = manifest.apiVersion ?? 2;
+	const apiLevel = manifest.apiLevel ?? 1;
+	if (typeof apiVersion !== 'number' || apiVersion < 1)
+		throw Error(`Invalid API version '${apiVersion}' in game manifest`);
+	if (typeof apiLevel !== 'number' || apiLevel < 1)
+		throw Error(`Invalid API level '${apiLevel}' in game manifest`);
+	if (apiVersion == 1)
+		throw Error(`Sphere v1 API-based games are not supported`);
+	if (apiLevel > version.apiLevel)
+		throw Error(`Game targets unsupported API level ${apiLevel}`);
+
+	// note: Oozaru doesn't support games targeting API 3 or below, as that entails some
+	//       Web-unfriendly compatibility baggage.
+	if (apiLevel < MIN_API_LEVEL)
+		throw Error(`Game targets API level ${MIN_API_LEVEL - 1} or below`);
 }
