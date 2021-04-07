@@ -33,18 +33,15 @@
 export default
 class BufferStream
 {
-	private bytes: Uint8Array;
-	private ptr = 0;
-	private textDec = new TextDecoder();
-	private view: DataView;
-
-	constructor(buffer: BufferSource)
+	constructor(buffer)
 	{
+		this.textDec = new TextDecoder();
 		if (ArrayBuffer.isView(buffer))
 			this.bytes = new Uint8Array(buffer.buffer);
 		else
 			this.bytes = new Uint8Array(buffer);
 		this.view = new DataView(this.bytes.buffer);
+		this.ptr = 0;
 	}
 
 	get atEOF()
@@ -65,14 +62,14 @@ class BufferStream
 	set position(value)
 	{
 		if (value > this.bytes.length)
-			throw new RangeError(`Stream position '${value}' is out of range`);
+			throw RangeError(`Stream position '${value}' is out of range`);
 		this.ptr = value;
 	}
 
-	readBytes(numBytes: number): Uint8Array
+	readBytes(numBytes)
 	{
 		if (this.ptr + numBytes > this.bytes.length)
-			throw new Error(`Unable to read ${numBytes} bytes from stream`);
+			throw Error(`Unable to read ${numBytes} bytes from stream`);
 		const bytes = this.bytes.slice(this.ptr, this.ptr + numBytes);
 		this.ptr += numBytes;
 		return bytes;
@@ -81,7 +78,7 @@ class BufferStream
 	readFloat32(littleEndian = false)
 	{
 		if (this.ptr + 4 > this.bytes.length)
-			throw new Error(`Unable to read 32-bit float from stream`);
+			throw Error(`Unable to read 32-bit float from stream`);
 		const value = this.view.getFloat32(this.ptr, littleEndian);
 		this.ptr += 4;
 		return value;
@@ -90,7 +87,7 @@ class BufferStream
 	readFloat64(littleEndian = false)
 	{
 		if (this.ptr + 8 > this.bytes.length)
-			throw new Error(`Unable to read 64-bit float from stream`);
+			throw Error(`Unable to read 64-bit float from stream`);
 		const value = this.view.getFloat64(this.ptr, littleEndian);
 		this.ptr += 8;
 		return value;
@@ -99,14 +96,14 @@ class BufferStream
 	readInt8()
 	{
 		if (this.ptr + 1 > this.bytes.length)
-			throw new Error(`Unable to read 8-bit signed integer from stream`);
+			throw Error(`Unable to read 8-bit signed integer from stream`);
 		return this.view.getInt8(this.ptr++);
 	}
 
 	readInt16(littleEndian = false)
 	{
 		if (this.ptr + 2 > this.bytes.length)
-			throw new Error(`Unable to read 16-bit signed integer from stream`);
+			throw Error(`Unable to read 16-bit signed integer from stream`);
 		const value = this.view.getInt16(this.ptr, littleEndian);
 		this.ptr += 2;
 		return value;
@@ -115,44 +112,47 @@ class BufferStream
 	readInt32(littleEndian = false)
 	{
 		if (this.ptr + 4 > this.bytes.length)
-			throw new Error(`Unable to read 32-bit signed integer from stream`);
+			throw Error(`Unable to read 32-bit signed integer from stream`);
 		const value = this.view.getInt32(this.ptr, littleEndian);
 		this.ptr += 4;
 		return value;
 	}
 
-	readString(numBytes: number)
+	readString(numBytes, stripNUL = false)
 	{
 		if (this.ptr + numBytes > this.bytes.length)
-			throw new Error(`Unable to read ${numBytes}-byte string from stream`);
+			throw Error(`Unable to read ${numBytes}-byte string from stream`);
 		const slice = this.bytes.subarray(this.ptr, this.ptr + numBytes);
+		let value = this.textDec.decode(slice);
+		if (stripNUL && value.endsWith('\0'))
+			value = value.slice(0, -1);
 		this.ptr += numBytes;
-		return this.textDec.decode(slice);
+		return value;
 	}
 
-	readStringU8()
+	readStringU8(stripNUL = false)
 	{
 		const length = this.readUint8();
-		return this.readString(length);
+		return this.readString(length, stripNUL);
 	}
 
-	readStringU16(littleEndian = false)
+	readStringU16(littleEndian = false, stripNUL = false)
 	{
 		const length = this.readUint16(littleEndian);
-		return this.readString(length);
+		return this.readString(length, stripNUL);
 	}
 
-	readStringU32(littleEndian = false)
+	readStringU32(littleEndian = false, stripNUL = false)
 	{
 		const length = this.readUint32(littleEndian);
-		return this.readString(length);
+		return this.readString(length, stripNUL);
 	}
 
-	readStruct(manifest: { [x: string]: string })
+	readStruct(manifest)
 	{
-		let retval: { [x: string]: any } = {};
+		let retval = {};
 		for (const key of Object.keys(manifest)) {
-			const matches = manifest[key].match(/(string|reserve)\/([0-9]*)/);
+			const matches = manifest[key].match(/(string|zstring|reserve)\/([0-9]*)/);
 			const valueType = matches !== null ? matches[1] : manifest[key];
 			const numBytes = matches !== null ? parseInt(matches[2], 10) : 0;
 			switch (valueType) {
@@ -205,6 +205,24 @@ class BufferStream
 				case 'string32-le':
 					retval[key] = this.readStringU32(true);
 					break;
+				case 'string':
+					retval[key] = this.readString(numBytes);
+					break;
+				case 'string8': case 'string8-be': case 'string8-le':
+					retval[key] = this.readStringU8();
+					break;
+				case 'string16-be':
+					retval[key] = this.readStringU16();
+					break;
+				case 'string16-le':
+					retval[key] = this.readStringU16(true);
+					break;
+				case 'string32-be':
+					retval[key] = this.readStringU32();
+					break;
+				case 'string32-le':
+					retval[key] = this.readStringU32(true);
+					break;
 				case 'uint8': case 'uint8-be': case 'uint8-le':
 					retval[key] = this.readUint8();
 					break;
@@ -220,8 +238,26 @@ class BufferStream
 				case 'uint32-le':
 					retval[key] = this.readUint32(true);
 					break;
+				case 'zstring':
+					retval[key] = this.readString(numBytes, true);
+					break;
+				case 'zstring8': case 'zstring8-be': case 'zstring8-le':
+					retval[key] = this.readStringU8(true);
+					break;
+				case 'zstring16-be':
+					retval[key] = this.readStringU16(false, true);
+					break;
+				case 'zstring16-le':
+					retval[key] = this.readStringU16(true, true);
+					break;
+				case 'zstring32-be':
+					retval[key] = this.readStringU32(false, true);
+					break;
+				case 'zstring32-le':
+					retval[key] = this.readStringU32(true, true);
+					break;
 				default:
-					throw new RangeError(`Unknown readStruct() value type '${valueType}'`);
+					throw RangeError(`Unknown readStruct() value type '${valueType}'`);
 			}
 		}
 		return retval;
@@ -230,14 +266,14 @@ class BufferStream
 	readUint8()
 	{
 		if (this.ptr + 1 > this.bytes.length)
-			throw new Error(`Unable to read 8-bit unsigned integer from stream`);
+			throw Error(`Unable to read 8-bit unsigned integer from stream`);
 		return this.view.getUint8(this.ptr++);
 	}
 
 	readUint16(littleEndian = false)
 	{
 		if (this.ptr + 2 > this.bytes.length)
-			throw new Error(`Unable to read 16-bit unsigned integer from stream`);
+			throw Error(`Unable to read 16-bit unsigned integer from stream`);
 		const value = this.view.getUint16(this.ptr, littleEndian);
 		this.ptr += 2;
 		return value;
@@ -246,16 +282,16 @@ class BufferStream
 	readUint32(littleEndian = false)
 	{
 		if (this.ptr + 4 > this.bytes.length)
-			throw new Error(`Unable to read 32-bit unsigned integer from stream`);
+			throw Error(`Unable to read 32-bit unsigned integer from stream`);
 		const value = this.view.getUint32(this.ptr, littleEndian);
 		this.ptr += 4;
 		return value;
 	}
 
-	skipAhead(numBytes: number)
+	skipAhead(numBytes)
 	{
 		if (this.ptr + numBytes > this.bytes.length)
-			throw new Error(`Cannot read ${numBytes} bytes from stream`);
+			throw Error(`Cannot read ${numBytes} bytes from stream`);
 		this.ptr += numBytes;
 	}
 }

@@ -1,6 +1,6 @@
-/*
- *  Oozaru JavaScript game engine
- *  Copyright (c) 2016-2021, Fat Cerberus
+/**
+ *  Sphere: the JavaScript game platform
+ *  Copyright (c) 2015-2021, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -13,7 +13,7 @@
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
  *
- *  * Neither the name of miniSphere nor the names of its contributors may be
+ *  * Neither the name of Spherical nor the names of its contributors may be
  *    used to endorse or promote products derived from this software without
  *    specific prior written permission.
  *
@@ -41,6 +41,14 @@ import * as fs from './fs.js';
 import * as galileo from './galileo.js';
 import * as util from './utility.js';
 
+enum DataType
+{
+	Bytes,
+	Lines,
+	Raw,
+	Text,
+}
+
 enum FileOp
 {
 	Read,
@@ -52,6 +60,14 @@ interface JobOptions
 {
 	inBackground?: boolean;
 	priority?: number;
+}
+
+interface ReadFileReturn
+{
+	[DataType.Bytes]: Uint8Array;
+	[DataType.Lines]: string[];
+	[DataType.Raw]: ArrayBuffer;
+	[DataType.Text]: string;
 }
 
 interface ShaderOptions
@@ -101,6 +117,7 @@ class Pegasus extends null
 		Object.assign(window, {
 			// enumerations
 			BlendOp: galileo.BlendOp,
+			DataType,
 			DepthOp: galileo.DepthOp,
 			FileOp,
 			Key,
@@ -601,6 +618,25 @@ class FS extends null
 		return game.fullPath(pathName, baseDirName);
 	}
 
+	static readFile(fileName: string): Promise<ReadFileReturn[DataType.Text]>;
+	static readFile<T extends DataType>(fileName: string, dataType: T): Promise<ReadFileReturn[T]>;
+	static async readFile<T extends DataType>(fileName: string, dataType = DataType.Text)
+	{
+		const url = fs.Game.urlOf(game, fileName);
+		switch (dataType) {
+			case DataType.Bytes:
+				const data = await util.fetchRawFile(url);
+				return new Uint8Array(data);
+			case DataType.Lines:
+				const text = await util.fetchText(url);
+				return text.split(/\r?\n/);
+			case DataType.Raw:
+				return util.fetchRawFile(url);
+			case DataType.Text:
+				return util.fetchText(url);
+		}
+	}
+	
 	static async require(fileName: string)
 	{
 		const url = fs.Game.urlOf(game, fileName);
@@ -674,8 +710,8 @@ class FileStream
 	write(_data: BufferSource)
 	{
 		if (this.stream === null)
-			throw new Error(`The FileStream has already been disposed`);
-		throw new Error(`Oozaru doesn't yet support FileStream#write()`);
+			throw Error(`The FileStream has already been disposed`);
+		throw Error(`Oozaru doesn't yet support FileStream#write()`);
 	}
 }
 

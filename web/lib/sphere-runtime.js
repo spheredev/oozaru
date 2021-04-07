@@ -1,6 +1,6 @@
 /**
- *  Sphere Runtime for Sphere games
- *  Copyright (c) 2015-2018, Fat Cerberus
+ *  Sphere: the JavaScript game platform
+ *  Copyright (c) 2015-2021, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -13,7 +13,7 @@
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
  *
- *  * Neither the name of miniSphere nor the names of its contributors may be
+ *  * Neither the name of Spherical nor the names of its contributors may be
  *    used to endorse or promote products derived from this software without
  *    specific prior written permission.
  *
@@ -30,7 +30,6 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-// miniSphere-specific modules
 export { default as Console } from './console.js';
 export { default as FocusTarget } from './focus-target.js';
 export { default as Music } from './music.js';
@@ -41,7 +40,7 @@ export { default as Thread } from './thread.js';
 export { default as Tween, Easing } from './tween.js';
 
 // Sphere Runtime shared modules
+export { default as BufferStream } from './buffer-stream.js';
 export { default as from, Query } from './from.js';
-export { default as DataStream } from './data-stream.js';
 export { default as Logger } from './logger.js';
 export { default as Random } from './random.js';
