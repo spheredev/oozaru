@@ -6,6 +6,9 @@ v0.4.0 - TBD
 
 * Adds a check to prevent launching games targeting a higher API level than the
   engine currently supports.
+* Adds support for `FS.readFile()` to the Core API implementation.
+* Adds `BufferStream` to the Sphere Runtime implementation.
+* Removes `DataStream` from the Sphere Runtime implementation.
 * Changes Oozaru's maximum supported API level to `4`.
 
 

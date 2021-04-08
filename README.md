@@ -2,7 +2,7 @@
 
 **Oozaru** is a lightweight implementation of the
 [Sphere](https://github.com/fatcerberus/sphere) game engine for the Web,
-written entirely in TypeScript and based only on existing HTML and JavaScript
+written entirely in TypeScript and based on standard HTML and JavaScript
 technologies; no third-party browser plugin is required and the engine runs
 out of the box on all mainstream browsers.
 
@@ -12,7 +12,8 @@ official Sphere toolchain once API parity has been achieved.
 
 ## Download
 
-Oozaru is still in early development so there are no downloads yet. Stay tuned!
+Oozaru is still in early development and there are no downloads yet. Stay
+tuned!
 
 ## About the Project
 

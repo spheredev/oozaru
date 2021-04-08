@@ -636,14 +636,6 @@ class FS extends null
 				return util.fetchText(url);
 		}
 	}
-	
-	static async require(fileName: string)
-	{
-		const url = fs.Game.urlOf(game, fileName);
-		return url.endsWith('.js') || url.endsWith('.mjs')
-			? util.fetchModule(url)
-			: util.fetchJSON(url);
-	}
 }
 
 class FileStream
