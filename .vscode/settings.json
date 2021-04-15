@@ -1,5 +1,5 @@
 {
-	"editor.rulers": [ 79, 100 ],
+	"editor.rulers": [ 79, 119 ],
 	"liveServer.settings.root": "/web",
 	"typescript.tsdk": "node_modules/typescript/lib"
 }

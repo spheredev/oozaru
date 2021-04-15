@@ -505,7 +505,7 @@ class Color
 
 	get name()
 	{
-		throw new Error(`API not implemented`);
+		throw new Error(`API is not implemented`);
 	}
 
 	get r()
@@ -565,7 +565,7 @@ class Dispatch extends null
 {
 	static cancelAll()
 	{
-		throw new Error(`API not implemented`);
+		throw new Error(`API is not implemented`);
 	}
 
 	static later(numFrames: number, callback: () => void)
@@ -620,7 +620,7 @@ class FS extends null
 
 	static readFile(fileName: string): Promise<ReadFileReturn[DataType.Text]>;
 	static readFile<T extends DataType>(fileName: string, dataType: T): Promise<ReadFileReturn[T]>;
-	static async readFile<T extends DataType>(fileName: string, dataType = DataType.Text)
+	static async readFile(fileName: string, dataType = DataType.Text)
 	{
 		const url = fs.Game.urlOf(game, fileName);
 		switch (dataType) {
