@@ -31,11 +31,7 @@
 **/
 
 import Deque from './deque.js';
-import preFIX from './prefix.js';
 import * as util from './utility.js';
-
-// @ts-ignore: TS doesn't define AudioContext on Window
-const AudioContext = preFIX('AudioContext');
 
 export
 class Mixer

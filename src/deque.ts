@@ -37,18 +37,18 @@
 export default
 class Deque<T> implements Iterable<T>
 {
-	private backPtr = 0;
-	private entries: T[];
-	private frontPtr = 0;
-	private overflowPtr: number;
-	private stride: number;
-	private vips: T[] = [];
+	#backPtr = 0;
+	#entries: T[];
+	#frontPtr = 0;
+	#overflowPtr: number;
+	#stride: number;
+	#vips: T[] = [];
 
 	constructor(reserveSize = 8)
 	{
-		this.stride = reserveSize + 1;
-		this.entries = new Array<T>(this.stride);
-		this.overflowPtr = this.stride;
+		this.#stride = reserveSize + 1;
+		this.#entries = new Array<T>(this.#stride);
+		this.#overflowPtr = this.#stride;
 	}
 
 	*[Symbol.iterator]()
@@ -59,82 +59,82 @@ class Deque<T> implements Iterable<T>
 
 	get empty()
 	{
-		return this.backPtr === this.frontPtr
-			&& this.overflowPtr === this.stride
-			&& this.vips.length === 0;
+		return this.#backPtr === this.#frontPtr
+			&& this.#overflowPtr === this.#stride
+			&& this.#vips.length === 0;
 	}
 
 	get first()
 	{
-		return this.vips.length > 0 ? this.vips[this.vips.length - 1]
-			: this.backPtr !== this.frontPtr ? this.entries[this.frontPtr]
-			: this.entries[this.stride];
+		return this.#vips.length > 0 ? this.#vips[this.#vips.length - 1]
+			: this.#backPtr !== this.#frontPtr ? this.#entries[this.#frontPtr]
+			: this.#entries[this.#stride];
 	}
 
 	get last()
 	{
-		const ptr = this.backPtr > 0 ? this.backPtr - 1
-			: this.stride - 1;
-		return this.overflowPtr > this.stride ? this.entries[this.overflowPtr - 1]
-			: this.frontPtr !== this.backPtr ? this.entries[ptr]
-			: this.vips[0];
+		const ptr = this.#backPtr > 0 ? this.#backPtr - 1
+			: this.#stride - 1;
+		return this.#overflowPtr > this.#stride ? this.#entries[this.#overflowPtr - 1]
+			: this.#frontPtr !== this.#backPtr ? this.#entries[ptr]
+			: this.#vips[0];
 	}
 
 	clear()
 	{
-		this.entries.length = 0;
-		this.stride = 1;
-		this.overflowPtr = 1;
-		this.backPtr = 0;
-		this.frontPtr = 0;
+		this.#entries.length = 0;
+		this.#stride = 1;
+		this.#overflowPtr = 1;
+		this.#backPtr = 0;
+		this.#frontPtr = 0;
 	}
 
 	pop()
 	{
-		if (this.overflowPtr > this.stride) {
+		if (this.#overflowPtr > this.#stride) {
 			// take from the overflow area first
-			return this.entries[--this.overflowPtr];
+			return this.#entries[--this.#overflowPtr];
 		}
-		else if (this.frontPtr !== this.backPtr) {
-			if (--this.backPtr < 0)
-				this.backPtr = this.stride - 1;
-			return this.entries[this.backPtr];
+		else if (this.#frontPtr !== this.#backPtr) {
+			if (--this.#backPtr < 0)
+				this.#backPtr = this.#stride - 1;
+			return this.#entries[this.#backPtr];
 		}
 		else {
 			// note: uses Array#shift so not O(1).  i'll fix it eventually but
 			//       ultimately, I don't expect this case to be common.
-			return this.vips.shift();
+			return this.#vips.shift();
 		}
 	}
 
 	push(value: T)
 	{
-		const ringFull = (this.backPtr + 1) % this.stride === this.frontPtr;
-		if (ringFull || this.overflowPtr > this.stride) {
+		const ringFull = (this.#backPtr + 1) % this.#stride === this.#frontPtr;
+		if (ringFull || this.#overflowPtr > this.#stride) {
 			// if there's already an overflow area established, we need to keep
 			// using it to maintain proper FIFO order.
-			this.entries[this.overflowPtr++] = value;
+			this.#entries[this.#overflowPtr++] = value;
 		}
 		else {
-			this.entries[this.backPtr++] = value;
-			if (this.backPtr >= this.stride)
-				this.backPtr = 0;
+			this.#entries[this.#backPtr++] = value;
+			if (this.#backPtr >= this.#stride)
+				this.#backPtr = 0;
 		}
 	}
 
 	shift()
 	{
-		if (this.vips.length > 0) {
-			return this.vips.pop()!;
+		if (this.#vips.length > 0) {
+			return this.#vips.pop()!;
 		} else {
-			const value = this.entries[this.frontPtr++];
-			if (this.frontPtr >= this.stride)
-				this.frontPtr = 0;
-			if (this.frontPtr === this.backPtr) {
+			const value = this.#entries[this.#frontPtr++];
+			if (this.#frontPtr >= this.#stride)
+				this.#frontPtr = 0;
+			if (this.#frontPtr === this.#backPtr) {
 				// absorb the overflow area back into the ring
-				this.frontPtr = this.stride % this.overflowPtr;
-				this.backPtr = 0;
-				this.stride = this.overflowPtr;
+				this.#frontPtr = this.#stride % this.#overflowPtr;
+				this.#backPtr = 0;
+				this.#stride = this.#overflowPtr;
 			}
 			return value;
 		}
@@ -142,14 +142,14 @@ class Deque<T> implements Iterable<T>
 
 	unshift(value: T)
 	{
-		const ringFull = (this.backPtr + 1) % this.stride === this.frontPtr;
+		const ringFull = (this.#backPtr + 1) % this.#stride === this.#frontPtr;
 		if (!ringFull) {
-			if (--this.frontPtr < 0)
-				this.frontPtr = this.stride - 1;
-			this.entries[this.frontPtr] = value;
+			if (--this.#frontPtr < 0)
+				this.#frontPtr = this.#stride - 1;
+			this.#entries[this.#frontPtr] = value;
 		}
 		else {
-			this.vips.push(value);
+			this.#vips.push(value);
 		}
 	}
 }

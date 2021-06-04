@@ -158,12 +158,12 @@ enum MouseKey
 export default
 class InputEngine
 {
-	private buttonDown: { [x: number]: boolean } = {};
-	private keyQueue: Key[] = [];
-	private lastMouseX?: number = undefined;
-	private lastMouseY?: number = undefined;
-	private mouseQueue: MouseEvent[] = [];
-	private pressed: { [x: string]: boolean } = { '': false };
+	#buttonDown: { [x: number]: boolean } = {};
+	#keyQueue: Key[] = [];
+	#lastMouseX?: number = undefined;
+	#lastMouseY?: number = undefined;
+	#mouseQueue: MouseEvent[] = [];
+	#pressed: { [x: string]: boolean } = { '': false };
 
 	constructor(canvas: HTMLCanvasElement)
 	{
@@ -171,114 +171,114 @@ class InputEngine
 
 		canvas.addEventListener('keydown', e => {
 			e.preventDefault();
-			this.pressed[e.code] = true;
+			this.#pressed[e.code] = true;
 			switch (e.code) {
-				case 'ArrowLeft': this.keyQueue.push(Key.Left); break;
-				case 'ArrowRight': this.keyQueue.push(Key.Right); break;
-				case 'ArrowDown': this.keyQueue.push(Key.Down); break;
-				case 'ArrowUp': this.keyQueue.push(Key.Up); break;
-				case 'Backquote': this.keyQueue.push(Key.Tilde); break;
-				case 'Backslash': this.keyQueue.push(Key.Backslash); break;
-				case 'Backspace': this.keyQueue.push(Key.Backspace); break;
-				case 'BracketLeft': this.keyQueue.push(Key.OpenBrace); break;
-				case 'BracketRight': this.keyQueue.push(Key.CloseBrace); break;
-				case 'Comma': this.keyQueue.push(Key.Comma); break;
-				case 'Delete': this.keyQueue.push(Key.Delete); break;
-				case 'Digit0': this.keyQueue.push(Key.D0); break;
-				case 'Digit1': this.keyQueue.push(Key.D1); break;
-				case 'Digit2': this.keyQueue.push(Key.D2); break;
-				case 'Digit3': this.keyQueue.push(Key.D3); break;
-				case 'Digit4': this.keyQueue.push(Key.D4); break;
-				case 'Digit5': this.keyQueue.push(Key.D5); break;
-				case 'Digit6': this.keyQueue.push(Key.D6); break;
-				case 'Digit7': this.keyQueue.push(Key.D7); break;
-				case 'Digit8': this.keyQueue.push(Key.D8); break;
-				case 'Digit9': this.keyQueue.push(Key.D9); break;
-				case 'End': this.keyQueue.push(Key.End); break;
-				case 'Enter': this.keyQueue.push(Key.Enter); break;
-				case 'Equal': this.keyQueue.push(Key.Equals); break;
-				case 'Escape': this.keyQueue.push(Key.Escape); break;
-				case 'F1': this.keyQueue.push(Key.F1); break;
-				case 'F2': this.keyQueue.push(Key.F2); break;
-				case 'F3': this.keyQueue.push(Key.F3); break;
-				case 'F4': this.keyQueue.push(Key.F4); break;
-				case 'F5': this.keyQueue.push(Key.F5); break;
-				case 'F6': this.keyQueue.push(Key.F6); break;
-				case 'F7': this.keyQueue.push(Key.F7); break;
-				case 'F8': this.keyQueue.push(Key.F8); break;
-				case 'F9': this.keyQueue.push(Key.F9); break;
-				case 'F10': this.keyQueue.push(Key.F10); break;
-				case 'F11': this.keyQueue.push(Key.F11); break;
-				case 'F12': this.keyQueue.push(Key.F12); break;
-				case 'Home': this.keyQueue.push(Key.Home); break;
-				case 'Insert': this.keyQueue.push(Key.Insert); break;
-				case 'KeyA': this.keyQueue.push(Key.A); break;
-				case 'KeyB': this.keyQueue.push(Key.B); break;
-				case 'KeyC': this.keyQueue.push(Key.C); break;
-				case 'KeyD': this.keyQueue.push(Key.D); break;
-				case 'KeyE': this.keyQueue.push(Key.E); break;
-				case 'KeyF': this.keyQueue.push(Key.F); break;
-				case 'KeyG': this.keyQueue.push(Key.G); break;
-				case 'KeyH': this.keyQueue.push(Key.H); break;
-				case 'KeyI': this.keyQueue.push(Key.I); break;
-				case 'KeyJ': this.keyQueue.push(Key.J); break;
-				case 'KeyK': this.keyQueue.push(Key.K); break;
-				case 'KeyL': this.keyQueue.push(Key.L); break;
-				case 'KeyM': this.keyQueue.push(Key.M); break;
-				case 'KeyN': this.keyQueue.push(Key.N); break;
-				case 'KeyO': this.keyQueue.push(Key.O); break;
-				case 'KeyP': this.keyQueue.push(Key.P); break;
-				case 'KeyQ': this.keyQueue.push(Key.Q); break;
-				case 'KeyR': this.keyQueue.push(Key.R); break;
-				case 'KeyS': this.keyQueue.push(Key.S); break;
-				case 'KeyT': this.keyQueue.push(Key.T); break;
-				case 'KeyU': this.keyQueue.push(Key.U); break;
-				case 'KeyV': this.keyQueue.push(Key.V); break;
-				case 'KeyW': this.keyQueue.push(Key.W); break;
-				case 'KeyX': this.keyQueue.push(Key.X); break;
-				case 'KeyY': this.keyQueue.push(Key.Y); break;
-				case 'KeyZ': this.keyQueue.push(Key.Z); break;
-				case 'Minus': this.keyQueue.push(Key.Hyphen); break;
-				case 'Numpad0': this.keyQueue.push(Key.NumPad0); break;
-				case 'Numpad1': this.keyQueue.push(Key.NumPad1); break;
-				case 'Numpad2': this.keyQueue.push(Key.NumPad2); break;
-				case 'Numpad3': this.keyQueue.push(Key.NumPad3); break;
-				case 'Numpad4': this.keyQueue.push(Key.NumPad4); break;
-				case 'Numpad5': this.keyQueue.push(Key.NumPad5); break;
-				case 'Numpad6': this.keyQueue.push(Key.NumPad6); break;
-				case 'Numpad7': this.keyQueue.push(Key.NumPad7); break;
-				case 'Numpad8': this.keyQueue.push(Key.NumPad8); break;
-				case 'Numpad9': this.keyQueue.push(Key.NumPad9); break;
-				case 'NumpadAdd': this.keyQueue.push(Key.Add); break;
-				case 'NumpadDecimal': this.keyQueue.push(Key.Decimal); break;
-				case 'NumpadDivide': this.keyQueue.push(Key.Divide); break;
-				case 'NumpadEnter': this.keyQueue.push(Key.NumPadEnter); break;
-				case 'NumpadMultiply': this.keyQueue.push(Key.Multiply); break;
-				case 'NumpadSubtract': this.keyQueue.push(Key.Subtract); break;
-				case 'PageDown': this.keyQueue.push(Key.PageDown); break;
-				case 'PageUp': this.keyQueue.push(Key.PageUp); break;
-				case 'Period': this.keyQueue.push(Key.Period); break;
-				case 'Quote': this.keyQueue.push(Key.Apostrophe); break;
-				case 'Semicolon': this.keyQueue.push(Key.Semicolon); break;
-				case 'Slash': this.keyQueue.push(Key.Slash); break;
-				case 'Space': this.keyQueue.push(Key.Space); break;
-				case 'Tab': this.keyQueue.push(Key.Tab); break;
+				case 'ArrowLeft': this.#keyQueue.push(Key.Left); break;
+				case 'ArrowRight': this.#keyQueue.push(Key.Right); break;
+				case 'ArrowDown': this.#keyQueue.push(Key.Down); break;
+				case 'ArrowUp': this.#keyQueue.push(Key.Up); break;
+				case 'Backquote': this.#keyQueue.push(Key.Tilde); break;
+				case 'Backslash': this.#keyQueue.push(Key.Backslash); break;
+				case 'Backspace': this.#keyQueue.push(Key.Backspace); break;
+				case 'BracketLeft': this.#keyQueue.push(Key.OpenBrace); break;
+				case 'BracketRight': this.#keyQueue.push(Key.CloseBrace); break;
+				case 'Comma': this.#keyQueue.push(Key.Comma); break;
+				case 'Delete': this.#keyQueue.push(Key.Delete); break;
+				case 'Digit0': this.#keyQueue.push(Key.D0); break;
+				case 'Digit1': this.#keyQueue.push(Key.D1); break;
+				case 'Digit2': this.#keyQueue.push(Key.D2); break;
+				case 'Digit3': this.#keyQueue.push(Key.D3); break;
+				case 'Digit4': this.#keyQueue.push(Key.D4); break;
+				case 'Digit5': this.#keyQueue.push(Key.D5); break;
+				case 'Digit6': this.#keyQueue.push(Key.D6); break;
+				case 'Digit7': this.#keyQueue.push(Key.D7); break;
+				case 'Digit8': this.#keyQueue.push(Key.D8); break;
+				case 'Digit9': this.#keyQueue.push(Key.D9); break;
+				case 'End': this.#keyQueue.push(Key.End); break;
+				case 'Enter': this.#keyQueue.push(Key.Enter); break;
+				case 'Equal': this.#keyQueue.push(Key.Equals); break;
+				case 'Escape': this.#keyQueue.push(Key.Escape); break;
+				case 'F1': this.#keyQueue.push(Key.F1); break;
+				case 'F2': this.#keyQueue.push(Key.F2); break;
+				case 'F3': this.#keyQueue.push(Key.F3); break;
+				case 'F4': this.#keyQueue.push(Key.F4); break;
+				case 'F5': this.#keyQueue.push(Key.F5); break;
+				case 'F6': this.#keyQueue.push(Key.F6); break;
+				case 'F7': this.#keyQueue.push(Key.F7); break;
+				case 'F8': this.#keyQueue.push(Key.F8); break;
+				case 'F9': this.#keyQueue.push(Key.F9); break;
+				case 'F10': this.#keyQueue.push(Key.F10); break;
+				case 'F11': this.#keyQueue.push(Key.F11); break;
+				case 'F12': this.#keyQueue.push(Key.F12); break;
+				case 'Home': this.#keyQueue.push(Key.Home); break;
+				case 'Insert': this.#keyQueue.push(Key.Insert); break;
+				case 'KeyA': this.#keyQueue.push(Key.A); break;
+				case 'KeyB': this.#keyQueue.push(Key.B); break;
+				case 'KeyC': this.#keyQueue.push(Key.C); break;
+				case 'KeyD': this.#keyQueue.push(Key.D); break;
+				case 'KeyE': this.#keyQueue.push(Key.E); break;
+				case 'KeyF': this.#keyQueue.push(Key.F); break;
+				case 'KeyG': this.#keyQueue.push(Key.G); break;
+				case 'KeyH': this.#keyQueue.push(Key.H); break;
+				case 'KeyI': this.#keyQueue.push(Key.I); break;
+				case 'KeyJ': this.#keyQueue.push(Key.J); break;
+				case 'KeyK': this.#keyQueue.push(Key.K); break;
+				case 'KeyL': this.#keyQueue.push(Key.L); break;
+				case 'KeyM': this.#keyQueue.push(Key.M); break;
+				case 'KeyN': this.#keyQueue.push(Key.N); break;
+				case 'KeyO': this.#keyQueue.push(Key.O); break;
+				case 'KeyP': this.#keyQueue.push(Key.P); break;
+				case 'KeyQ': this.#keyQueue.push(Key.Q); break;
+				case 'KeyR': this.#keyQueue.push(Key.R); break;
+				case 'KeyS': this.#keyQueue.push(Key.S); break;
+				case 'KeyT': this.#keyQueue.push(Key.T); break;
+				case 'KeyU': this.#keyQueue.push(Key.U); break;
+				case 'KeyV': this.#keyQueue.push(Key.V); break;
+				case 'KeyW': this.#keyQueue.push(Key.W); break;
+				case 'KeyX': this.#keyQueue.push(Key.X); break;
+				case 'KeyY': this.#keyQueue.push(Key.Y); break;
+				case 'KeyZ': this.#keyQueue.push(Key.Z); break;
+				case 'Minus': this.#keyQueue.push(Key.Hyphen); break;
+				case 'Numpad0': this.#keyQueue.push(Key.NumPad0); break;
+				case 'Numpad1': this.#keyQueue.push(Key.NumPad1); break;
+				case 'Numpad2': this.#keyQueue.push(Key.NumPad2); break;
+				case 'Numpad3': this.#keyQueue.push(Key.NumPad3); break;
+				case 'Numpad4': this.#keyQueue.push(Key.NumPad4); break;
+				case 'Numpad5': this.#keyQueue.push(Key.NumPad5); break;
+				case 'Numpad6': this.#keyQueue.push(Key.NumPad6); break;
+				case 'Numpad7': this.#keyQueue.push(Key.NumPad7); break;
+				case 'Numpad8': this.#keyQueue.push(Key.NumPad8); break;
+				case 'Numpad9': this.#keyQueue.push(Key.NumPad9); break;
+				case 'NumpadAdd': this.#keyQueue.push(Key.Add); break;
+				case 'NumpadDecimal': this.#keyQueue.push(Key.Decimal); break;
+				case 'NumpadDivide': this.#keyQueue.push(Key.Divide); break;
+				case 'NumpadEnter': this.#keyQueue.push(Key.NumPadEnter); break;
+				case 'NumpadMultiply': this.#keyQueue.push(Key.Multiply); break;
+				case 'NumpadSubtract': this.#keyQueue.push(Key.Subtract); break;
+				case 'PageDown': this.#keyQueue.push(Key.PageDown); break;
+				case 'PageUp': this.#keyQueue.push(Key.PageUp); break;
+				case 'Period': this.#keyQueue.push(Key.Period); break;
+				case 'Quote': this.#keyQueue.push(Key.Apostrophe); break;
+				case 'Semicolon': this.#keyQueue.push(Key.Semicolon); break;
+				case 'Slash': this.#keyQueue.push(Key.Slash); break;
+				case 'Space': this.#keyQueue.push(Key.Space); break;
+				case 'Tab': this.#keyQueue.push(Key.Tab); break;
 			}
 		});
 		canvas.addEventListener('keyup', e => {
 			e.preventDefault();
-			this.pressed[e.code] = false;
+			this.#pressed[e.code] = false;
 		});
 
 		canvas.addEventListener('mousemove', e => {
 			e.preventDefault();
-			this.lastMouseX = e.offsetX;
-			this.lastMouseY = e.offsetY;
+			this.#lastMouseX = e.offsetX;
+			this.#lastMouseY = e.offsetY;
 		});
 		canvas.addEventListener('mouseout', e => {
 			e.preventDefault();
-			this.lastMouseX = undefined;
-			this.lastMouseY = undefined;
+			this.#lastMouseX = undefined;
+			this.#lastMouseY = undefined;
 		});
 		canvas.addEventListener('mousedown', e => {
 			e.preventDefault();
@@ -288,7 +288,7 @@ class InputEngine
 				: e.button === 3 ? MouseKey.Back
 				: e.button === 4 ? MouseKey.Forward
 				: MouseKey.Left;
-			this.buttonDown[key] = true;
+			this.#buttonDown[key] = true;
 		});
 		canvas.addEventListener('mouseup', e => {
 			e.preventDefault();
@@ -297,8 +297,8 @@ class InputEngine
 				: e.button === 3 ? MouseKey.Back
 				: e.button === 4 ? MouseKey.Forward
 				: MouseKey.Left;
-			this.buttonDown[key] = false;
-			this.mouseQueue.push({
+			this.#buttonDown[key] = false;
+			this.#mouseQueue.push({
 				key,
 				x: e.offsetX,
 				y: e.offsetY,
@@ -308,7 +308,7 @@ class InputEngine
 			e.preventDefault();
 			const key = e.deltaY < 0.0 ? MouseKey.WheelUp
 				: MouseKey.WheelDown;
-			this.mouseQueue.push({
+			this.#mouseQueue.push({
 				key,
 				delta: Math.abs(e.deltaY),
 				x: e.offsetX,
@@ -319,33 +319,33 @@ class InputEngine
 
 	get mouseX()
 	{
-		return this.lastMouseX;
+		return this.#lastMouseX;
 	}
 
 	get mouseY()
 	{
-		return this.lastMouseY;
+		return this.#lastMouseY;
 	}
 
 	clearKeyQueue()
 	{
-		this.keyQueue.length = 0;
+		this.#keyQueue.length = 0;
 	}
 
 	clearMouseQueue()
 	{
-		this.mouseQueue.length = 0;
+		this.#mouseQueue.length = 0;
 	}
 
 	getKey()
 	{
-		const key = this.keyQueue.pop();
+		const key = this.#keyQueue.pop();
 		return key !== undefined ? key : null;
 	}
 
 	getMouseEvent()
 	{
-		const event = this.mouseQueue.pop();
+		const event = this.#mouseQueue.pop();
 		return event !== undefined ? event : { key: null };
 	}
 
@@ -397,11 +397,11 @@ class InputEngine
 			: key === Key.RCtrl ? 'ControlRight'
 			: key === Key.AltGr ? 'AltRight'
 			: "";
-		return this.pressed[keySpec];
+		return this.#pressed[keySpec];
 	}
 
 	isMouseKeyDown(key: MouseKey)
 	{
-		return !!this.buttonDown[key];
+		return !!this.#buttonDown[key];
 	}
 }

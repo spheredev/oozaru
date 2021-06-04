@@ -60,11 +60,11 @@ let nextJobID = 1;
 export default
 class JobQueue
 {
-	private frameCount = -1;
-	private jobs: Job[] = [];
-	private rafCallback = () => this.animate();
-	private rafID = 0;
-	private sortingNeeded = false;
+	#frameCount = -1;
+	#jobs: Job[] = [];
+	#rafCallback = () => this.animate();
+	#rafID = 0;
+	#sortingNeeded = false;
 
 	add(type: JobType, callback: () => Awaitable<void>, recurring?: false, delay?: number): number;
 	add(type: JobType, callback: () => Awaitable<void>, recurring: true, priority?: number): number;
@@ -78,7 +78,7 @@ class JobQueue
 		if (type === JobType.Render)
 			priority = -(priority);
 
-		this.jobs.push({
+		this.#jobs.push({
 			jobID: nextJobID,
 			type,
 			callback,
@@ -89,7 +89,7 @@ class JobQueue
 			paused: false,
 			timer,
 		});
-		this.sortingNeeded = true;
+		this.#sortingNeeded = true;
 		return nextJobID++;
 	}
 
@@ -97,8 +97,8 @@ class JobQueue
 	{
 		// note that we can't safely delete entries from the job list here as that might interfere
 		// with any ongoing rAF callbacks.
-		for (let i = 0, len = this.jobs.length; i < len; ++i) {
-			const job = this.jobs[i];
+		for (let i = 0, len = this.#jobs.length; i < len; ++i) {
+			const job = this.#jobs[i];
 			if (job.jobID === jobID)
 				job.cancelled = true;
 		}
@@ -106,13 +106,13 @@ class JobQueue
 
 	now()
 	{
-		return Math.max(this.frameCount, 0);
+		return Math.max(this.#frameCount, 0);
 	}
 
 	pause(jobID: number, paused: boolean)
 	{
-		for (let i = 0, len = this.jobs.length; i < len; ++i) {
-			const job = this.jobs[i];
+		for (let i = 0, len = this.#jobs.length; i < len; ++i) {
+			const job = this.#jobs[i];
 			if (job.jobID === jobID)
 				job.paused = paused;
 		}
@@ -120,26 +120,26 @@ class JobQueue
 
 	start()
 	{
-		if (this.rafID !== 0)  // already running?
+		if (this.#rafID !== 0)  // already running?
 			return;
 
-		this.rafID = requestAnimationFrame(this.rafCallback);
+		this.#rafID = requestAnimationFrame(this.#rafCallback);
 	}
 
 	stop()
 	{
-		if (this.rafID !== 0)
-			cancelAnimationFrame(this.rafID);
-		this.frameCount = -1;
-		this.jobs.length = 0;
-		this.rafID = 0;
+		if (this.#rafID !== 0)
+			cancelAnimationFrame(this.#rafID);
+		this.#frameCount = -1;
+		this.#jobs.length = 0;
+		this.#rafID = 0;
 	}
 
 	private animate()
 	{
-		this.rafID = requestAnimationFrame(this.rafCallback);
+		this.#rafID = requestAnimationFrame(this.#rafCallback);
 
-		++this.frameCount;
+		++this.#frameCount;
 
 		// reset clipping and clear the backbuffer
 		galileo.DrawTarget.Screen.activate();
@@ -147,20 +147,20 @@ class JobQueue
 		galileo.Prim.clear();
 
 		// sort the Dispatch jobs for this frame
-		if (this.sortingNeeded) {
+		if (this.#sortingNeeded) {
 			// job queue sorting criteria, in order of key ranking:
 			// 1. all recurring jobs first, followed by all one-offs
 			// 2. renders, then updates, then immediates
 			// 3. highest to lowest priority
 			// 4. within the same priority bracket, maintain FIFO order
-			this.jobs.sort((a, b) => {
+			this.#jobs.sort((a, b) => {
 				const recurDelta = +b.recurring - +a.recurring;
 				const typeDelta = a.type - b.type;
 				const priorityDelta = b.priority - a.priority;
 				const fifoDelta = a.jobID - b.jobID;
 				return recurDelta || typeDelta || priorityDelta || fifoDelta;
 			});
-			this.sortingNeeded = false;
+			this.#sortingNeeded = false;
 		}
 
 		// this is a bit tricky.  Dispatch.now() is required to be processed in the same frame it's
@@ -171,9 +171,9 @@ class JobQueue
 		// Dispatch.now() jobs are not prioritized so they're guaranteed to be in the correct order
 		// (FIFO) naturally!
 		let ptr = 0;
-		const initialLength = this.jobs.length;
-		for (let i = 0; i < this.jobs.length; ++i) {
-			const job = this.jobs[i];
+		const initialLength = this.#jobs.length;
+		for (let i = 0; i < this.#jobs.length; ++i) {
+			const job = this.#jobs[i];
 			if ((i < initialLength || job.type === JobType.Immediate)
 				&& !job.busy && !job.cancelled && (job.recurring || job.timer-- <= 0)
 				&& !job.paused)
@@ -184,14 +184,14 @@ class JobQueue
 						job.busy = false;
 					})
 					.catch(exception => {
-						this.jobs.length = 0;
+						this.#jobs.length = 0;
 						throw exception;
 					});
 			}
 			if (job.cancelled || (!job.recurring && job.timer < 0))
 				continue;  // delete it
-			this.jobs[ptr++] = job;
+			this.#jobs[ptr++] = job;
 		}
-		this.jobs.length = ptr;
+		this.#jobs.length = ptr;
 	}
 }

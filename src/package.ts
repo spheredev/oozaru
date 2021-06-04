@@ -44,8 +44,8 @@ interface FileRecord
 export default
 class Package
 {
-	private stream: BufferStream;
-	private toc: Record<string, FileRecord> = {};
+	#stream: BufferStream;
+	#toc: Record<string, FileRecord> = {};
 	
 	static async fromFile(fido: Fido, url: string)
 	{
@@ -80,25 +80,25 @@ class Package
 			if (entry.version !== 1)
 				throw RangeError(`Unsupported SPK file record version '${entry.version}'`);
 			const pathName = stream.readString(entry.nameLength);
-			this.toc[pathName] = {
+			this.#toc[pathName] = {
 				byteOffset: entry.byteOffset,
 				byteLength: entry.byteLength,
 				fileSize: entry.fileSize,
 			};
 		}
-		this.stream = stream;
+		this.#stream = stream;
 	}
 
 	dataOf(pathName: string)
 	{
-		if (!(pathName in this.toc))
+		if (!(pathName in this.#toc))
 			throw Error(`File not found in Sphere package '${pathName}'`);
-		const record = this.toc[pathName];
+		const record = this.#toc[pathName];
 		if (record.data === undefined) {
 			if (record.byteLength !== record.fileSize)
 				throw RangeError(`Compressed packages are currently unsupported`);
-			this.stream.position = record.byteOffset;
-			const compressedData = this.stream.readBytes(record.byteLength);
+			this.#stream.position = record.byteOffset;
+			const compressedData = this.#stream.readBytes(record.byteLength);
 			record.data = compressedData.buffer;
 		}
 		return record.data;

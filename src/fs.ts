@@ -38,9 +38,9 @@ const MIN_API_LEVEL = 4;
 export
 class Game
 {
-	private data: { [x: string]: any };
-	private screenSize: { x: number, y: number };
-	private url: string;
+	#data: { [x: string]: any };
+	#screenSize: { x: number, y: number };
+	#url: string;
 
 	static async fromDirectory(url: string)
 	{
@@ -57,7 +57,7 @@ class Game
 			if (game === null)
 				throw new Error(`No game loaded to resolve SphereFS '@/' prefix`);
 			hops.splice(0, 1);
-			return `${game.url}/${hops.join('/')}`;
+			return `${game.#url}/${hops.join('/')}`;
 		}
 		else if (hops[0] === '#') {
 			hops.splice(0, 1);
@@ -73,51 +73,51 @@ class Game
 		const manifest = JSON.parse(manifestJSON);
 		verifyManifest(this, manifest);
 
-		this.url = directoryURL.endsWith('/')
+		this.#url = directoryURL.endsWith('/')
 			? directoryURL.substr(0, directoryURL.length - 1)
 			: directoryURL;
-		this.data = manifest;
+		this.#data = manifest;
 
 		// parse the screen resolution string
-		const matches = this.data.resolution.match(/^([0-9]*)x([0-9]*)$/);
-		this.screenSize = matches !== null
+		const matches = this.#data.resolution.match(/^([0-9]*)x([0-9]*)$/);
+		this.#screenSize = matches !== null
 			? Object.freeze({ x: +matches[1], y: +matches[2] })
 			: Object.freeze({ x: 640, y: 480 });
 	}
 
 	get author(): string
 	{
-		return this.data.author;
+		return this.#data.author;
 	}
 
 	get compiler(): string
 	{
-		return this.data.$COMPILER;
+		return this.#data.$COMPILER;
 	}
 
 	get modulePath(): string
 	{
-		return this.data.main;
+		return this.#data.main;
 	}
 
 	get manifest()
 	{
-		return this.data;
+		return this.#data;
 	}
 
 	get resolution()
 	{
-		return this.screenSize;
+		return this.#screenSize;
 	}
 
 	get summary(): string
 	{
-		return this.data.summary;
+		return this.#data.summary;
 	}
 
 	get title(): string
 	{
-		return this.data.name;
+		return this.#data.name;
 	}
 
 	fullPath(pathName: string, baseDirName = '@/')
@@ -135,7 +135,7 @@ class Game
 		const input = inputPath.split(/[\\/]+/);
 		if (input[0] === '$') {
 			// '$/' aliases the directory containing the main module; it's not a root itself.
-			input.splice(0, 1, ...this.data.main.split(/[\\/]+/).slice(0, -1));
+			input.splice(0, 1, ...this.#data.main.split(/[\\/]+/).slice(0, -1));
 		}
 		const output = [ input[0] ];
 		for (let i = 1, len = input.length; i < len; ++i) {
