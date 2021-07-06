@@ -33,8 +33,6 @@
 import * as util from './utility.js'
 import * as version from './version.js';
 
-const MIN_API_LEVEL = 4;
-
 export
 class Game
 {
@@ -172,6 +170,6 @@ function verifyManifest(game: Game, manifest: Record<string, any>)
 
 	// note: Oozaru doesn't support games targeting API 3 or below, as that entails some
 	//       Web-unfriendly compatibility baggage.
-	if (apiLevel < MIN_API_LEVEL)
-		throw Error(`Game targets API level ${MIN_API_LEVEL - 1} or below`);
+	/*if (apiLevel < 4)
+		throw Error(`Game targets API level 3 or below`);*/
 }
