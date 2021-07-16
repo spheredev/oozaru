@@ -170,6 +170,6 @@ function verifyManifest(game: Game, manifest: Record<string, any>)
 
 	// note: Oozaru doesn't support games targeting API 3 or below, as that entails some
 	//       Web-unfriendly compatibility baggage.
-	/*if (apiLevel < 4)
-		throw Error(`Game targets API level 3 or below`);*/
+	if (apiLevel < 4)
+		throw Error(`Game targets obsolete API level ${apiLevel}`);
 }
