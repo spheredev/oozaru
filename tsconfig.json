@@ -6,10 +6,12 @@
 
         "outDir": "web/oozaru",
 
+        "exactOptionalPropertyTypes": true,
         "noEmitOnError": true,
         "removeComments": true,
         "sourceMap": true,
         "strict": true,
+        "useDefineForClassFields": true,
     },
 
     "include": [

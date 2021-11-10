@@ -160,8 +160,8 @@ class InputEngine
 {
 	#buttonDown: { [x: number]: boolean } = {};
 	#keyQueue: Key[] = [];
-	#lastMouseX?: number = undefined;
-	#lastMouseY?: number = undefined;
+	#lastMouseX: number | undefined = undefined;
+	#lastMouseY: number | undefined = undefined;
 	#mouseQueue: MouseEvent[] = [];
 	#pressed: { [x: string]: boolean } = { '': false };
 

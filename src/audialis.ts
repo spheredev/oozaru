@@ -143,7 +143,7 @@ class Stream
 	private buffers: Deque<Float32Array> = new Deque();
 	private inputPtr = 0.0;
 	private mixer: Mixer | null = null;
-	private node?: ScriptProcessorNode;
+	private node: ScriptProcessorNode | null = null;
 	private numChannels: number;
 	private paused = true;
 	private sampleRate: number;
@@ -180,7 +180,7 @@ class Stream
 
 		this.paused = false;
 		if (mixer !== undefined && mixer !== this.mixer) {
-			if (this.node !== undefined) {
+			if (this.node !== null) {
 				this.node.onaudioprocess = null;
 				this.node.disconnect();
 			}
@@ -241,14 +241,14 @@ class Stream
 
 	stop()
 	{
-		if (this.node !== undefined) {
+		if (this.node !== null) {
 			this.node.onaudioprocess = null;
 			this.node.disconnect();
 		}
 		this.buffers.clear();
 		this.inputPtr = 0.0;
 		this.mixer = null;
-		this.node = undefined;
+		this.node = null;
 		this.paused = true;
 		this.timeBuffered = 0.0;
 	}
