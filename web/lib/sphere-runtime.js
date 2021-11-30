@@ -40,7 +40,7 @@ export { default as Thread } from './thread.js';
 export { default as Tween, Easing } from './tween.js';
 
 // Sphere Runtime shared modules
-export { default as BufferStream } from './buffer-stream.js';
+export { default as DataStream } from './data-stream.js';
 export { default as from, Query } from './from.js';
 export { default as Logger } from './logger.js';
 export { default as Random } from './random.js';

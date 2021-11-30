@@ -1,6 +1,6 @@
 {
   "name": "oozaru",
-  "version": "0.3.3+",
+  "version": "WiP",
   "description": "JavaScript game engine for the Web",
   "main": "index.js",
   "scripts": {
@@ -23,6 +23,6 @@
   },
   "homepage": "https://github.com/fatcerberus/oozaru#readme",
   "devDependencies": {
-    "typescript": "^4.4.4"
+    "typescript": "^4.5.2"
   }
 }
