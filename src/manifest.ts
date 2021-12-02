@@ -30,14 +30,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import * as util from './utility.js'
-
-/** Specifies a screen resolution in pixels. */
-interface Resolution
-{
-	readonly x: number;
-	readonly y: number;
-}
+import { fetchTextFile } from './utilities.js'
 
 /** Represents a Sphere game manifest. */
 export
@@ -47,16 +40,16 @@ class Manifest
 	#author: string;
 	#description: string;
 	#mainPath: string;
-	#resolution: Resolution = { x: 320, y: 240 };
+	#resolution: { x: number, y: number };
 	#title: string;
 	#version: number;
 
 	/** Asynchronously constructs a new manifest from a file. */
 	static async fromFile(url: string)
 	{
-		const content = await util.fetchText(url);
+		const content = await fetchTextFile(url);
 		const lines = content.split(/\r?\n/);
-		const values: Record<string, string | undefined> = {};
+		const values: Record<string, string> = {};
 		for (const line of lines) {
 			const lineParse = line.match(/(.*)=(.*)/);
 			if (lineParse && lineParse.length === 3) {
@@ -70,7 +63,12 @@ class Manifest
 
 	constructor(values: Record<string, string | undefined>)
 	{
-		// preliminary checks to make sure we have a Sphere v2 manifest
+		this.#title = values.name ?? "Untitled";
+		this.#author = values.author ?? "Unknown";
+		this.#description = values.description ?? "";
+
+		// note: any manifest with a `main` field is automatically Sphere v2, even if no API is
+		//       specified.
 		this.#version = parseInt(values.version ?? "1", 10);
 		this.#apiLevel = parseInt(values.api ?? "0", 10);
 		this.#mainPath = values.main ?? "";
@@ -79,11 +77,7 @@ class Manifest
 			this.#apiLevel = Math.max(this.#apiLevel, 1);
 		}
 		if (this.#version < 2)
-			throw Error("Oozaru doesn't support Sphere v1 games.");
-
-		this.#title = values.name ?? "Untitled";
-		this.#author = values.author ?? "Unknown";
-		this.#description = values.description ?? "";
+			throw Error(`'${this.#title}' is a Sphere 1.x game and won't run in Oozaru.`);
 
 		const resString = values.resolution ?? "320x240";
 		const resParse = resString.match(/(\d+)x(\d+)/);
@@ -92,6 +86,8 @@ class Manifest
 				x: parseInt(resParse[1], 10),
 				y: parseInt(resParse[2], 10),
 			};
+		} else {
+			this.#resolution = { x: 320, y: 240 };
 		}
 	}
 

@@ -37,9 +37,9 @@ import Fido from './fido.js';
 import InputEngine, { MouseKey, Key } from './input-engine.js';
 import JobQueue, { JobType } from './job-queue.js';
 import * as audialis from './audialis.js';
-import * as fs from './fs.js';
+import { Game } from './game.js';
 import * as galileo from './galileo.js';
-import * as util from './utility.js';
+import * as util from './utilities.js';
 
 enum DataType
 {
@@ -86,13 +86,13 @@ interface Vertex
 	color?: Color;
 }
 
-const console = window.console;
+const console = globalThis.console;
 const jobQueue = new JobQueue();
 
 let defaultFont: Font;
 let defaultShader: Shader;
 let theFido: Fido;
-let game: fs.Game;
+let game: Game;
 let immediateVBO: galileo.VertexBuffer;
 let inputEngine: InputEngine;
 let mainObject: { [x: string]: any } | undefined;
@@ -154,7 +154,7 @@ class Pegasus extends null
 			enumerable: false,
 			configurable: true,
 			value: async function fromFile(fileName: string) {
-				const url = fs.Game.urlOf(game, fileName);
+				const url = Game.urlOf(game, fileName);
 				return util.fetchJSON(url);
 			},
 		})
@@ -163,7 +163,7 @@ class Pegasus extends null
 	static async launchGame(directoryURL: string)
 	{
 		// load the game's JSON manifest
-		game = await fs.Game.fromDirectory(directoryURL);
+		game = await Game.fromDirectory(directoryURL);
 		galileo.Prim.rerez(game.resolution.x, game.resolution.y);
 		document.title = game.title;
 		document.getElementById('gameTitle')!.innerHTML = game.title;
@@ -191,7 +191,7 @@ class Pegasus extends null
 
 		// load and execute the game's main module.  if it exports a startup
 		// function or class, call it.
-		const moduleURL = fs.Game.urlOf(game, game.modulePath);
+		const moduleURL = Game.urlOf(game, game.modulePath);
 		const main = await util.fetchModule(moduleURL);
 		if (util.isConstructor(main.default)) {
 			mainObject = new main.default() as object;
@@ -597,13 +597,13 @@ class FS extends null
 {
 	static async evaluateScript(fileName: string)
 	{
-		const url = fs.Game.urlOf(game, fileName);
+		const url = Game.urlOf(game, fileName);
 		return util.fetchScript(url);
 	}
 
 	static async fileExists(pathName: string)
 	{
-		const url = fs.Game.urlOf(game, pathName);
+		const url = Game.urlOf(game, pathName);
 		try {
 			const response = await fetch(url);
 			return response.status === 200;
@@ -622,18 +622,18 @@ class FS extends null
 	static readFile<T extends DataType>(fileName: string, dataType: T): Promise<ReadFileReturn[T]>;
 	static async readFile(fileName: string, dataType = DataType.Text)
 	{
-		const url = fs.Game.urlOf(game, fileName);
+		const url = Game.urlOf(game, fileName);
 		switch (dataType) {
 			case DataType.Bytes:
 				const data = await util.fetchRawFile(url);
 				return new Uint8Array(data);
 			case DataType.Lines:
-				const text = await util.fetchText(url);
+				const text = await util.fetchTextFile(url);
 				return text.split(/\r?\n/);
 			case DataType.Raw:
 				return util.fetchRawFile(url);
 			case DataType.Text:
-				return util.fetchText(url);
+				return util.fetchTextFile(url);
 		}
 	}
 }
@@ -648,7 +648,7 @@ class FileStream
 		if (fileOp !== FileOp.Read)
 			throw new RangeError(`Oozaru currently only supports FileStreams in read mode`);
 
-		const url = fs.Game.urlOf(game, fileName);
+		const url = Game.urlOf(game, fileName);
 		const data = await util.fetchRawFile(url);
 		const fileStream = Object.create(this.prototype) as FileStream;
 		fileStream.fullPath = fileName;
@@ -724,7 +724,7 @@ class Font
 
 	static async fromFile(fileName: string)
 	{
-		const url = fs.Game.urlOf(game, fileName);
+		const url = Game.urlOf(game, fileName);
 		const font = await galileo.Font.fromFile(url);
 		const object = Object.create(this.prototype) as Font;
 		object.font = font;
@@ -1163,11 +1163,11 @@ class Shader
 
 	static async fromFiles(options: ShaderOptions)
 	{
-		const vertexURL = fs.Game.urlOf(game, options.vertexFile);
-		const fragmentURL = fs.Game.urlOf(game, options.fragmentFile);
+		const vertexURL = Game.urlOf(game, options.vertexFile);
+		const fragmentURL = Game.urlOf(game, options.fragmentFile);
 		const shader = Object.create(this.prototype) as Shader;
 		const [ vertexSource, fragmentSource ] =
-			await Promise.all([ util.fetchText(vertexURL), util.fetchText(fragmentURL) ]);
+			await Promise.all([ util.fetchTextFile(vertexURL), util.fetchTextFile(fragmentURL) ]);
 		shader.program = new galileo.Shader(vertexSource, fragmentSource);
 		shader.vertexSource = vertexSource;
 		shader.fragmentSource = fragmentSource;
@@ -1310,7 +1310,7 @@ class Sound
 
 	static async fromFile(fileName: string)
 	{
-		const url = fs.Game.urlOf(game, fileName);
+		const url = Game.urlOf(game, fileName);
 		const sound = Object.create(this.prototype) as Sound;
 		sound.sound = await audialis.Sound.fromFile(url);
 		return sound;
@@ -1413,7 +1413,7 @@ class Texture
 
 	static async fromFile(fileName: string)
 	{
-		const url = fs.Game.urlOf(game, fileName);
+		const url = Game.urlOf(game, fileName);
 		const image = await theFido.fetchImage(url);
 		return new Texture(image);
 	}

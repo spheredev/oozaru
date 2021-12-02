@@ -34,7 +34,7 @@ import Fido from './fido.js';
 import Galileo from './galileo.js';
 import InputEngine from './input-engine.js';
 import Pegasus from './pegasus.js';
-import * as util from './utility.js';
+import * as util from './utilities.js';
 
 main();
 

@@ -31,7 +31,7 @@
 **/
 
 import Deque from './deque.js';
-import * as util from './utility.js';
+import * as util from './utilities.js';
 
 export
 class Mixer

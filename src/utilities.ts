@@ -109,7 +109,7 @@ async function fetchScript(url: string)
 }
 
 export
-async function fetchText(url: string)
+async function fetchTextFile(url: string)
 {
 	const response = await fetch(url);
 	return response.text();

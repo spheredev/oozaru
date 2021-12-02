@@ -31,7 +31,7 @@
 **/
 
 import BufferStream from './buffer-stream.js';
-import * as util from './utility.js';
+import * as util from './utilities.js';
 
 interface Glyph
 {

@@ -30,9 +30,10 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import { Manifest } from './sgm.js';
+import { Manifest } from './manifest.js';
 import * as version from './version.js';
 
+/** Represents a Sphere game and file system. */
 export
 class Game
 {
@@ -66,8 +67,17 @@ class Game
 	}
 
 	constructor(directoryURL: string, manifest: Manifest)
-	{
-		this.#manifest = verifyManifest(this, manifest);
+	{		
+		if (manifest.apiLevel > version.apiLevel)
+			throw Error(`'${manifest.title}' requires API level '${manifest.apiLevel}' or higher.`);
+
+		// API levels prior to level 4 had synchronous file system functions, which doesn't work in a
+		// browser.  let Oozaru launch the game, but log a warning to the console to let the user know
+		// there might be an issue.
+		if (manifest.apiLevel < 4)
+			console.warn(`'${manifest.title}' targets Sphere API ${manifest.apiLevel} and may not run properly under Oozaru.`);
+
+		this.#manifest = manifest;
 		this.#url = directoryURL.endsWith('/')
 			? directoryURL.substr(0, directoryURL.length - 1)
 			: directoryURL;
@@ -142,18 +152,4 @@ class Game
 		}
 		return output.join('/');
 	}
-}
-
-function verifyManifest(game: Game, manifest: Manifest)
-{
-	// check if the targeted API version and level are supported
-	if (manifest.apiLevel > version.apiLevel)
-		throw Error(`Oozaru doesn't support API level '${manifest.apiLevel}'.`);
-
-	// note: Oozaru doesn't support games targeting API 3 or below, as that entails some
-	//       Web-unfriendly compatibility baggage.
-	if (manifest.apiLevel < 4)
-		throw Error(`Game targets old API level '${manifest.apiLevel}'.`);
-
-	return manifest;
 }
