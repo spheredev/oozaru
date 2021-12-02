@@ -30,8 +30,6 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import * as version from './version.js';
-
 import BufferStream from './buffer-stream.js';
 import Fido from './fido.js';
 import InputEngine, { MouseKey, Key } from './input-engine.js';
@@ -40,6 +38,7 @@ import * as audialis from './audialis.js';
 import { Game } from './game.js';
 import * as galileo from './galileo.js';
 import * as util from './utilities.js';
+import { Version } from './version.js';
 
 enum DataType
 {
@@ -191,7 +190,7 @@ class Pegasus extends null
 
 		// load and execute the game's main module.  if it exports a startup
 		// function or class, call it.
-		const moduleURL = Game.urlOf(game, game.modulePath);
+		const moduleURL = Game.urlOf(game, game.mainPath);
 		const main = await util.fetchModule(moduleURL);
 		if (util.isConstructor(main.default)) {
 			mainObject = new main.default() as object;
@@ -210,17 +209,17 @@ class Sphere extends null
 {
 	static get APILevel()
 	{
-		return version.apiLevel;
+		return Version.apiLevel;
 	}
 
 	static get Compiler()
 	{
-		return game.compiler;
+		return undefined;
 	}
 
 	static get Engine()
 	{
-		return `${version.name} ${version.version}`;
+		return `${Version.name} ${Version.version}`;
 	}
 
 	static get Game()
@@ -230,7 +229,7 @@ class Sphere extends null
 
 	static get Version()
 	{
-		return version.apiVersion;
+		return Version.apiVersion;
 	}
 
 	static get frameRate()

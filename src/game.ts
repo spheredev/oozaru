@@ -31,14 +31,13 @@
 **/
 
 import { Manifest } from './manifest.js';
-import * as version from './version.js';
+import { Version } from './version.js';
 
-/** Represents a Sphere game and file system. */
 export
 class Game
 {
-	#manifest: Manifest;
-	#url: string;
+	manifest: Manifest;
+	url: string;
 
 	static async fromDirectory(url: string)
 	{
@@ -55,7 +54,7 @@ class Game
 			if (game === null)
 				throw new Error(`No game loaded to resolve SphereFS '@/' prefix`);
 			hops.splice(0, 1);
-			return `${game.#url}/${hops.join('/')}`;
+			return `${game.url}/${hops.join('/')}`;
 		}
 		else if (hops[0] === '#') {
 			hops.splice(0, 1);
@@ -68,18 +67,18 @@ class Game
 
 	constructor(directoryURL: string, manifest: Manifest)
 	{		
-		if (manifest.apiLevel > version.apiLevel)
-			throw Error(`'${manifest.title}' requires API level '${manifest.apiLevel}' or higher.`);
+		if (manifest.apiLevel > Version.apiLevel)
+			throw Error(`'${manifest.name}' requires API level '${manifest.apiLevel}' or higher.`);
 
 		// API levels prior to level 4 had synchronous file system functions, which doesn't work in a
 		// browser.  let Oozaru launch the game, but log a warning to the console to let the user know
 		// there might be an issue.
 		if (manifest.apiLevel < 4)
-			console.warn(`'${manifest.title}' targets Sphere API ${manifest.apiLevel} and may not run properly under Oozaru.`);
+			console.warn(`'${manifest.name}' targets Sphere API level ${manifest.apiLevel} and may not run correctly under Oozaru.`);
 
-		this.#manifest = manifest;
-		this.#url = directoryURL.endsWith('/')
-			? directoryURL.substr(0, directoryURL.length - 1)
+		this.manifest = manifest;
+		this.url = directoryURL.endsWith('/')
+			? directoryURL.slice(0, -1)
 			: directoryURL;
 	}
 
@@ -88,34 +87,24 @@ class Game
 		return this.manifest.author;
 	}
 
-	get compiler(): string | undefined
+	get mainPath(): string
 	{
-		return undefined;
-	}
-
-	get modulePath(): string
-	{
-		return this.#manifest.mainPath;
-	}
-
-	get manifest()
-	{
-		return this.#manifest;
+		return this.manifest.mainPath;
 	}
 
 	get resolution()
 	{
-		return this.#manifest.resolution;
+		return this.manifest.resolution;
 	}
 
-	get description(): string
+	get description()
 	{
-		return this.#manifest.description;
+		return this.manifest.description;
 	}
 
-	get title(): string
+	get title()
 	{
-		return this.#manifest.title;
+		return this.manifest.name;
 	}
 
 	fullPath(pathName: string, baseDirName = '@/')
@@ -133,7 +122,7 @@ class Game
 		const input = inputPath.split(/[\\/]+/);
 		if (input[0] === '$') {
 			// '$/' aliases the directory containing the main module; it's not a root itself.
-			input.splice(0, 1, ...this.#manifest.mainPath.split(/[\\/]+/).slice(0, -1));
+			input.splice(0, 1, ...this.manifest.mainPath.split(/[\\/]+/).slice(0, -1));
 		}
 		const output = [ input[0] ];
 		for (let i = 1, len = input.length; i < len; ++i) {

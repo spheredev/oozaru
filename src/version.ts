@@ -30,7 +30,11 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-export const name = "Oozaru";
-export const version = "WiP";
-export const apiVersion = 2;
-export const apiLevel = 4;
+export
+namespace Version
+{
+    export const name = "Oozaru";
+    export const version = "WiP";
+    export const apiVersion = 2;
+    export const apiLevel = 4;
+}

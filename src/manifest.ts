@@ -32,23 +32,21 @@
 
 import { fetchTextFile } from './utilities.js'
 
-/** Represents a Sphere game manifest. */
 export
 class Manifest
 {
-	#apiLevel: number;
-	#author: string;
-	#description: string;
-	#mainPath: string;
-	#resolution: { x: number, y: number };
-	#title: string;
-	#version: number;
+	apiLevel: number;
+	apiVersion: number;
+	author: string;
+	description: string;
+	mainPath: string;
+	name: string;
+	resolution = { x: 320, y: 240 };
 
-	/** Asynchronously constructs a new manifest from a file. */
 	static async fromFile(url: string)
 	{
-		const content = await fetchTextFile(url);
-		const lines = content.split(/\r?\n/);
+		const lines = (await fetchTextFile(url))
+			.split(/\r?\n/);
 		const values: Record<string, string> = {};
 		for (const line of lines) {
 			const lineParse = line.match(/(.*)=(.*)/);
@@ -61,54 +59,31 @@ class Manifest
 		return new this(values);
 	}
 
-	constructor(values: Record<string, string | undefined>)
+	constructor(values: Record<string, string>)
 	{
-		this.#title = values.name ?? "Untitled";
-		this.#author = values.author ?? "Unknown";
-		this.#description = values.description ?? "";
+		this.name = values.name ?? "Untitled";
+		this.author = values.author ?? "Unknown";
+		this.description = values.description ?? "";
 
 		// note: any manifest with a `main` field is automatically Sphere v2, even if no API is
 		//       specified.
-		this.#version = parseInt(values.version ?? "1", 10);
-		this.#apiLevel = parseInt(values.api ?? "0", 10);
-		this.#mainPath = values.main ?? "";
-		if (this.#apiLevel > 0 || this.#mainPath != "") {
-			this.#version = Math.max(this.#version, 2);
-			this.#apiLevel = Math.max(this.#apiLevel, 1);
+		this.apiVersion = parseInt(values.version ?? "1", 10);
+		this.apiLevel = parseInt(values.api ?? "0", 10);
+		this.mainPath = values.main ?? "";
+		if (this.apiLevel > 0 || this.mainPath != "") {
+			this.apiVersion = Math.max(this.apiVersion, 2);
+			this.apiLevel = Math.max(this.apiLevel, 1);
 		}
-		if (this.#version < 2)
-			throw Error(`'${this.#title}' is a Sphere 1.x game and won't run in Oozaru.`);
+		if (this.apiVersion < 2)
+			throw Error(`'${this.name}' is a Sphere 1.x game and won't run in Oozaru.`);
 
-		const resString = values.resolution ?? "320x240";
+		const resString = values.resolution ?? "";
 		const resParse = resString.match(/(\d+)x(\d+)/);
 		if (resParse && resParse.length === 3) {
-			this.#resolution = {
+			this.resolution = {
 				x: parseInt(resParse[1], 10),
 				y: parseInt(resParse[2], 10),
 			};
-		} else {
-			this.#resolution = { x: 320, y: 240 };
 		}
 	}
-
-	/** The Sphere platform version this manifest targets. */
-	get version() { return this.#version; }
-
-	/** The Sphere API level this manifest targets. */
-	get apiLevel() { return this.#apiLevel; }
-
-	/** The title of the game, as read from its `name` field. */
-	get title() { return this.#title; }
-
-	/** The name of the game's author or publisher. */
-	get author() { return this.#author; }
-
-	/** A short description of the game. */
-	get description() { return this.#description; }
-
-	/** The resolution the game renders at by default. */
-	get resolution() { return this.#resolution; }
-
-	/** The SphereFS path of the game's main JS module. */
-	get mainPath() { return this.#mainPath; }
 }
