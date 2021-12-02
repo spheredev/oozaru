@@ -1,5 +1,5 @@
 /**
- *  Sphere: the JavaScript game platform
+ *  Oozaru: Sphere for the Web
  *  Copyright (c) 2015-2021, Fat Cerberus
  *  All rights reserved.
  *

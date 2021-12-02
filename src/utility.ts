@@ -1,5 +1,5 @@
 /**
- *  Sphere: the JavaScript game platform
+ *  Oozaru: Sphere for the Web
  *  Copyright (c) 2015-2021, Fat Cerberus
  *  All rights reserved.
  *
@@ -111,8 +111,8 @@ async function fetchScript(url: string)
 export
 async function fetchText(url: string)
 {
-	const fileRequest = await fetch(url);
-	return fileRequest.text();
+	const response = await fetch(url);
+	return response.text();
 }
 
 export

@@ -1,5 +1,5 @@
 /**
- *  Sphere: the JavaScript game platform
+ *  Oozaru: Sphere for the Web
  *  Copyright (c) 2015-2021, Fat Cerberus
  *  All rights reserved.
  *
@@ -30,20 +30,19 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import * as util from './utility.js'
+import { Manifest } from './sgm.js';
 import * as version from './version.js';
 
 export
 class Game
 {
-	#data: { [x: string]: any };
-	#screenSize: { x: number, y: number };
+	#manifest: Manifest;
 	#url: string;
 
 	static async fromDirectory(url: string)
 	{
-		const json = await util.fetchText(`${url}/game.json`);
-		return new this(url, json);
+		const manifest = await Manifest.fromFile(`${url}/game.sgm`);
+		return new this(url, manifest);
 	}
 
 	static urlOf(game: Game | null, pathName: string)
@@ -66,56 +65,47 @@ class Game
 		}
 	}
 
-	constructor(directoryURL: string, manifestJSON: string)
+	constructor(directoryURL: string, manifest: Manifest)
 	{
-		const manifest = JSON.parse(manifestJSON);
-		verifyManifest(this, manifest);
-
+		this.#manifest = verifyManifest(this, manifest);
 		this.#url = directoryURL.endsWith('/')
 			? directoryURL.substr(0, directoryURL.length - 1)
 			: directoryURL;
-		this.#data = manifest;
-
-		// parse the screen resolution string
-		const matches = this.#data.resolution.match(/^([0-9]*)x([0-9]*)$/);
-		this.#screenSize = matches !== null
-			? Object.freeze({ x: +matches[1], y: +matches[2] })
-			: Object.freeze({ x: 640, y: 480 });
 	}
 
-	get author(): string
+	get author()
 	{
-		return this.#data.author;
+		return this.manifest.author;
 	}
 
-	get compiler(): string
+	get compiler(): string | undefined
 	{
-		return this.#data.$COMPILER;
+		return undefined;
 	}
 
 	get modulePath(): string
 	{
-		return this.#data.main;
+		return this.#manifest.mainPath;
 	}
 
 	get manifest()
 	{
-		return this.#data;
+		return this.#manifest;
 	}
 
 	get resolution()
 	{
-		return this.#screenSize;
+		return this.#manifest.resolution;
 	}
 
-	get summary(): string
+	get description(): string
 	{
-		return this.#data.summary;
+		return this.#manifest.description;
 	}
 
 	get title(): string
 	{
-		return this.#data.name;
+		return this.#manifest.title;
 	}
 
 	fullPath(pathName: string, baseDirName = '@/')
@@ -133,7 +123,7 @@ class Game
 		const input = inputPath.split(/[\\/]+/);
 		if (input[0] === '$') {
 			// '$/' aliases the directory containing the main module; it's not a root itself.
-			input.splice(0, 1, ...this.#data.main.split(/[\\/]+/).slice(0, -1));
+			input.splice(0, 1, ...this.#manifest.mainPath.split(/[\\/]+/).slice(0, -1));
 		}
 		const output = [ input[0] ];
 		for (let i = 1, len = input.length; i < len; ++i) {
@@ -154,22 +144,16 @@ class Game
 	}
 }
 
-function verifyManifest(game: Game, manifest: Record<string, any>)
+function verifyManifest(game: Game, manifest: Manifest)
 {
 	// check if the targeted API version and level are supported
-	const apiVersion = manifest.apiVersion ?? 2;
-	const apiLevel = manifest.apiLevel ?? 1;
-	if (typeof apiVersion !== 'number' || apiVersion < 1)
-		throw Error(`Invalid API version '${apiVersion}' in game manifest`);
-	if (typeof apiLevel !== 'number' || apiLevel < 1)
-		throw Error(`Invalid API level '${apiLevel}' in game manifest`);
-	if (apiVersion == 1)
-		throw Error(`Sphere v1 API-based games are not supported`);
-	if (apiLevel > version.apiLevel)
-		throw Error(`Game targets unsupported API level ${apiLevel}`);
+	if (manifest.apiLevel > version.apiLevel)
+		throw Error(`Oozaru doesn't support API level '${manifest.apiLevel}'.`);
 
 	// note: Oozaru doesn't support games targeting API 3 or below, as that entails some
 	//       Web-unfriendly compatibility baggage.
-	if (apiLevel < 4)
-		throw Error(`Game targets obsolete API level ${apiLevel}`);
+	if (manifest.apiLevel < 4)
+		throw Error(`Game targets old API level '${manifest.apiLevel}'.`);
+
+	return manifest;
 }
