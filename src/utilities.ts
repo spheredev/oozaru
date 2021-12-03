@@ -49,41 +49,6 @@ async function fetchJSON(url: string)
 }
 
 export
-async function fetchModule(url: string)
-{
-	// this mimics dynamic import(), since most browsers (as of 2018) don't yet support it.
-	// based on https://github.com/uupaa/dynamic-import-polyfill
-
-	const vector = `$moduleNS$${Math.random().toString(32).slice(2)}`;
-	const globalThis: { [x: string]: any } = window;
-	const fullURL = toAbsoluteURL(url);
-	const source = `
-		import * as module from "${fullURL}";
-		window.${vector} = module;
-	`;
-	const blob = new Blob([ source ], { type: 'text/javascript' });
-	return new Promise<any>((resolve, reject) => {
-		const script = document.createElement('script');
-		script.type = 'module';
-		const finishUp = () => {
-			delete globalThis[vector];
-			script.remove();
-			URL.revokeObjectURL(script.src);
-		};
-		script.onload = () => {
-			resolve(globalThis[vector]);
-			finishUp();
-		}
-		script.onerror = () => {
-			reject(new Error(`Unable to load JS module '${url}'`));
-			finishUp();
-		}
-		script.src = URL.createObjectURL(blob);
-		document.head.appendChild(script);
-	});
-}
-
-export
 async function fetchRawFile(url: string)
 {
 	const fileRequest = await fetch(url);
@@ -126,11 +91,4 @@ function isConstructor(func: Function)
 	catch {
 		return false;
 	}
-}
-
-function toAbsoluteURL(url: string)
-{
-	const anchor = document.createElement('a');
-	anchor.setAttribute("href", url);
-	return (anchor.cloneNode(false) as HTMLAnchorElement).href;
 }

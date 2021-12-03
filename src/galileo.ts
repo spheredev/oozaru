@@ -30,8 +30,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import BufferStream from './buffer-stream.js';
-import * as util from './utilities.js';
+import { DataStream } from './data-stream.js';
+import { fetchRawFile } from './utilities.js';
 
 interface Glyph
 {
@@ -283,13 +283,13 @@ class Font
 
 	static async fromFile(url: string)
 	{
-		const data = await util.fetchRawFile(url);
+		const data = await fetchRawFile(url);
 		return new this(data);
 	}
 
 	constructor(rfnData: BufferSource)
 	{
-		let stream = new BufferStream(rfnData);
+		let stream = new DataStream(rfnData);
 		let rfn = stream.readStruct({
 			signature: 'string/4',
 			version:   'uint16-le',

@@ -1,5 +1,6 @@
 {
 	"editor.rulers": [ 79, 119 ],
 	"liveServer.settings.root": "/web",
-	"typescript.tsdk": "node_modules/typescript/lib"
+	"typescript.tsdk": "node_modules/typescript/lib",
+	"typescript.tsserver.experimental.enableProjectDiagnostics": true
 }

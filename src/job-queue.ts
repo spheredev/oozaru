@@ -30,7 +30,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import * as galileo from './galileo.js';
+import { DrawTarget, Prim } from './galileo.js';
 import { Awaitable } from './types.js';
 
 interface Job
@@ -57,7 +57,7 @@ enum JobType
 
 let nextJobID = 1;
 
-export default
+export
 class JobQueue
 {
 	#frameCount = -1;
@@ -142,9 +142,9 @@ class JobQueue
 		++this.#frameCount;
 
 		// reset clipping and clear the backbuffer
-		galileo.DrawTarget.Screen.activate();
-		galileo.DrawTarget.Screen.unclip();
-		galileo.Prim.clear();
+		DrawTarget.Screen.activate();
+		DrawTarget.Screen.unclip();
+		Prim.clear();
 
 		// sort the Dispatch jobs for this frame
 		if (this.#sortingNeeded) {

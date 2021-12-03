@@ -30,8 +30,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import BufferStream from './buffer-stream.js';
-import Fido from './fido.js';
+import { DataStream } from './data-stream.js';
+import { Fido } from './fido.js';
 
 interface FileRecord
 {
@@ -41,21 +41,21 @@ interface FileRecord
 	data?: ArrayBuffer;
 }
 
-export default
+export
 class Package
 {
-	#stream: BufferStream;
+	#stream: DataStream;
 	#toc: Record<string, FileRecord> = {};
 	
 	static async fromFile(fido: Fido, url: string)
 	{
 		const response = await fido.fetch(url);
 		const buffer = await response.arrayBuffer();
-		const stream = new BufferStream(buffer);
+		const stream = new DataStream(buffer);
 		return new this(stream);
 	}
 
-	constructor(stream: BufferStream)
+	constructor(stream: DataStream)
 	{
 		const spkHeader = stream.readStruct({
 			signature: 'string/4',

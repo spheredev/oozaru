@@ -155,7 +155,7 @@ enum MouseKey
 	WheelDown,
 }
 
-export default
+export
 class InputEngine
 {
 	#buttonDown: { [x: number]: boolean } = {};

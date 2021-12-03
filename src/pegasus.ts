@@ -30,14 +30,14 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import BufferStream from './buffer-stream.js';
-import Fido from './fido.js';
-import InputEngine, { MouseKey, Key } from './input-engine.js';
-import JobQueue, { JobType } from './job-queue.js';
-import * as audialis from './audialis.js';
+import * as Audialis from './audialis.js';
+import { DataStream } from './data-stream.js';
+import { Fido } from './fido.js';
+import { InputEngine, Key, MouseKey } from './input-engine.js';
 import { Game } from './game.js';
-import * as galileo from './galileo.js';
-import * as util from './utilities.js';
+import * as Galileo from './galileo.js';
+import { JobQueue, JobType } from './job-queue.js';
+import { fetchJSON, fetchRawFile, fetchScript, fetchTextFile, isConstructor } from './utilities.js';
 import { Version } from './version.js';
 
 enum DataType
@@ -85,14 +85,13 @@ interface Vertex
 	color?: Color;
 }
 
-const console = globalThis.console;
 const jobQueue = new JobQueue();
 
 let defaultFont: Font;
 let defaultShader: Shader;
 let theFido: Fido;
 let game: Game;
-let immediateVBO: galileo.VertexBuffer;
+let immediateVBO: Galileo.VertexBuffer;
 let inputEngine: InputEngine;
 let mainObject: { [x: string]: any } | undefined;
 
@@ -102,7 +101,7 @@ class Pegasus extends null
 	static initialize(fido: Fido, input: InputEngine)
 	{
 		inputEngine = input;
-		immediateVBO = new galileo.VertexBuffer();
+		immediateVBO = new Galileo.VertexBuffer();
 		theFido = fido;
 
 		Object.defineProperty(window, 'global', {
@@ -115,13 +114,13 @@ class Pegasus extends null
 		// register Sphere v2 API globals
 		Object.assign(window, {
 			// enumerations
-			BlendOp: galileo.BlendOp,
+			BlendOp: Galileo.BlendOp,
 			DataType,
-			DepthOp: galileo.DepthOp,
+			DepthOp: Galileo.DepthOp,
 			FileOp,
 			Key,
 			MouseKey,
-			ShapeType: galileo.ShapeType,
+			ShapeType: Galileo.ShapeType,
 
 			// classes and namespaces
 			Sphere,
@@ -154,7 +153,7 @@ class Pegasus extends null
 			configurable: true,
 			value: async function fromFile(fileName: string) {
 				const url = Game.urlOf(game, fileName);
-				return util.fetchJSON(url);
+				return fetchJSON(url);
 			},
 		})
 	}
@@ -163,7 +162,7 @@ class Pegasus extends null
 	{
 		// load the game's JSON manifest
 		game = await Game.fromDirectory(directoryURL);
-		galileo.Prim.rerez(game.resolution.x, game.resolution.y);
+		Galileo.Prim.rerez(game.resolution.x, game.resolution.y);
 		document.title = game.title;
 		document.getElementById('gameTitle')!.innerHTML = game.title;
 		document.getElementById('copyright')!.innerHTML = `game by ${game.author}`;
@@ -191,8 +190,8 @@ class Pegasus extends null
 		// load and execute the game's main module.  if it exports a startup
 		// function or class, call it.
 		const moduleURL = Game.urlOf(game, game.mainPath);
-		const main = await util.fetchModule(moduleURL);
-		if (util.isConstructor(main.default)) {
+		const main = await import(toAbsoluteURL(moduleURL));
+		if (isConstructor(main.default)) {
 			mainObject = new main.default() as object;
 			if (typeof mainObject.start === 'function')
 				await mainObject.start();
@@ -282,7 +281,7 @@ class Sphere extends null
 
 	static setResolution(width: number, height: number)
 	{
-		galileo.Prim.rerez(width, height);
+		Galileo.Prim.rerez(width, height);
 	}
 }
 
@@ -597,7 +596,7 @@ class FS extends null
 	static async evaluateScript(fileName: string)
 	{
 		const url = Game.urlOf(game, fileName);
-		return util.fetchScript(url);
+		return fetchScript(url);
 	}
 
 	static async fileExists(pathName: string)
@@ -624,15 +623,15 @@ class FS extends null
 		const url = Game.urlOf(game, fileName);
 		switch (dataType) {
 			case DataType.Bytes:
-				const data = await util.fetchRawFile(url);
+				const data = await fetchRawFile(url);
 				return new Uint8Array(data);
 			case DataType.Lines:
-				const text = await util.fetchTextFile(url);
+				const text = await fetchTextFile(url);
 				return text.split(/\r?\n/);
 			case DataType.Raw:
-				return util.fetchRawFile(url);
+				return fetchRawFile(url);
 			case DataType.Text:
-				return util.fetchTextFile(url);
+				return fetchTextFile(url);
 		}
 	}
 }
@@ -640,7 +639,7 @@ class FS extends null
 class FileStream
 {
 	fullPath: string;
-	stream: BufferStream | null;
+	stream: DataStream | null;
 
 	static async fromFile(fileName: string, fileOp: FileOp)
 	{
@@ -648,10 +647,10 @@ class FileStream
 			throw new RangeError(`Oozaru currently only supports FileStreams in read mode`);
 
 		const url = Game.urlOf(game, fileName);
-		const data = await util.fetchRawFile(url);
+		const data = await fetchRawFile(url);
 		const fileStream = Object.create(this.prototype) as FileStream;
 		fileStream.fullPath = fileName;
-		fileStream.stream = new BufferStream(data);
+		fileStream.stream = new DataStream(data);
 		return fileStream;
 	}
 
@@ -708,7 +707,7 @@ class FileStream
 
 class Font
 {
-	font: galileo.Font;
+	font: Galileo.Font;
 
 	static get Default()
 	{
@@ -724,7 +723,7 @@ class Font
 	static async fromFile(fileName: string)
 	{
 		const url = Game.urlOf(game, fileName);
-		const font = await galileo.Font.fromFile(url);
+		const font = await Galileo.Font.fromFile(url);
 		const object = Object.create(this.prototype) as Font;
 		object.font = font;
 		return object;
@@ -742,7 +741,7 @@ class Font
 
 	drawText(surface: Surface, x: number, y: number, text: any, color = Color.White, wrapWidth?: number)
 	{
-		const matrix = galileo.Matrix.Identity.translate(Math.trunc(x), Math.trunc(y));
+		const matrix = Galileo.Matrix.Identity.translate(Math.trunc(x), Math.trunc(y));
 		surface.drawTarget.activate();
 		Shader.Default.program.activate(false);
 		Shader.Default.program.project(surface.projection.matrix);
@@ -788,11 +787,11 @@ class Font
 
 class IndexList
 {
-	buffer: galileo.IndexBuffer;
+	buffer: Galileo.IndexBuffer;
 
 	constructor(indices: Iterable<number>)
 	{
-		this.buffer = new galileo.IndexBuffer(indices);
+		this.buffer = new Galileo.IndexBuffer(indices);
 	}
 }
 
@@ -975,7 +974,7 @@ class Keyboard
 
 class Mixer
 {
-	mixer: audialis.Mixer;
+	mixer: Audialis.Mixer;
 
 	static get Default()
 	{
@@ -991,7 +990,7 @@ class Mixer
 
 	constructor(frequency: number, _bits: number, _numChannels: number)
 	{
-		this.mixer = new audialis.Mixer(frequency);
+		this.mixer = new Audialis.Mixer(frequency);
 	}
 
 	get volume()
@@ -1146,7 +1145,7 @@ class SSj extends null
 class Shader
 {
 	fragmentSource: string;
-	program: galileo.Shader;
+	program: Galileo.Shader;
 	vertexSource: string;
 
 	static get Default()
@@ -1165,9 +1164,11 @@ class Shader
 		const vertexURL = Game.urlOf(game, options.vertexFile);
 		const fragmentURL = Game.urlOf(game, options.fragmentFile);
 		const shader = Object.create(this.prototype) as Shader;
-		const [ vertexSource, fragmentSource ] =
-			await Promise.all([ util.fetchTextFile(vertexURL), util.fetchTextFile(fragmentURL) ]);
-		shader.program = new galileo.Shader(vertexSource, fragmentSource);
+		const [ vertexSource, fragmentSource ] = await Promise.all([
+			fetchTextFile(vertexURL),
+			fetchTextFile(fragmentURL)
+		]);
+		shader.program = new Galileo.Shader(vertexSource, fragmentSource);
 		shader.vertexSource = vertexSource;
 		shader.fragmentSource = fragmentSource;
 		return shader;
@@ -1183,7 +1184,7 @@ class Shader
 		const dolly = Object.create(Object.getPrototypeOf(this)) as Shader;
 		dolly.vertexSource = this.vertexSource;
 		dolly.fragmentSource = this.fragmentSource;
-		dolly.program = new galileo.Shader(dolly.vertexSource, dolly.fragmentSource);
+		dolly.program = new Galileo.Shader(dolly.vertexSource, dolly.fragmentSource);
 		return dolly;
 	}
 
@@ -1242,41 +1243,41 @@ class Shape
 {
 	texture: Texture | null;
 	indexList: IndexList | null;
-	shape: galileo.Shape;
+	shape: Galileo.Shape;
 
-	static drawImmediate(surface: Surface, type: galileo.ShapeType, texture: Texture | null, vertices: ArrayLike<Vertex>): void
-	static drawImmediate(surface: Surface, type: galileo.ShapeType, vertices: ArrayLike<Vertex>): void
-	static drawImmediate(surface: Surface, type: galileo.ShapeType, arg1: Texture | ArrayLike<Vertex> | null, arg2?: ArrayLike<Vertex>)
+	static drawImmediate(surface: Surface, type: Galileo.ShapeType, texture: Texture | null, vertices: ArrayLike<Vertex>): void
+	static drawImmediate(surface: Surface, type: Galileo.ShapeType, vertices: ArrayLike<Vertex>): void
+	static drawImmediate(surface: Surface, type: Galileo.ShapeType, arg1: Texture | ArrayLike<Vertex> | null, arg2?: ArrayLike<Vertex>)
 	{
 		surface.drawTarget.activate();
 		if (arg1 instanceof Texture || arg1 === null) {
 			Shader.Default.program.activate(arg1 !== null);
 			Shader.Default.program.project(surface.projection.matrix);
-			Shader.Default.program.transform(galileo.Matrix.Identity);
+			Shader.Default.program.transform(Galileo.Matrix.Identity);
 			if (arg1 !== null)
 				arg1.texture.activate(0);
 			immediateVBO.upload(arg2 as ArrayLike<Vertex>);
-			galileo.Prim.draw(immediateVBO, null, type);
+			Galileo.Prim.draw(immediateVBO, null, type);
 		}
 		else {
 			Shader.Default.program.activate(false);
 			Shader.Default.program.project(surface.projection.matrix);
-			Shader.Default.program.transform(galileo.Matrix.Identity);
+			Shader.Default.program.transform(Galileo.Matrix.Identity);
 			immediateVBO.upload(arg1);
-			galileo.Prim.draw(immediateVBO, null, type);
+			Galileo.Prim.draw(immediateVBO, null, type);
 		}
 	}
 
-	constructor(type: galileo.ShapeType, texture: Texture | null, vbo: VertexList, indexList?: IndexList | null)
-	constructor(type: galileo.ShapeType, vbo: VertexList, indexList?: IndexList | null)
-	constructor(arg0: galileo.ShapeType, arg1: Texture | VertexList | null, arg2: VertexList | IndexList | null = null, arg3: IndexList | null = null)
+	constructor(type: Galileo.ShapeType, texture: Texture | null, vbo: VertexList, indexList?: IndexList | null)
+	constructor(type: Galileo.ShapeType, vbo: VertexList, indexList?: IndexList | null)
+	constructor(arg0: Galileo.ShapeType, arg1: Texture | VertexList | null, arg2: VertexList | IndexList | null = null, arg3: IndexList | null = null)
 	{
 		if (arg2 instanceof VertexList) {
 			if (!(arg1 instanceof Texture) && arg1 != undefined)
 				throw new Error("Expected Texture or null as second parameter to new Shape");
 			const vbo = arg2.buffer;
 			const ibo = arg3 !== null ? arg3.buffer : null;
-			this.shape = new galileo.Shape(vbo, ibo, arg0);
+			this.shape = new Galileo.Shape(vbo, ibo, arg0);
 			this.texture = arg1;
 			this.indexList = arg3;
 		}
@@ -1285,7 +1286,7 @@ class Shape
 				throw new Error("Expected VertexList or Texture as second parameter to new Shape");
 			let vbo = arg1.buffer;
 			const ibo = arg2 !== null ? arg2.buffer : null;
-			this.shape = new galileo.Shape(vbo, ibo, arg0);
+			this.shape = new Galileo.Shape(vbo, ibo, arg0);
 			this.texture = null;
 			this.indexList = arg2;
 		}
@@ -1305,13 +1306,13 @@ class Shape
 
 class Sound
 {
-	private sound: audialis.Sound;
+	private sound: Audialis.Sound;
 
 	static async fromFile(fileName: string)
 	{
 		const url = Game.urlOf(game, fileName);
 		const sound = Object.create(this.prototype) as Sound;
-		sound.sound = await audialis.Sound.fromFile(url);
+		sound.sound = await Audialis.Sound.fromFile(url);
 		return sound;
 	}
 
@@ -1370,13 +1371,13 @@ class Sound
 
 class SoundStream
 {
-	stream: audialis.Stream;
+	stream: Audialis.Stream;
 
 	constructor(frequency: number, bits: number, numChannels: number)
 	{
 		if (bits !== 32) // Web Audio only supports float32 samples
 			throw new RangeError(`Only 32-bit floating-point audio is supported in Oozaru`);
-		this.stream = new audialis.Stream(frequency, numChannels);
+		this.stream = new Audialis.Stream(frequency, numChannels);
 	}
 
 	get length()
@@ -1408,7 +1409,7 @@ class SoundStream
 class Texture
 {
 	hasLoaded = false;
-	texture: galileo.Texture;
+	texture: Galileo.Texture;
 
 	static async fromFile(fileName: string)
 	{
@@ -1427,14 +1428,14 @@ class Texture
 		}
 		else if (args[0] instanceof HTMLImageElement) {
 			const image = args[0];
-			this.texture = new galileo.Texture(image);
+			this.texture = new Galileo.Texture(image);
 			this.hasLoaded = true;
 		}
 		else {
 			const width: number = args[0];
 			const height: number = args[1];
 			const content: ArrayBufferView | Color | undefined = args[2];
-			this.texture = new galileo.Texture(width, height, content);
+			this.texture = new Galileo.Texture(width, height, content);
 			this.hasLoaded = true;
 		}
 	}
@@ -1452,12 +1453,12 @@ class Texture
 
 class Surface extends Texture
 {
-	drawTarget: galileo.DrawTarget;
+	drawTarget: Galileo.DrawTarget;
 	projection: Transform;
 
 	static get Screen()
 	{
-		const drawTarget = galileo.DrawTarget.Screen;
+		const drawTarget = Galileo.DrawTarget.Screen;
 		const surface = Object.create(Surface.prototype) as Surface;
 		surface.drawTarget = drawTarget;
 		surface.projection = new Transform()
@@ -1477,7 +1478,7 @@ class Surface extends Texture
 	{
 		super(...args);
 
-		this.drawTarget = new galileo.DrawTarget(this.texture);
+		this.drawTarget = new Galileo.DrawTarget(this.texture);
 		this.projection = new Transform()
 			.project2D(0, 0, this.drawTarget.width, this.drawTarget.height);
 	}
@@ -1527,7 +1528,7 @@ class Surface extends Texture
 
 class Transform
 {
-	matrix: galileo.Matrix;
+	matrix: Galileo.Matrix;
 
 	static get Identity()
 	{
@@ -1537,7 +1538,7 @@ class Transform
 
 	constructor()
 	{
-		this.matrix = new galileo.Matrix();
+		this.matrix = new Galileo.Matrix();
 		this.matrix.identity();
 	}
 
@@ -1599,12 +1600,19 @@ class Transform
 
 class VertexList
 {
-	buffer: galileo.VertexBuffer;
+	buffer: Galileo.VertexBuffer;
 
 	constructor(vertices: Iterable<Vertex>)
 	{
-		this.buffer = new galileo.VertexBuffer([ ...vertices ]);
+		this.buffer = new Galileo.VertexBuffer([ ...vertices ]);
 	}
+}
+
+function toAbsoluteURL(url: string)
+{
+	const anchor = document.createElement('a');
+	anchor.setAttribute("href", url);
+	return (anchor.cloneNode(false) as HTMLAnchorElement).href;
 }
 
 function memoize(object: object, key: PropertyKey, value: unknown)

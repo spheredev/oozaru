@@ -30,8 +30,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-export default
-class BufferStream
+export
+class DataStream
 {
 	#bytes: Uint8Array;
 	#ptr = 0;

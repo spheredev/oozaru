@@ -34,7 +34,7 @@
 // is described here:
 // https://blog.labix.org/2010/12/23/efficient-algorithm-for-expanding-circular-buffers
 
-export default
+export
 class Deque<T> implements Iterable<T>
 {
 	#backPtr = 0;

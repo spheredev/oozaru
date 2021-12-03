@@ -38,7 +38,7 @@ interface FetchJob
 	url:  string;
 }
 
-export default
+export
 class Fido
 {
 	#jobs: FetchJob[] = [];

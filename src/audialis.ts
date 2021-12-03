@@ -30,8 +30,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import Deque from './deque.js';
-import * as util from './utilities.js';
+import { Deque } from './deque.js';
+import { fetchAudio } from './utilities.js';
 
 export
 class Mixer
@@ -67,7 +67,7 @@ class Sound
 
 	static async fromFile(url: string)
 	{
-		const media = await util.fetchAudio(url);
+		const media = await fetchAudio(url);
 		media.loop = true;
 		return new this(media);
 	}
