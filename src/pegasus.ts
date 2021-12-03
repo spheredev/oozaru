@@ -152,7 +152,7 @@ class Pegasus extends null
 			enumerable: false,
 			configurable: true,
 			value: async function fromFile(fileName: string) {
-				const url = Game.urlOf(game, fileName);
+				const url = game.urlOf(fileName);
 				return fetchJSON(url);
 			},
 		})
@@ -189,7 +189,7 @@ class Pegasus extends null
 
 		// load and execute the game's main module.  if it exports a startup
 		// function or class, call it.
-		const moduleURL = Game.urlOf(game, game.mainPath);
+		const moduleURL = game.urlOf(game.mainPath);
 		const main = await import(toAbsoluteURL(moduleURL));
 		if (isConstructor(main.default)) {
 			mainObject = new main.default() as object;
@@ -595,13 +595,13 @@ class FS extends null
 {
 	static async evaluateScript(fileName: string)
 	{
-		const url = Game.urlOf(game, fileName);
+		const url = game.urlOf(fileName);
 		return fetchScript(url);
 	}
 
 	static async fileExists(pathName: string)
 	{
-		const url = Game.urlOf(game, pathName);
+		const url = game.urlOf(pathName);
 		try {
 			const response = await fetch(url);
 			return response.status === 200;
@@ -620,7 +620,7 @@ class FS extends null
 	static readFile<T extends DataType>(fileName: string, dataType: T): Promise<ReadFileReturn[T]>;
 	static async readFile(fileName: string, dataType = DataType.Text)
 	{
-		const url = Game.urlOf(game, fileName);
+		const url = game.urlOf(fileName);
 		switch (dataType) {
 			case DataType.Bytes:
 				const data = await fetchRawFile(url);
@@ -646,7 +646,7 @@ class FileStream
 		if (fileOp !== FileOp.Read)
 			throw new RangeError(`Oozaru currently only supports FileStreams in read mode`);
 
-		const url = Game.urlOf(game, fileName);
+		const url = game.urlOf(fileName);
 		const data = await fetchRawFile(url);
 		const fileStream = Object.create(this.prototype) as FileStream;
 		fileStream.fullPath = fileName;
@@ -722,7 +722,7 @@ class Font
 
 	static async fromFile(fileName: string)
 	{
-		const url = Game.urlOf(game, fileName);
+		const url = game.urlOf(fileName);
 		const font = await Galileo.Font.fromFile(url);
 		const object = Object.create(this.prototype) as Font;
 		object.font = font;
@@ -1161,8 +1161,8 @@ class Shader
 
 	static async fromFiles(options: ShaderOptions)
 	{
-		const vertexURL = Game.urlOf(game, options.vertexFile);
-		const fragmentURL = Game.urlOf(game, options.fragmentFile);
+		const vertexURL = game.urlOf(options.vertexFile);
+		const fragmentURL = game.urlOf(options.fragmentFile);
 		const shader = Object.create(this.prototype) as Shader;
 		const [ vertexSource, fragmentSource ] = await Promise.all([
 			fetchTextFile(vertexURL),
@@ -1310,7 +1310,7 @@ class Sound
 
 	static async fromFile(fileName: string)
 	{
-		const url = Game.urlOf(game, fileName);
+		const url = game.urlOf(fileName);
 		const sound = Object.create(this.prototype) as Sound;
 		sound.sound = await Audialis.Sound.fromFile(url);
 		return sound;
@@ -1413,7 +1413,7 @@ class Texture
 
 	static async fromFile(fileName: string)
 	{
-		const url = Game.urlOf(game, fileName);
+		const url = game.urlOf(fileName);
 		const image = await theFido.fetchImage(url);
 		return new Texture(image);
 	}

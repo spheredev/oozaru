@@ -45,26 +45,6 @@ class Game
 		return new this(url, manifest);
 	}
 
-	static urlOf(game: Game | null, pathName: string)
-	{
-		const hops = pathName.split(/[\\/]+/);
-		if (hops[0] !== '@' && hops[0] !== '#' && hops[0] !== '~' && hops[0] !== '$' && hops[0] !== '%')
-			hops.unshift('@');
-		if (hops[0] === '@') {
-			if (game === null)
-				throw new Error(`No game loaded to resolve SphereFS '@/' prefix`);
-			hops.splice(0, 1);
-			return `${game.url}/${hops.join('/')}`;
-		}
-		else if (hops[0] === '#') {
-			hops.splice(0, 1);
-			return `assets/${hops.join('/')}`;
-		}
-		else {
-			throw new RangeError(`Unsupported SphereFS prefix '${hops[0]}'`);
-		}
-	}
-
 	constructor(directoryURL: string, manifest: Manifest)
 	{		
 		if (manifest.apiLevel > Version.apiLevel)
@@ -140,5 +120,23 @@ class Game
 			}
 		}
 		return output.join('/');
+	}
+
+	urlOf(pathName: string)
+	{
+		const hops = pathName.split(/[\\/]+/);
+		if (hops[0] !== '@' && hops[0] !== '#' && hops[0] !== '~' && hops[0] !== '$' && hops[0] !== '%')
+			hops.unshift('@');
+		if (hops[0] === '@') {
+			hops.splice(0, 1);
+			return `${this.url}/${hops.join('/')}`;
+		}
+		else if (hops[0] === '#') {
+			hops.splice(0, 1);
+			return `assets/${hops.join('/')}`;
+		}
+		else {
+			throw new RangeError(`Unsupported SphereFS prefix '${hops[0]}'`);
+		}
 	}
 }

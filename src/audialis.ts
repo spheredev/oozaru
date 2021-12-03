@@ -31,7 +31,7 @@
 **/
 
 import { Deque } from './deque.js';
-import { fetchAudio } from './utilities.js';
+import { fetchAudioFile } from './utilities.js';
 
 export
 class Mixer
@@ -67,7 +67,7 @@ class Sound
 
 	static async fromFile(url: string)
 	{
-		const media = await fetchAudio(url);
+		const media = await fetchAudioFile(url);
 		media.loop = true;
 		return new this(media);
 	}

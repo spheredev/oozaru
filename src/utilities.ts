@@ -31,7 +31,7 @@
 **/
 
 export
-async function fetchAudio(url: string)
+async function fetchAudioFile(url: string)
 {
 	return new Promise<HTMLAudioElement>((resolve, reject) => {
 		const audio = new Audio();
