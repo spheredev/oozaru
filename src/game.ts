@@ -47,6 +47,8 @@ class Game
 
 	constructor(directoryURL: string, manifest: Manifest)
 	{		
+		if (manifest.apiVersion < 2)
+			throw Error(`'${manifest.name}' is a Sphere 1.x game and won't run in Oozaru.`);
 		if (manifest.apiLevel > Version.apiLevel)
 			throw Error(`'${manifest.name}' requires API level '${manifest.apiLevel}' or higher.`);
 

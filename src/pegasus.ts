@@ -85,6 +85,7 @@ interface Vertex
 	color?: Color;
 }
 
+const console = globalThis.console;
 const jobQueue = new JobQueue();
 
 let defaultFont: Font;
@@ -104,15 +105,15 @@ class Pegasus extends null
 		immediateVBO = new Galileo.VertexBuffer();
 		theFido = fido;
 
-		Object.defineProperty(window, 'global', {
+		Object.defineProperty(globalThis, 'global', {
 			writable: false,
 			enumerable: false,
 			configurable: false,
-			value: window,
+			value: globalThis,
 		});
 
 		// register Sphere v2 API globals
-		Object.assign(window, {
+		Object.assign(globalThis, {
 			// enumerations
 			BlendOp: Galileo.BlendOp,
 			DataType,

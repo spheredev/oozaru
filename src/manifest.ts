@@ -42,6 +42,7 @@ class Manifest
 	mainPath: string;
 	name: string;
 	resolution = { x: 320, y: 240 };
+	saveID = "";
 
 	static async fromFile(url: string)
 	{
@@ -65,8 +66,7 @@ class Manifest
 		this.author = values.author ?? "Unknown";
 		this.description = values.description ?? "";
 
-		// note: any manifest with a `main` field is automatically Sphere v2, even if no API is
-		//       specified.
+		// `main` field implies Sphere v2, even if no API is specified
 		this.apiVersion = parseInt(values.version ?? "1", 10);
 		this.apiLevel = parseInt(values.api ?? "0", 10);
 		this.mainPath = values.main ?? "";
@@ -74,16 +74,27 @@ class Manifest
 			this.apiVersion = Math.max(this.apiVersion, 2);
 			this.apiLevel = Math.max(this.apiLevel, 1);
 		}
-		if (this.apiVersion < 2)
-			throw Error(`'${this.name}' is a Sphere 1.x game and won't run in Oozaru.`);
 
-		const resString = values.resolution ?? "";
-		const resParse = resString.match(/(\d+)x(\d+)/);
-		if (resParse && resParse.length === 3) {
-			this.resolution = {
-				x: parseInt(resParse[1], 10),
-				y: parseInt(resParse[2], 10),
-			};
+		if (this.apiVersion >= 2) {
+			this.saveID = values.saveID ?? "";
+			const resString = values.resolution ?? "";
+			const resParse = resString.match(/(\d+)x(\d+)/);
+			if (resParse && resParse.length === 3) {
+				this.resolution = {
+					x: parseInt(resParse[1], 10),
+					y: parseInt(resParse[2], 10),
+				};
+			}
 		}
+		else {
+			this.mainPath = values.script ?? "";
+			this.resolution = {
+				x: parseInt(values.screen_width ?? "320", 10),
+				y: parseInt(values.screen_height ?? "240", 10),
+			}
+		}
+
+		if (this.mainPath === "")
+			throw Error("Game manifest doesn't specify a main script or module.");
 	}
 }
