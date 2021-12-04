@@ -81,6 +81,14 @@ async function fetchTextFile(url: string)
 }
 
 export
+function fullURL(url: string)
+{
+	const anchor = document.createElement('a');
+	anchor.setAttribute("href", url);
+	return (anchor.cloneNode(false) as HTMLAnchorElement).href;
+}
+
+export
 function isConstructor(func: Function)
 {
 	const funcProxy = new Proxy(func, { construct() { return {}; } });

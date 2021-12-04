@@ -126,7 +126,8 @@ class Deque<T> implements Iterable<T>
 	{
 		if (this.#vips.length > 0) {
 			return this.#vips.pop()!;
-		} else {
+		}
+		else {
 			const value = this.#entries[this.#frontPtr++];
 			if (this.#frontPtr >= this.#stride)
 				this.#frontPtr = 0;

@@ -140,7 +140,7 @@ class Sound
 export
 class Stream
 {
-	private buffers: Deque<Float32Array> = new Deque();
+	private buffers = new Deque<Float32Array>();
 	private inputPtr = 0.0;
 	private mixer: Mixer | null = null;
 	private node: ScriptProcessorNode | null = null;

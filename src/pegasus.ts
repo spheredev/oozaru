@@ -33,11 +33,11 @@
 import * as Audialis from './audialis.js';
 import { DataStream } from './data-stream.js';
 import { Fido } from './fido.js';
-import { InputEngine, Key, MouseKey } from './input-engine.js';
 import { Game } from './game.js';
 import * as Galileo from './galileo.js';
+import { InputEngine, Key, MouseKey } from './input-engine.js';
 import { JobQueue, JobType } from './job-queue.js';
-import { fetchJSON, fetchRawFile, fetchScript, fetchTextFile, isConstructor } from './utilities.js';
+import { fetchJSON, fetchRawFile, fetchScript, fetchTextFile, fullURL, isConstructor } from './utilities.js';
 import { Version } from './version.js';
 
 enum DataType
@@ -97,7 +97,7 @@ let inputEngine: InputEngine;
 let mainObject: { [x: string]: any } | undefined;
 
 export default
-class Pegasus extends null
+class Pegasus
 {
 	static initialize(fido: Fido, input: InputEngine)
 	{
@@ -191,7 +191,7 @@ class Pegasus extends null
 		// load and execute the game's main module.  if it exports a startup
 		// function or class, call it.
 		const moduleURL = game.urlOf(game.mainPath);
-		const main = await import(toAbsoluteURL(moduleURL));
+		const main = await import(fullURL(moduleURL));
 		if (isConstructor(main.default)) {
 			mainObject = new main.default() as object;
 			if (typeof mainObject.start === 'function')
@@ -205,7 +205,7 @@ class Pegasus extends null
 	}
 }
 
-class Sphere extends null
+class Sphere
 {
 	static get APILevel()
 	{
@@ -560,7 +560,7 @@ class Color
 	}
 }
 
-class Dispatch extends null
+class Dispatch
 {
 	static cancelAll()
 	{
@@ -592,7 +592,7 @@ class Dispatch extends null
 	}
 }
 
-class FS extends null
+class FS
 {
 	static async evaluateScript(fileName: string)
 	{
@@ -1130,7 +1130,7 @@ class RNG
 	}
 }
 
-class SSj extends null
+class SSj
 {
 	static log(object: any)
 	{
@@ -1607,13 +1607,6 @@ class VertexList
 	{
 		this.buffer = new Galileo.VertexBuffer([ ...vertices ]);
 	}
-}
-
-function toAbsoluteURL(url: string)
-{
-	const anchor = document.createElement('a');
-	anchor.setAttribute("href", url);
-	return (anchor.cloneNode(false) as HTMLAnchorElement).href;
 }
 
 function memoize(object: object, key: PropertyKey, value: unknown)
