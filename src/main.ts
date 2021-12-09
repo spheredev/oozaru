@@ -33,7 +33,7 @@
 import { Fido } from './fido.js';
 import { initGraphics } from './galileo.js';
 import { InputEngine } from './input-engine.js';
-import Pegasus from './pegasus.js';
+import { initializeAPI, launchGame } from './pegasus.js';
 import { fetchJSON } from './utilities.js';
 
 main();
@@ -97,8 +97,8 @@ async function main()
 			powerButton.classList.toggle('on');
 			powerText.classList.remove('visible');
 			canvas.focus();
-			Pegasus.initialize(new Fido(), new InputEngine(canvas));
-			await Pegasus.launchGame(gameID !== null ? `games/${gameID}` : 'dist');
+			initializeAPI(new Fido(), new InputEngine(canvas));
+			await launchGame(gameID !== null ? `games/${gameID}` : 'dist');
 		}
 		else {
 			reportException("Please select a game from the top menu first.");

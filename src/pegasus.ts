@@ -30,13 +30,14 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import * as Audialis from './audialis.js';
+import { Mixer, Sound, SoundStream } from './audialis.js';
 import { DataStream } from './data-stream.js';
 import { Fido } from './fido.js';
 import { Game } from './game.js';
 import * as Galileo from './galileo.js';
 import { InputEngine, Key, MouseKey } from './input-engine.js';
 import { JobQueue, JobType } from './job-queue.js';
+import { Session } from './session.js'
 import { fetchJSON, fetchRawFile, fetchScript, fetchTextFile, fullURL, isConstructor } from './utilities.js';
 import { Version } from './version.js';
 
@@ -96,113 +97,113 @@ let immediateVBO: Galileo.VertexBuffer;
 let inputEngine: InputEngine;
 let mainObject: { [x: string]: any } | undefined;
 
-export default
-class Pegasus
+export
+function initializeAPI(fido: Fido, input: InputEngine)
 {
-	static initialize(fido: Fido, input: InputEngine)
-	{
-		inputEngine = input;
-		immediateVBO = new Galileo.VertexBuffer();
-		theFido = fido;
+	inputEngine = input;
+	immediateVBO = new Galileo.VertexBuffer();
+	theFido = fido;
 
-		Object.defineProperty(globalThis, 'global', {
-			writable: false,
-			enumerable: false,
-			configurable: false,
-			value: globalThis,
-		});
+	Object.defineProperty(globalThis, 'global', {
+		writable: false,
+		enumerable: false,
+		configurable: false,
+		value: globalThis,
+	});
 
-		// register Sphere v2 API globals
-		Object.assign(globalThis, {
-			// enumerations
-			BlendOp: Galileo.BlendOp,
-			DataType,
-			DepthOp: Galileo.DepthOp,
-			FileOp,
-			Key,
-			MouseKey,
-			ShapeType: Galileo.ShapeType,
+	// register Sphere v2 API globals
+	Object.assign(globalThis, {
+		// enumerations
+		BlendOp: Galileo.BlendOp,
+		DataType,
+		DepthOp: Galileo.DepthOp,
+		FileOp,
+		Key,
+		MouseKey,
+		ShapeType: Galileo.ShapeType,
 
-			// classes and namespaces
-			Sphere,
-			Color,
-			Dispatch,
-			FS,
-			FileStream,
-			Font,
-			IndexList,
-			Joystick,
-			Keyboard,
-			Mixer,
-			Model,
-			Mouse,
-			RNG,
-			SSj,
-			Shader,
-			Shape,
-			Sound,
-			SoundStream,
-			Surface,
-			Texture,
-			Transform,
-			VertexList,
-		});
+		// classes and namespaces
+		Sphere,
+		Color,
+		Dispatch,
+		FS,
+		FileStream,
+		Font,
+		IndexList,
+		Joystick,
+		Keyboard,
+		Mixer,
+		Model,
+		Mouse,
+		RNG,
+		SSj,
+		Shader,
+		Shape,
+		Sound,
+		SoundStream,
+		Surface,
+		Texture,
+		Transform,
+		VertexList,
+	});
 
-		Object.defineProperty(JSON, 'fromFile', {
-			writable: true,
-			enumerable: false,
-			configurable: true,
-			value: async function fromFile(fileName: string) {
-				const url = game.urlOf(fileName);
-				return fetchJSON(url);
-			},
-		})
+	Object.defineProperty(JSON, 'fromFile', {
+		writable: true,
+		enumerable: false,
+		configurable: true,
+		value: async function fromFile(fileName: string) {
+			const url = game.urlOf(fileName);
+			return fetchJSON(url);
+		},
+	})
+}
+
+export	
+async function launchGame(directoryURL: string)
+{
+	// load the game's JSON manifest
+	game = await Game.fromDirectory(directoryURL);
+	Galileo.Prim.rerez(game.resolution.x, game.resolution.y);
+	document.title = game.title;
+	document.getElementById('gameTitle')!.innerHTML = game.title;
+	document.getElementById('copyright')!.innerHTML = `game by ${game.author}`;
+
+	defaultFont = await Font.fromFile('#/default.rfn');
+	defaultShader = await Shader.fromFiles({
+		vertexFile: '#/default.vert.glsl',
+		fragmentFile: '#/default.frag.glsl',
+	});
+
+	jobQueue.add(JobType.Render, () => {
+		if (theFido.progress >= 1.0)
+			return;
+		const status = `fido: ${Math.floor(100.0 * theFido.progress)}% (${theFido.numJobs} files)`;
+		const textSize = defaultFont.getTextSize(status);
+		const x = Surface.Screen.width - textSize.width - 5;
+		const y = Surface.Screen.height - textSize.height - 5;
+		defaultFont.drawText(Surface.Screen, x + 1, y + 1, status, Color.Black);
+		defaultFont.drawText(Surface.Screen, x, y, status, Color.Silver);
+	}, true, Infinity);
+
+	Session.currentGame = game;
+
+	// start the Sphere v2 event loop
+	jobQueue.start();
+
+	// load and execute the game's main module.  if it exports a startup
+	// function or class, call it.
+	const moduleURL = game.urlOf(game.mainPath);
+	const main = await import(fullURL(moduleURL));
+	if (isConstructor(main.default)) {
+		mainObject = new main.default() as object;
+		if (typeof mainObject.start === 'function')
+			await mainObject.start();
+	}
+	else {
+		await main.default();
 	}
 
-	static async launchGame(directoryURL: string)
-	{
-		// load the game's JSON manifest
-		game = await Game.fromDirectory(directoryURL);
-		Galileo.Prim.rerez(game.resolution.x, game.resolution.y);
-		document.title = game.title;
-		document.getElementById('gameTitle')!.innerHTML = game.title;
-		document.getElementById('copyright')!.innerHTML = `game by ${game.author}`;
-
-		defaultFont = await Font.fromFile('#/default.rfn');
-		defaultShader = await Shader.fromFiles({
-			vertexFile: '#/default.vert.glsl',
-			fragmentFile: '#/default.frag.glsl',
-		});
-
-		jobQueue.add(JobType.Render, () => {
-			if (theFido.progress >= 1.0)
-				return;
-			const status = `fido: ${Math.floor(100.0 * theFido.progress)}% (${theFido.numJobs} files)`;
-			const textSize = defaultFont.getTextSize(status);
-			const x = Surface.Screen.width - textSize.width - 5;
-			const y = Surface.Screen.height - textSize.height - 5;
-			defaultFont.drawText(Surface.Screen, x + 1, y + 1, status, Color.Black);
-			defaultFont.drawText(Surface.Screen, x, y, status, Color.Silver);
-		}, true, Infinity);
-
-		// start the Sphere v2 event loop
-		jobQueue.start();
-
-		// load and execute the game's main module.  if it exports a startup
-		// function or class, call it.
-		const moduleURL = game.urlOf(game.mainPath);
-		const main = await import(fullURL(moduleURL));
-		if (isConstructor(main.default)) {
-			mainObject = new main.default() as object;
-			if (typeof mainObject.start === 'function')
-				await mainObject.start();
-		}
-		else {
-			await main.default();
-		}
-
-		return game;
-	}
+	return game;
 }
 
 class Sphere
@@ -973,37 +974,6 @@ class Keyboard
 	}
 }
 
-class Mixer
-{
-	mixer: Audialis.Mixer;
-
-	static get Default()
-	{
-		const mixer = new Mixer(44100, 16, 2);
-		Object.defineProperty(Mixer, 'Default', {
-			writable: false,
-			enumerable: false,
-			configurable: true,
-			value: mixer,
-		});
-		return mixer;
-	}
-
-	constructor(frequency: number, _bits: number, _numChannels: number)
-	{
-		this.mixer = new Audialis.Mixer(frequency);
-	}
-
-	get volume()
-	{
-		return this.mixer.volume;
-	}
-	set volume(value)
-	{
-		this.mixer.volume = value;
-	}
-}
-
 class Model
 {
 	private shapes: Shape[];
@@ -1302,108 +1272,6 @@ class Shape
 		if (this.texture !== null)
 			this.texture.texture.activate(0);
 		this.shape.draw();
-	}
-}
-
-class Sound
-{
-	private sound: Audialis.Sound;
-
-	static async fromFile(fileName: string)
-	{
-		const url = game.urlOf(fileName);
-		const sound = Object.create(this.prototype) as Sound;
-		sound.sound = await Audialis.Sound.fromFile(url);
-		return sound;
-	}
-
-	constructor(fileName: string)
-	{
-		throw new RangeError("new Sound() with filename is not supported");
-	}
-
-	get length()
-	{
-		return this.sound.length;
-	}
-
-	get position()
-	{
-		return this.sound.position;
-	}
-	set position(value)
-	{
-		this.sound.position = value;
-	}
-
-	get repeat()
-	{
-		return this.sound.repeat;
-	}
-	set repeat(value)
-	{
-		this.sound.repeat = value;
-	}
-
-	get volume()
-	{
-		return this.sound.volume;
-	}
-	set volume(value)
-	{
-		this.sound.volume = value;
-	}
-
-	pause()
-	{
-		this.sound.pause();
-	}
-
-	play(mixer = Mixer.Default)
-	{
-		this.sound.play(mixer.mixer);
-	}
-
-	stop()
-	{
-		this.sound.stop();
-	}
-}
-
-class SoundStream
-{
-	stream: Audialis.Stream;
-
-	constructor(frequency: number, bits: number, numChannels: number)
-	{
-		if (bits !== 32) // Web Audio only supports float32 samples
-			throw new RangeError(`Only 32-bit floating-point audio is supported in Oozaru`);
-		this.stream = new Audialis.Stream(frequency, numChannels);
-	}
-
-	get length()
-	{
-		return this.stream.buffered;
-	}
-
-	pause()
-	{
-		this.stream.pause();
-	}
-
-	play(mixer = Mixer.Default)
-	{
-		this.stream.play(mixer.mixer);
-	}
-
-	stop()
-	{
-		this.stream.stop();
-	}
-
-	write(data: Float32Array)
-	{
-		this.stream.buffer(data);
 	}
 }
 

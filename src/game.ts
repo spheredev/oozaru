@@ -56,7 +56,7 @@ class Game
 		// browser.  let Oozaru launch the game, but log a warning to the console to let the user know
 		// there might be an issue.
 		if (manifest.apiLevel < 4)
-			console.warn(`'${manifest.name}' targets Sphere API level ${manifest.apiLevel} and may not run correctly under Oozaru.`);
+			console.warn(`'${manifest.name}' targets Sphere API level ${manifest.apiLevel} and may not run correctly under Oozaru. Consider summoning Big Chungus to fix this issue.`);
 
 		this.manifest = manifest;
 		this.url = directoryURL.endsWith('/')

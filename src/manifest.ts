@@ -95,6 +95,6 @@ class Manifest
 		}
 
 		if (this.mainPath === "")
-			throw Error("Game manifest doesn't specify a main script or module.");
+			throw Error("Game manifest doesn't specify a main script.");
 	}
 }
