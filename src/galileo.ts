@@ -100,6 +100,13 @@ enum ShapeType
 }
 
 export
+interface Size
+{
+	width: number;
+	height: number;
+}
+
+export
 interface Vertex
 {
 	x: number;
@@ -115,44 +122,316 @@ let activeShader: Shader | null = null;
 let webGL: WebGLRenderingContext;
 let webGLCanvas: HTMLCanvasElement;
 
-export
-function initGraphics(canvas: HTMLCanvasElement)
+export default
+class Galileo
 {
-	const glOptions = { alpha: false, preserveDrawingBuffer: true };
-	const webGLContext = (canvas.getContext('webgl2', glOptions)
-		|| canvas.getContext('webgl', glOptions)
-		|| canvas.getContext('experimental-webgl', glOptions)) as WebGLRenderingContext | null;
-	if (webGLContext === null)
-		throw new Error(`Failed to create a WebGL rendering context.`);
-	webGLContext.clearColor(0.0, 0.0, 0.0, 1.0);
-	webGLContext.clearDepth(1.0);
-	webGLContext.blendEquation(webGLContext.FUNC_ADD);
-	webGLContext.blendFunc(webGLContext.SRC_ALPHA, webGLContext.ONE_MINUS_SRC_ALPHA);
-	webGLContext.depthFunc(webGLContext.LEQUAL);
-	webGLContext.enable(webGLContext.BLEND);
-	webGLContext.enable(webGLContext.DEPTH_TEST);
-	webGLContext.enable(webGLContext.SCISSOR_TEST);
+	static initialize(canvas: HTMLCanvasElement)
+	{
+		const glOptions = { alpha: false, preserveDrawingBuffer: true };
+		const webGLContext = (canvas.getContext('webgl2', glOptions)
+			|| canvas.getContext('webgl', glOptions)
+			|| canvas.getContext('experimental-webgl', glOptions)) as WebGLRenderingContext | null;
+		if (webGLContext === null)
+			throw new Error(`Oozaru was unable to create a WebGL rendering context.`);
+		webGLContext.clearColor(0.0, 0.0, 0.0, 1.0);
+		webGLContext.clearDepth(1.0);
+		webGLContext.blendEquation(webGLContext.FUNC_ADD);
+		webGLContext.blendFunc(webGLContext.SRC_ALPHA, webGLContext.ONE_MINUS_SRC_ALPHA);
+		webGLContext.depthFunc(webGLContext.LEQUAL);
+		webGLContext.enable(webGLContext.BLEND);
+		webGLContext.enable(webGLContext.DEPTH_TEST);
+		webGLContext.enable(webGLContext.SCISSOR_TEST);
 
-	webGL = webGLContext;
-	webGLCanvas = canvas;
+		webGL = webGLContext;
+		webGLCanvas = canvas;
+	
+		DrawTarget.Screen.activate();
+	}
 
-	DrawTarget.Screen.activate();
+	static clear()
+	{
+		webGL.disable(webGL.SCISSOR_TEST);
+		webGL.clear(webGL.COLOR_BUFFER_BIT | webGL.DEPTH_BUFFER_BIT);
+		webGL.enable(webGL.SCISSOR_TEST);
+	}
+
+	static draw(vertexBuffer: VertexBuffer, indexBuffer: IndexBuffer | null, type: ShapeType, offset = 0, numVertices?: number)
+	{
+		const drawMode = type === ShapeType.Fan ? webGL.TRIANGLE_FAN
+			: type === ShapeType.Lines ? webGL.LINES
+			: type === ShapeType.LineLoop ? webGL.LINE_LOOP
+			: type === ShapeType.LineStrip ? webGL.LINE_STRIP
+			: type === ShapeType.Points ? webGL.POINTS
+			: type === ShapeType.TriStrip ? webGL.TRIANGLE_STRIP
+			: webGL.TRIANGLES;
+		vertexBuffer.activate();
+		if (indexBuffer !== null) {
+			if (numVertices === undefined)
+				numVertices = indexBuffer.length - offset;
+			indexBuffer.activate();
+			webGL.drawElements(drawMode, numVertices, webGL.UNSIGNED_SHORT, offset);
+		}
+		else {
+			if (numVertices === undefined)
+				numVertices = vertexBuffer.length - offset;
+			webGL.drawArrays(drawMode, offset, numVertices);
+		}
+	}
+
+	static rerez(width: number, height: number)
+	{
+		webGLCanvas.width = width;
+		webGLCanvas.height = height;
+		if (width <= 400 && height <= 300) {
+			webGLCanvas.style.width = `${width * 2}px`;
+			webGLCanvas.style.height = `${height * 2}px`;
+		}
+		else {
+			webGLCanvas.style.width = `${width}px`;
+			webGLCanvas.style.height = `${height}px`;
+		}
+		if (activeDrawTarget === DrawTarget.Screen)
+			webGL.viewport(0, 0, webGLCanvas.width, webGLCanvas.height);
+	}
 }
 
 export
 class Color
 {
+	// note: predefined colors encoded in 8-bit RGBA (not float) because this whole table was
+	//       copied and pasted from miniSphere and I was too lazy to convert it.
+	static get AliceBlue ()            { return new Color(240 / 255, 248 / 255, 255 / 255, 255 / 255); }
+	static get AntiqueWhite ()         { return new Color(250 / 255, 235 / 255, 215 / 255, 255 / 255); }
+	static get Aqua ()                 { return new Color(0   / 255, 255 / 255, 255 / 255, 255 / 255); }
+	static get Aquamarine ()           { return new Color(127 / 255, 255 / 255, 212 / 255, 255 / 255); }
+	static get Azure ()                { return new Color(240 / 255, 255 / 255, 255 / 255, 255 / 255); }
+	static get Beige ()                { return new Color(245 / 255, 245 / 255, 220 / 255, 255 / 255); }
+	static get Bisque ()               { return new Color(255 / 255, 228 / 255, 196 / 255, 255 / 255); }
+	static get Black ()                { return new Color(0   / 255, 0   / 255, 0   / 255, 255 / 255); }
+	static get BlanchedAlmond ()       { return new Color(255 / 255, 235 / 255, 205 / 255, 255 / 255); }
+	static get Blue ()                 { return new Color(0   / 255, 0   / 255, 255 / 255, 255 / 255); }
+	static get BlueViolet ()           { return new Color(138 / 255, 43  / 255, 226 / 255, 255 / 255); }
+	static get Brown ()                { return new Color(165 / 255, 42  / 255, 42  / 255, 255 / 255); }
+	static get BurlyWood ()            { return new Color(222 / 255, 184 / 255, 135 / 255, 255 / 255); }
+	static get CadetBlue ()            { return new Color(95  / 255, 158 / 255, 160 / 255, 255 / 255); }
+	static get Chartreuse ()           { return new Color(127 / 255, 255 / 255, 0   / 255, 255 / 255); }
+	static get Chocolate ()            { return new Color(210 / 255, 105 / 255, 30  / 255, 255 / 255); }
+	static get Coral ()                { return new Color(255 / 255, 127 / 255, 80  / 255, 255 / 255); }
+	static get CornflowerBlue ()       { return new Color(100 / 255, 149 / 255, 237 / 255, 255 / 255); }
+	static get Cornsilk ()             { return new Color(255 / 255, 248 / 255, 220 / 255, 255 / 255); }
+	static get Crimson ()              { return new Color(220 / 255, 20  / 255, 60  / 255, 255 / 255); }
+	static get Cyan ()                 { return new Color(0   / 255, 255 / 255, 255 / 255, 255 / 255); }
+	static get DarkBlue ()             { return new Color(0   / 255, 0   / 255, 139 / 255, 255 / 255); }
+	static get DarkCyan ()             { return new Color(0   / 255, 139 / 255, 139 / 255, 255 / 255); }
+	static get DarkGoldenrod ()        { return new Color(184 / 255, 134 / 255, 11  / 255, 255 / 255); }
+	static get DarkGray ()             { return new Color(169 / 255, 169 / 255, 169 / 255, 255 / 255); }
+	static get DarkGreen ()            { return new Color(0   / 255, 100 / 255, 0   / 255, 255 / 255); }
+	static get DarkKhaki ()            { return new Color(189 / 255, 183 / 255, 107 / 255, 255 / 255); }
+	static get DarkMagenta ()          { return new Color(139 / 255, 0   / 255, 139 / 255, 255 / 255); }
+	static get DarkOliveGreen ()       { return new Color(85  / 255, 107 / 255, 47  / 255, 255 / 255); }
+	static get DarkOrange ()           { return new Color(255 / 255, 140 / 255, 0   / 255, 255 / 255); }
+	static get DarkOrchid ()           { return new Color(153 / 255, 50  / 255, 204 / 255, 255 / 255); }
+	static get DarkRed ()              { return new Color(139 / 255, 0   / 255, 0   / 255, 255 / 255); }
+	static get DarkSalmon ()           { return new Color(233 / 255, 150 / 255, 122 / 255, 255 / 255); }
+	static get DarkSeaGreen ()         { return new Color(143 / 255, 188 / 255, 143 / 255, 255 / 255); }
+	static get DarkSlateBlue ()        { return new Color(72  / 255, 61  / 255, 139 / 255, 255 / 255); }
+	static get DarkSlateGray ()        { return new Color(47  / 255, 79  / 255, 79  / 255, 255 / 255); }
+	static get DarkTurquoise ()        { return new Color(0   / 255, 206 / 255, 209 / 255, 255 / 255); }
+	static get DarkViolet ()           { return new Color(148 / 255, 0   / 255, 211 / 255, 255 / 255); }
+	static get DeepPink ()             { return new Color(255 / 255, 20  / 255, 147 / 255, 255 / 255); }
+	static get DeepSkyBlue ()          { return new Color(0   / 255, 191 / 255, 255 / 255, 255 / 255); }
+	static get DimGray ()              { return new Color(105 / 255, 105 / 255, 105 / 255, 255 / 255); }
+	static get DodgerBlue ()           { return new Color(30  / 255, 144 / 255, 255 / 255, 255 / 255); }
+	static get FireBrick ()            { return new Color(178 / 255, 34  / 255, 34  / 255, 255 / 255); }
+	static get FloralWhite ()          { return new Color(255 / 255, 250 / 255, 240 / 255, 255 / 255); }
+	static get ForestGreen ()          { return new Color(34  / 255, 139 / 255, 34  / 255, 255 / 255); }
+	static get Fuchsia ()              { return new Color(255 / 255, 0   / 255, 255 / 255, 255 / 255); }
+	static get Gainsboro ()            { return new Color(220 / 255, 220 / 255, 220 / 255, 255 / 255); }
+	static get GhostWhite ()           { return new Color(248 / 255, 248 / 255, 255 / 255, 255 / 255); }
+	static get Gold ()                 { return new Color(255 / 255, 215 / 255, 0   / 255, 255 / 255); }
+	static get Goldenrod ()            { return new Color(218 / 255, 165 / 255, 32  / 255, 255 / 255); }
+	static get Gray ()                 { return new Color(128 / 255, 128 / 255, 128 / 255, 255 / 255); }
+	static get Green ()                { return new Color(0   / 255, 128 / 255, 0   / 255, 255 / 255); }
+	static get GreenYellow ()          { return new Color(173 / 255, 255 / 255, 47  / 255, 255 / 255); }
+	static get Honeydew ()             { return new Color(240 / 255, 255 / 255, 240 / 255, 255 / 255); }
+	static get HotPink ()              { return new Color(255 / 255, 105 / 255, 180 / 255, 255 / 255); }
+	static get IndianRed ()            { return new Color(205 / 255, 92  / 255, 92  / 255, 255 / 255); }
+	static get Indigo ()               { return new Color(75  / 255, 0   / 255, 130 / 255, 255 / 255); }
+	static get Ivory ()                { return new Color(255 / 255, 255 / 255, 240 / 255, 255 / 255); }
+	static get Khaki ()                { return new Color(240 / 255, 230 / 255, 140 / 255, 255 / 255); }
+	static get Lavender ()             { return new Color(230 / 255, 230 / 255, 250 / 255, 255 / 255); }
+	static get LavenderBlush ()        { return new Color(255 / 255, 240 / 255, 245 / 255, 255 / 255); }
+	static get LawnGreen ()            { return new Color(124 / 255, 252 / 255, 0   / 255, 255 / 255); }
+	static get LemonChiffon ()         { return new Color(255 / 255, 250 / 255, 205 / 255, 255 / 255); }
+	static get LightBlue ()            { return new Color(173 / 255, 216 / 255, 230 / 255, 255 / 255); }
+	static get LightCoral ()           { return new Color(240 / 255, 128 / 255, 128 / 255, 255 / 255); }
+	static get LightCyan ()            { return new Color(224 / 255, 255 / 255, 255 / 255, 255 / 255); }
+	static get LightGoldenrodYellow () { return new Color(250 / 255, 250 / 255, 210 / 255, 255 / 255); }
+	static get LightGray ()            { return new Color(211 / 255, 211 / 255, 211 / 255, 255 / 255); }
+	static get LightGreen ()           { return new Color(144 / 255, 238 / 255, 144 / 255, 255 / 255); }
+	static get LightPink ()            { return new Color(255 / 255, 182 / 255, 193 / 255, 255 / 255); }
+	static get LightSalmon ()          { return new Color(255 / 255, 160 / 255, 122 / 255, 255 / 255); }
+	static get LightSeaGreen ()        { return new Color(32  / 255, 178 / 255, 170 / 255, 255 / 255); }
+	static get LightSkyBlue ()         { return new Color(135 / 255, 206 / 255, 250 / 255, 255 / 255); }
+	static get LightSlateGray ()       { return new Color(119 / 255, 136 / 255, 153 / 255, 255 / 255); }
+	static get LightSteelBlue ()       { return new Color(176 / 255, 196 / 255, 222 / 255, 255 / 255); }
+	static get LightYellow ()          { return new Color(255 / 255, 255 / 255, 224 / 255, 255 / 255); }
+	static get Lime ()                 { return new Color(0   / 255, 255 / 255, 0   / 255, 255 / 255); }
+	static get LimeGreen ()            { return new Color(50  / 255, 205 / 255, 50  / 255, 255 / 255); }
+	static get Linen ()                { return new Color(250 / 255, 240 / 255, 230 / 255, 255 / 255); }
+	static get Magenta ()              { return new Color(255 / 255, 0   / 255, 255 / 255, 255 / 255); }
+	static get Maroon ()               { return new Color(128 / 255, 0   / 255, 0   / 255, 255 / 255); }
+	static get MediumAquamarine ()     { return new Color(102 / 255, 205 / 255, 170 / 255, 255 / 255); }
+	static get MediumBlue ()           { return new Color(0   / 255, 0   / 255, 205 / 255, 255 / 255); }
+	static get MediumOrchid ()         { return new Color(186 / 255, 85  / 255, 211 / 255, 255 / 255); }
+	static get MediumPurple ()         { return new Color(147 / 255, 112 / 255, 219 / 255, 255 / 255); }
+	static get MediumSeaGreen ()       { return new Color(60  / 255, 179 / 255, 113 / 255, 255 / 255); }
+	static get MediumSlateBlue ()      { return new Color(123 / 255, 104 / 255, 238 / 255, 255 / 255); }
+	static get MediumSpringGreen ()    { return new Color(0   / 255, 250 / 255, 154 / 255, 255 / 255); }
+	static get MediumTurquoise ()      { return new Color(72  / 255, 209 / 255, 204 / 255, 255 / 255); }
+	static get MediumVioletRed ()      { return new Color(199 / 255, 21  / 255, 133 / 255, 255 / 255); }
+	static get MidnightBlue ()         { return new Color(25  / 255, 25  / 255, 112 / 255, 255 / 255); }
+	static get MintCream ()            { return new Color(245 / 255, 255 / 255, 250 / 255, 255 / 255); }
+	static get MistyRose ()            { return new Color(255 / 255, 228 / 255, 225 / 255, 255 / 255); }
+	static get Moccasin ()             { return new Color(255 / 255, 228 / 255, 181 / 255, 255 / 255); }
+	static get NavajoWhite ()          { return new Color(255 / 255, 222 / 255, 173 / 255, 255 / 255); }
+	static get Navy ()                 { return new Color(0   / 255, 0   / 255, 128 / 255, 255 / 255); }
+	static get OldLace ()              { return new Color(253 / 255, 245 / 255, 230 / 255, 255 / 255); }
+	static get Olive ()                { return new Color(128 / 255, 128 / 255, 0   / 255, 255 / 255); }
+	static get OliveDrab ()            { return new Color(107 / 255, 142 / 255, 35  / 255, 255 / 255); }
+	static get Orange ()               { return new Color(255 / 255, 165 / 255, 0   / 255, 255 / 255); }
+	static get OrangeRed ()            { return new Color(255 / 255, 69  / 255, 0   / 255, 255 / 255); }
+	static get Orchid ()               { return new Color(218 / 255, 112 / 255, 214 / 255, 255 / 255); }
+	static get PaleGoldenrod ()        { return new Color(238 / 255, 232 / 255, 170 / 255, 255 / 255); }
+	static get PaleGreen ()            { return new Color(152 / 255, 251 / 255, 152 / 255, 255 / 255); }
+	static get PaleTurquoise ()        { return new Color(175 / 255, 238 / 255, 238 / 255, 255 / 255); }
+	static get PaleVioletRed ()        { return new Color(219 / 255, 112 / 255, 147 / 255, 255 / 255); }
+	static get PapayaWhip ()           { return new Color(225 / 255, 239 / 255, 213 / 255, 255 / 255); }
+	static get PeachPuff ()            { return new Color(255 / 255, 218 / 255, 185 / 255, 255 / 255); }
+	static get Peru ()                 { return new Color(205 / 255, 133 / 255, 63  / 255, 255 / 255); }
+	static get Pink ()                 { return new Color(255 / 255, 192 / 255, 203 / 255, 255 / 255); }
+	static get Plum ()                 { return new Color(221 / 255, 160 / 255, 221 / 255, 255 / 255); }
+	static get PowderBlue ()           { return new Color(176 / 255, 224 / 255, 230 / 255, 255 / 255); }
+	static get Purple ()               { return new Color(128 / 255, 0   / 255, 128 / 255, 255 / 255); }
+	static get Red ()                  { return new Color(255 / 255, 0   / 255, 0   / 255, 255 / 255); }
+	static get RosyBrown ()            { return new Color(188 / 255, 143 / 255, 143 / 255, 255 / 255); }
+	static get RoyalBlue ()            { return new Color(65  / 255, 105 / 255, 225 / 255, 255 / 255); }
+	static get SaddleBrown ()          { return new Color(139 / 255, 69  / 255, 19  / 255, 255 / 255); }
+	static get Salmon ()               { return new Color(250 / 255, 128 / 255, 114 / 255, 255 / 255); }
+	static get SandyBrown ()           { return new Color(244 / 255, 164 / 255, 96  / 255, 255 / 255); }
+	static get SeaGreen ()             { return new Color(46  / 255, 139 / 255, 87  / 255, 255 / 255); }
+	static get Seashell ()             { return new Color(255 / 255, 245 / 255, 238 / 255, 255 / 255); }
+	static get Sienna ()               { return new Color(160 / 255, 82  / 255, 45  / 255, 255 / 255); }
+	static get Silver ()               { return new Color(192 / 255, 192 / 255, 192 / 255, 255 / 255); }
+	static get SkyBlue ()              { return new Color(135 / 255, 206 / 255, 235 / 255, 255 / 255); }
+	static get SlateBlue ()            { return new Color(106 / 255, 90  / 255, 205 / 255, 255 / 255); }
+	static get SlateGray ()            { return new Color(112 / 255, 128 / 255, 144 / 255, 255 / 255); }
+	static get Snow ()                 { return new Color(255 / 255, 250 / 255, 250 / 255, 255 / 255); }
+	static get SpringGreen ()          { return new Color(0   / 255, 255 / 255, 127 / 255, 255 / 255); }
+	static get SteelBlue ()            { return new Color(70  / 255, 130 / 255, 180 / 255, 255 / 255); }
+	static get Tan ()                  { return new Color(210 / 255, 180 / 255, 140 / 255, 255 / 255); }
+	static get Teal ()                 { return new Color(0   / 255, 128 / 255, 128 / 255, 255 / 255); }
+	static get Thistle ()              { return new Color(216 / 255, 191 / 255, 216 / 255, 255 / 255); }
+	static get Tomato ()               { return new Color(255 / 255, 99  / 255, 71  / 255, 255 / 255); }
+	static get Transparent ()          { return new Color(0   / 255, 0   / 255, 0   / 255, 0   / 255); }
+	static get Turquoise ()            { return new Color(64  / 255, 224 / 255, 208 / 255, 255 / 255); }
+	static get Violet ()               { return new Color(238 / 255, 130 / 255, 238 / 255, 255 / 255); }
+	static get Wheat ()                { return new Color(245 / 255, 222 / 255, 179 / 255, 255 / 255); }
+	static get White ()                { return new Color(255 / 255, 255 / 255, 255 / 255, 255 / 255); }
+	static get WhiteSmoke ()           { return new Color(245 / 255, 245 / 255, 245 / 255, 255 / 255); }
+	static get Yellow ()               { return new Color(255 / 255, 255 / 255, 0   / 255, 255 / 255); }
+	static get YellowGreen ()          { return new Color(154 / 255, 205 / 255, 50  / 255, 255 / 255); }
+	static get PurwaBlue ()            { return new Color(155 / 255, 225 / 255, 255 / 255, 255 / 255); }
+	static get RebeccaPurple ()        { return new Color(102 / 255, 51  / 255, 153 / 255, 255 / 255); }
+	static get StankyBean ()           { return new Color(197 / 255, 162 / 255, 171 / 255, 255 / 255); }
+
 	r: number;
 	g: number;
 	b: number;
 	a: number;
 
+	static is(x: Color, y: Color)
+	{
+		return x.r === y.r && x.g === y.g && x.b === y.g;
+	}
+
+	static mix(x: Color, y: Color, wx = 1.0, wy = 1.0)
+	{
+		wx /= (wx + wy);
+		wy /= (wx + wy);
+		return new Color(
+			x.r * wx + y.r * wy,
+			x.g * wx + y.g * wy,
+			x.b * wx + y.b * wy,
+			x.a * wx + y.a * wy);
+	}
+	
+	static of(name: string)
+	{
+		// parse 6-digit format (#rrggbb)
+		let matched = name.match(/^#?([0-9a-f]{6})$/i);
+		if (matched) {
+			const m = matched[1];
+			return new Color(
+				parseInt(m.substr(0, 2), 16) / 255.0,
+				parseInt(m.substr(2, 2), 16) / 255.0,
+				parseInt(m.substr(4, 2), 16) / 255.0,
+			);
+		}
+
+		// parse 8-digit format (#aarrggbb)
+		matched = name.match(/^#?([0-9a-f]{8})$/i);
+		if (matched) {
+			const m = matched[1];
+			return new Color(
+				parseInt(m.substr(2, 2), 16) / 255.0,
+				parseInt(m.substr(4, 2), 16) / 255.0,
+				parseInt(m.substr(6, 2), 16) / 255.0,
+				parseInt(m.substr(0, 2), 16) / 255.0,
+			);
+		}
+
+		// see if `name` matches a predefined color (not case sensitive)
+		const toMatch = name.toUpperCase();
+
+		for (const colorName in Color) {
+			if (colorName.toUpperCase() === toMatch) {
+				try {
+					let propValue = (Color as any)[colorName];
+					if (propValue instanceof Color)
+						return propValue;
+				}
+				catch {}
+				break;
+			}
+		}
+
+		// if we got here, none of the parsing attempts succeeded, so throw an error.
+		throw new RangeError(`Invalid color designation '${name}'`);
+	}
+	
 	constructor(r: number, g: number, b: number, a = 1.0)
 	{
 		this.r = r;
 		this.g = g;
 		this.b = b;
 		this.a = a;
+	}
+
+	get name(): string
+	{
+		throw new Error(`'Color#name' API is not implemented`);
+	}
+
+	clone()
+	{
+		return new Color(this.r, this.g, this.b, this.a);
+	}
+
+	fadeTo(alphaFactor: number)
+	{
+		return new Color(this.r, this.g, this.b,
+			this.a * alphaFactor);
 	}
 }
 
@@ -397,7 +676,29 @@ class Font
 			x += glyph.width;
 		}
 		this.vertexBuffer.upload(vertices);
-		Prim.draw(this.vertexBuffer, null, ShapeType.Triangles);
+		Galileo.draw(this.vertexBuffer, null, ShapeType.Triangles);
+	}
+
+	getTextSize(text: string, wrapWidth?: number): Size
+	{
+		if (wrapWidth !== undefined) {
+			const lines = this.wordWrap(text, wrapWidth);
+			return {
+				width: wrapWidth,
+				height: lines.length * this.lineHeight,
+			};
+		}
+		else {
+			return {
+				width: this.widthOf(text),
+				height: this.lineHeight,
+			};
+		}
+	}
+
+	heightOf(text: string, wrapWidth?: number)
+	{
+		return this.getTextSize(text, wrapWidth).height;
 	}
 
 	widthOf(text: string)
@@ -731,56 +1032,6 @@ class Matrix
 }
 
 export
-class Prim
-{
-	static clear()
-	{
-		webGL.disable(webGL.SCISSOR_TEST);
-		webGL.clear(webGL.COLOR_BUFFER_BIT | webGL.DEPTH_BUFFER_BIT);
-		webGL.enable(webGL.SCISSOR_TEST);
-	}
-
-	static draw(vertexBuffer: VertexBuffer, indexBuffer: IndexBuffer | null, type: ShapeType, offset = 0, numVertices?: number)
-	{
-		const drawMode = type === ShapeType.Fan ? webGL.TRIANGLE_FAN
-			: type === ShapeType.Lines ? webGL.LINES
-			: type === ShapeType.LineLoop ? webGL.LINE_LOOP
-			: type === ShapeType.LineStrip ? webGL.LINE_STRIP
-			: type === ShapeType.Points ? webGL.POINTS
-			: type === ShapeType.TriStrip ? webGL.TRIANGLE_STRIP
-			: webGL.TRIANGLES;
-		vertexBuffer.activate();
-		if (indexBuffer !== null) {
-			if (numVertices === undefined)
-				numVertices = indexBuffer.length - offset;
-			indexBuffer.activate();
-			webGL.drawElements(drawMode, numVertices, webGL.UNSIGNED_SHORT, offset);
-		}
-		else {
-			if (numVertices === undefined)
-				numVertices = vertexBuffer.length - offset;
-			webGL.drawArrays(drawMode, offset, numVertices);
-		}
-	}
-
-	static rerez(width: number, height: number)
-	{
-		webGLCanvas.width = width;
-		webGLCanvas.height = height;
-		if (width <= 400 && height <= 300) {
-			webGLCanvas.style.width = `${width * 2}px`;
-			webGLCanvas.style.height = `${height * 2}px`;
-		}
-		else {
-			webGLCanvas.style.width = `${width}px`;
-			webGLCanvas.style.height = `${height}px`;
-		}
-		if (activeDrawTarget === DrawTarget.Screen)
-			webGL.viewport(0, 0, webGLCanvas.width, webGLCanvas.height);
-	}
-}
-
-export
 class Shader
 {
 	program: WebGLProgram;
@@ -1031,7 +1282,7 @@ class Shape
 
 	draw()
 	{
-		Prim.draw(this.vertices, this.indices, this.type);
+		Galileo.draw(this.vertices, this.indices, this.type);
 	}
 }
 

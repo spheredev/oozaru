@@ -31,7 +31,7 @@
 **/
 
 import { Fido } from './fido.js';
-import { initGraphics } from './galileo.js';
+import Galileo from './galileo.js';
 import { InputEngine } from './input-engine.js';
 import { initializeAPI, launchGame } from './pegasus.js';
 import { fetchJSON } from './utilities.js';
@@ -54,7 +54,7 @@ async function main()
 	});
 
 	const canvas = document.getElementById('screen') as HTMLCanvasElement;
-	initGraphics(canvas);
+	Galileo.initialize(canvas);
 
 	const menu = document.getElementById('menu')!;
 	let useDistDir = true;

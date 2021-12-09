@@ -30,23 +30,19 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import { Manifest } from './manifest.js';
+import { fetchTextFile, fullURL, isConstructor } from './utilities.js';
 import { Version } from './version.js';
 
-export
+export default
 class Game
 {
-	manifest: Manifest;
-	url: string;
+	static manifest: Manifest;
+	static rootPath: string;
 
-	static async fromDirectory(url: string)
+	static async initialize(rootPath: string)
 	{
-		const manifest = await Manifest.fromFile(`${url}/game.sgm`);
-		return new this(url, manifest);
-	}
+		const manifest = await Manifest.fromFile(`${rootPath}/game.sgm`);
 
-	constructor(directoryURL: string, manifest: Manifest)
-	{		
 		if (manifest.apiVersion < 2)
 			throw Error(`'${manifest.name}' is a Sphere 1.x game and won't run in Oozaru.`);
 		if (manifest.apiLevel > Version.apiLevel)
@@ -59,37 +55,10 @@ class Game
 			console.warn(`'${manifest.name}' targets Sphere API level ${manifest.apiLevel} and may not run correctly under Oozaru. Consider summoning Big Chungus to fix this issue.`);
 
 		this.manifest = manifest;
-		this.url = directoryURL.endsWith('/')
-			? directoryURL.slice(0, -1)
-			: directoryURL;
+		this.rootPath = rootPath;
 	}
 
-	get author()
-	{
-		return this.manifest.author;
-	}
-
-	get mainPath(): string
-	{
-		return this.manifest.mainPath;
-	}
-
-	get resolution()
-	{
-		return this.manifest.resolution;
-	}
-
-	get description()
-	{
-		return this.manifest.description;
-	}
-
-	get title()
-	{
-		return this.manifest.name;
-	}
-
-	fullPath(pathName: string, baseDirName = '@/')
+	static fullPath(pathName: string, baseDirName = '@/')
 	{
 		// canonicalizing the base path first ensures the first hop will always be a SphereFS prefix.
 		// this makes things easier below.
@@ -114,7 +83,7 @@ class Game
 				}
 				else {
 					// if collapsing a '../' would navigate past the SphereFS prefix, we've gone too far.
-					throw new RangeError(`FS sandbox violation on '${pathName}'`);
+					throw new RangeError(`SphereFS sandbox violation '${pathName}'`);
 				}
 			}
 			else if (input[i] !== '.') {
@@ -124,14 +93,30 @@ class Game
 		return output.join('/');
 	}
 
-	urlOf(pathName: string)
+	static async launch()
+	{
+		// load and execute the game's main module.  if it exports a startup
+		// function or class, call it.
+		const scriptURL = this.urlOf(this.manifest.mainPath);
+		const main = await import(fullURL(scriptURL));
+		if (isConstructor(main.default)) {
+			const mainObject = new main.default();
+			if (typeof mainObject.start === 'function')
+				await mainObject.start();
+		}
+		else {
+			await main.default();
+		}
+	}
+
+	static urlOf(pathName: string)
 	{
 		const hops = pathName.split(/[\\/]+/);
 		if (hops[0] !== '@' && hops[0] !== '#' && hops[0] !== '~' && hops[0] !== '$' && hops[0] !== '%')
 			hops.unshift('@');
 		if (hops[0] === '@') {
 			hops.splice(0, 1);
-			return `${this.url}/${hops.join('/')}`;
+			return `${this.rootPath}/${hops.join('/')}`;
 		}
 		else if (hops[0] === '#') {
 			hops.splice(0, 1);
@@ -140,5 +125,71 @@ class Game
 		else {
 			throw new RangeError(`Unsupported SphereFS prefix '${hops[0]}'`);
 		}
+	}
+}
+
+export
+class Manifest
+{
+	apiLevel: number;
+	apiVersion: number;
+	author: string;
+	description: string;
+	mainPath: string;
+	name: string;
+	resolution = { x: 320, y: 240 };
+	saveID = "";
+
+	static async fromFile(url: string)
+	{
+		const content = await fetchTextFile(url);
+		const values: Record<string, string> = {};
+		for (const line of content.split(/\r?\n/)) {
+			const lineParse = line.match(/(.*)=(.*)/);
+			if (lineParse && lineParse.length === 3) {
+				const key = lineParse[1];
+				const value = lineParse[2];
+				values[key] = value;
+			}
+		}
+		return new this(values);
+	}
+
+	constructor(values: Record<string, string>)
+	{
+		this.name = values.name ?? "Untitled";
+		this.author = values.author ?? "Unknown";
+		this.description = values.description ?? "";
+
+		// `main` field implies Sphere v2, even if no API is specified
+		this.apiVersion = parseInt(values.version ?? "1", 10);
+		this.apiLevel = parseInt(values.api ?? "0", 10);
+		this.mainPath = values.main ?? "";
+		if (this.apiLevel > 0 || this.mainPath != "") {
+			this.apiVersion = Math.max(this.apiVersion, 2);
+			this.apiLevel = Math.max(this.apiLevel, 1);
+		}
+
+		if (this.apiVersion >= 2) {
+			this.saveID = values.saveID ?? "";
+			const resString = values.resolution ?? "";
+			const resParse = resString.match(/(\d+)x(\d+)/);
+			if (resParse && resParse.length === 3) {
+				this.resolution = {
+					x: parseInt(resParse[1], 10),
+					y: parseInt(resParse[2], 10),
+				};
+			}
+		}
+		else {
+			this.mainPath = values.script ?? "";
+			this.resolution = {
+				x: parseInt(values.screen_width ?? "320", 10),
+				y: parseInt(values.screen_height ?? "240", 10),
+			}
+		}
+
+		if (this.mainPath === "")
+			throw Error("Game manifest doesn't specify a main script.");
 	}
 }

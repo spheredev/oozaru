@@ -31,16 +31,12 @@
 **/
 
 import { Deque } from './deque.js';
-import { Session } from './session.js';
+import Game from './game.js';
 import { fetchAudioFile } from './utilities.js';
 
 export
 class Mixer
 {
-	context: AudioContext;
-	gainer: GainNode;
-	panner: StereoPannerNode;
-
 	static get Default()
 	{
 		const mixer = new Mixer(44100, 16, 2);
@@ -52,6 +48,10 @@ class Mixer
 		});
 		return mixer;
 	}
+
+	context: AudioContext;
+	gainer: GainNode;
+	panner: StereoPannerNode;
 
 	constructor(sampleRate: number, bits: number, numChannels = 2)
 	{
@@ -73,17 +73,17 @@ class Mixer
 export
 class Sound
 {
-	audioNode: MediaElementAudioSourceNode | null = null;
-	currentMixer: Mixer | null = null;
-	element: HTMLAudioElement;
-
 	static async fromFile(fileName: string)
 	{
-		const url = Session.currentGame!.urlOf(fileName);
+		const url = Game.urlOf(fileName);
 		const element = await fetchAudioFile(url);
 		element.loop = true;
 		return new this(element);
 	}
+
+	audioNode: MediaElementAudioSourceNode | null = null;
+	currentMixer: Mixer | null = null;
+	element: HTMLAudioElement;
 
 	constructor(source: HTMLAudioElement | string)
 	{
@@ -146,6 +146,8 @@ class SoundStream
 
 	constructor(frequency = 22050, bits = 8, numChannels = 1)
 	{
+		if (bits != 32)
+			throw RangeError("SoundStream bit depth must be 32-bit under Oozaru.");
 		this.numChannels = numChannels;
 		this.sampleRate = frequency;
 	}

@@ -30,7 +30,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import { DrawTarget, Prim } from './galileo.js';
+import Galileo, { DrawTarget } from './galileo.js';
 import { Awaitable } from './types.js';
 
 interface Job
@@ -144,7 +144,7 @@ class JobQueue
 		// reset clipping and clear the backbuffer
 		DrawTarget.Screen.activate();
 		DrawTarget.Screen.unclip();
-		Prim.clear();
+		Galileo.clear();
 
 		// sort the Dispatch jobs for this frame
 		if (this.#sortingNeeded) {
