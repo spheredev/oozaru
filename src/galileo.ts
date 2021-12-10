@@ -117,10 +117,9 @@ interface Vertex
 	color?: RGBA;
 }
 
-let activeDrawTarget: DrawTarget | null = null;
-let activeShader: Shader | null = null;
-let webGL: WebGLRenderingContext;
-let webGLCanvas: HTMLCanvasElement;
+var activeDrawTarget: DrawTarget | null = null;
+var activeShader: Shader | null = null;
+var gl: WebGLRenderingContext;
 
 export default
 class Galileo
@@ -128,72 +127,71 @@ class Galileo
 	static initialize(canvas: HTMLCanvasElement)
 	{
 		const glOptions = { alpha: false, preserveDrawingBuffer: true };
-		const webGLContext = (canvas.getContext('webgl2', glOptions)
+		const glContext = (canvas.getContext('webgl2', glOptions)
 			|| canvas.getContext('webgl', glOptions)
 			|| canvas.getContext('experimental-webgl', glOptions)) as WebGLRenderingContext | null;
-		if (webGLContext === null)
-			throw new Error(`Oozaru was unable to create a WebGL rendering context.`);
-		webGLContext.clearColor(0.0, 0.0, 0.0, 1.0);
-		webGLContext.clearDepth(1.0);
-		webGLContext.blendEquation(webGLContext.FUNC_ADD);
-		webGLContext.blendFunc(webGLContext.SRC_ALPHA, webGLContext.ONE_MINUS_SRC_ALPHA);
-		webGLContext.depthFunc(webGLContext.LEQUAL);
-		webGLContext.enable(webGLContext.BLEND);
-		webGLContext.enable(webGLContext.DEPTH_TEST);
-		webGLContext.enable(webGLContext.SCISSOR_TEST);
-
-		webGL = webGLContext;
-		webGLCanvas = canvas;
+		if (glContext === null)
+			throw new Error(`Oozaru was unable to create a WebGL context.`);
+		gl = glContext;
 	
-		DrawTarget.Screen.activate();
+		gl.clearColor(0.0, 0.0, 0.0, 1.0);
+		gl.clearDepth(1.0);
+		gl.blendEquation(glContext.FUNC_ADD);
+		gl.blendFunc(glContext.SRC_ALPHA, glContext.ONE_MINUS_SRC_ALPHA);
+		gl.depthFunc(glContext.ALWAYS);
+		gl.enable(glContext.BLEND);
+		gl.enable(glContext.DEPTH_TEST);
+		gl.enable(glContext.SCISSOR_TEST);
+
+		Galileo.flip();
 	}
 
 	static flip()
 	{
 		DrawTarget.Screen.activate();
 		DrawTarget.Screen.unclip();		
-		webGL.disable(webGL.SCISSOR_TEST);
-		webGL.clear(webGL.COLOR_BUFFER_BIT | webGL.DEPTH_BUFFER_BIT);
-		webGL.enable(webGL.SCISSOR_TEST);
+		gl.disable(gl.SCISSOR_TEST);
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+		gl.enable(gl.SCISSOR_TEST);
 	}
 
 	static draw(vertexBuffer: VertexBuffer, indexBuffer: IndexBuffer | null, type: ShapeType, offset = 0, numVertices?: number)
 	{
-		const drawMode = type === ShapeType.Fan ? webGL.TRIANGLE_FAN
-			: type === ShapeType.Lines ? webGL.LINES
-			: type === ShapeType.LineLoop ? webGL.LINE_LOOP
-			: type === ShapeType.LineStrip ? webGL.LINE_STRIP
-			: type === ShapeType.Points ? webGL.POINTS
-			: type === ShapeType.TriStrip ? webGL.TRIANGLE_STRIP
-			: webGL.TRIANGLES;
+		const drawMode = type === ShapeType.Fan ? gl.TRIANGLE_FAN
+			: type === ShapeType.Lines ? gl.LINES
+			: type === ShapeType.LineLoop ? gl.LINE_LOOP
+			: type === ShapeType.LineStrip ? gl.LINE_STRIP
+			: type === ShapeType.Points ? gl.POINTS
+			: type === ShapeType.TriStrip ? gl.TRIANGLE_STRIP
+			: gl.TRIANGLES;
 		vertexBuffer.activate();
 		if (indexBuffer !== null) {
 			if (numVertices === undefined)
 				numVertices = indexBuffer.length - offset;
 			indexBuffer.activate();
-			webGL.drawElements(drawMode, numVertices, webGL.UNSIGNED_SHORT, offset);
+			gl.drawElements(drawMode, numVertices, gl.UNSIGNED_SHORT, offset);
 		}
 		else {
 			if (numVertices === undefined)
 				numVertices = vertexBuffer.length - offset;
-			webGL.drawArrays(drawMode, offset, numVertices);
+			gl.drawArrays(drawMode, offset, numVertices);
 		}
 	}
 
 	static rerez(width: number, height: number)
 	{
-		webGLCanvas.width = width;
-		webGLCanvas.height = height;
+		gl.canvas.width = width;
+		gl.canvas.height = height;
 		if (width <= 400 && height <= 300) {
-			webGLCanvas.style.width = `${width * 2}px`;
-			webGLCanvas.style.height = `${height * 2}px`;
+			gl.canvas.style.width = `${width * 2}px`;
+			gl.canvas.style.height = `${height * 2}px`;
 		}
 		else {
-			webGLCanvas.style.width = `${width}px`;
-			webGLCanvas.style.height = `${height}px`;
+			gl.canvas.style.width = `${width}px`;
+			gl.canvas.style.height = `${height}px`;
 		}
 		if (activeDrawTarget === DrawTarget.Screen)
-			webGL.viewport(0, 0, webGLCanvas.width, webGLCanvas.height);
+			gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 	}
 }
 
@@ -354,13 +352,14 @@ class Color
 
 	static is(x: Color, y: Color)
 	{
-		return x.r === y.r && x.g === y.g && x.b === y.g;
+		return x.r === y.r && x.g === y.g && x.b === y.b;
 	}
 
 	static mix(x: Color, y: Color, wx = 1.0, wy = 1.0)
 	{
-		wx /= (wx + wy);
-		wy /= (wx + wy);
+		const totalWeight = wx + wy;
+		wx /= totalWeight;
+		wy /= totalWeight;
 		return new Color(
 			x.r * wx + y.r * wy,
 			x.g * wx + y.g * wy,
@@ -375,9 +374,9 @@ class Color
 		if (matched) {
 			const m = matched[1];
 			return new Color(
-				parseInt(m.substr(0, 2), 16) / 255.0,
-				parseInt(m.substr(2, 2), 16) / 255.0,
-				parseInt(m.substr(4, 2), 16) / 255.0,
+				parseInt(m.slice(0, 2), 16) / 255.0,
+				parseInt(m.slice(2, 4), 16) / 255.0,
+				parseInt(m.slice(4, 6), 16) / 255.0,
 			);
 		}
 
@@ -386,10 +385,10 @@ class Color
 		if (matched) {
 			const m = matched[1];
 			return new Color(
-				parseInt(m.substr(2, 2), 16) / 255.0,
-				parseInt(m.substr(4, 2), 16) / 255.0,
-				parseInt(m.substr(6, 2), 16) / 255.0,
-				parseInt(m.substr(0, 2), 16) / 255.0,
+				parseInt(m.slice(2, 4), 16) / 255.0,
+				parseInt(m.slice(4, 6), 16) / 255.0,
+				parseInt(m.slice(6, 8), 16) / 255.0,
+				parseInt(m.slice(0, 2), 16) / 255.0,
 			);
 		}
 
@@ -442,7 +441,7 @@ class DrawTarget
 {
 	private blendOp_ = BlendOp.Default;
 	private clipping: Rectangle;
-	private depthOp_ = DepthOp.LessOrEqual;
+	private depthOp_ = DepthOp.AlwaysPass;
 	private frameBuffer: WebGLFramebuffer | null;
 	private texture: Texture | null;
 
@@ -450,8 +449,8 @@ class DrawTarget
 	{
 		const surface = Object.create(DrawTarget.prototype) as DrawTarget;
 		surface.blendOp_ = BlendOp.Default;
-		surface.clipping = { x: 0, y: 0, w: webGLCanvas.width, h: webGLCanvas.height };
-		surface.depthOp_ = DepthOp.LessOrEqual;
+		surface.clipping = { x: 0, y: 0, w: gl.canvas.width, h: gl.canvas.height };
+		surface.depthOp_ = DepthOp.AlwaysPass;
 		surface.frameBuffer = null;
 		surface.texture = null;
 		Object.defineProperty(DrawTarget, 'Screen', {
@@ -465,20 +464,20 @@ class DrawTarget
 
 	constructor(texture: Texture)
 	{
-		const frameBuffer = webGL.createFramebuffer();
-		const depthBuffer = webGL.createRenderbuffer();
+		const frameBuffer = gl.createFramebuffer();
+		const depthBuffer = gl.createRenderbuffer();
 		if (frameBuffer === null || depthBuffer === null)
 			throw new Error(`Unable to create WebGL framebuffer object`);
 
 		// in order to set up the FBO we need to change the current FB binding, so make sure it gets
 		// changed back afterwards.
-		const previousFBO = webGL.getParameter(webGL.FRAMEBUFFER_BINDING);
-		webGL.bindFramebuffer(webGL.FRAMEBUFFER, frameBuffer);
-		webGL.framebufferTexture2D(webGL.FRAMEBUFFER, webGL.COLOR_ATTACHMENT0, webGL.TEXTURE_2D, texture.hwTexture, 0);
-		webGL.bindRenderbuffer(webGL.RENDERBUFFER, depthBuffer);
-		webGL.renderbufferStorage(webGL.RENDERBUFFER, webGL.DEPTH_COMPONENT16, texture.width, texture.height);
-		webGL.framebufferRenderbuffer(webGL.FRAMEBUFFER, webGL.DEPTH_ATTACHMENT, webGL.RENDERBUFFER, depthBuffer);
-		webGL.bindFramebuffer(webGL.FRAMEBUFFER, previousFBO);
+		const previousFBO = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture.glTexture, 0);
+		gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+		gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, texture.width, texture.height);
+		gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, previousFBO);
 
 		this.clipping = { x: 0, y: 0, w: texture.width, h: texture.height };
 		this.frameBuffer = frameBuffer;
@@ -509,24 +508,24 @@ class DrawTarget
 
 	get height()
 	{
-		return this.texture?.height ?? webGLCanvas.height;
+		return this.texture?.height ?? gl.canvas.height;
 	}
 
 	get width()
 	{
-		return this.texture?.width ?? webGLCanvas.width;
+		return this.texture?.width ?? gl.canvas.width;
 	}
 
 	activate()
 	{
 		if (activeDrawTarget === this)
 			return;
-		webGL.bindFramebuffer(webGL.FRAMEBUFFER, this.frameBuffer);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
 		if (this.texture !== null)
-			webGL.viewport(0, 0, this.texture.width, this.texture.height);
+			gl.viewport(0, 0, this.texture.width, this.texture.height);
 		else
-			webGL.viewport(0, 0, webGLCanvas.width, webGLCanvas.height);
-		webGL.scissor(this.clipping.x, this.clipping.y, this.clipping.w, this.clipping.h);
+			gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+		gl.scissor(this.clipping.x, this.clipping.y, this.clipping.w, this.clipping.h);
 		applyBlendOp(this.blendOp_);
 		applyDepthOp(this.depthOp_);
 		activeDrawTarget = this;
@@ -539,7 +538,7 @@ class DrawTarget
 		this.clipping.w = width;
 		this.clipping.h = height;
 		if (this === activeDrawTarget)
-			webGL.scissor(x, this.height - y - height, width, height);
+			gl.scissor(x, this.height - y - height, width, height);
 	}
 
 	unclip()
@@ -557,7 +556,6 @@ class Font
 	private maxWidth = 0;
 	private numGlyphs = 0;
 	private stride: number;
-	private vertexBuffer = new VertexBuffer();
 
 	static async fromFile(url: string)
 	{
@@ -677,8 +675,8 @@ class Font
 			);
 			x += glyph.width;
 		}
-		this.vertexBuffer.upload(vertices);
-		Galileo.draw(this.vertexBuffer, null, ShapeType.Triangles);
+		const vb = new VertexBuffer(vertices);
+		Galileo.draw(vb, null, ShapeType.Triangles);
 	}
 
 	getTextSize(text: string, wrapWidth?: number): Size
@@ -837,32 +835,29 @@ class Font
 export
 class IndexBuffer
 {
-	hwBuffer: WebGLBuffer | null = null;
+	glBuffer: WebGLBuffer | null = null;
 	length: number = 0;
-	streamable: boolean;
 
-	constructor(indices?: Iterable<number>)
+	constructor(indices: Iterable<number>)
 	{
-		this.streamable = indices === undefined;
-		if (indices !== undefined)
-			this.upload(indices);
+		this.upload(indices);
 	}
 
 	activate()
 	{
-		webGL.bindBuffer(webGL.ELEMENT_ARRAY_BUFFER, this.hwBuffer);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.glBuffer);
 	}
 
 	upload(indices: Iterable<number>)
 	{
 		const values = new Uint16Array(indices);
-		const hwBuffer = webGL.createBuffer();
-		if (hwBuffer === null)
-			throw new Error(`Unable to create WebGL index buffer object`);
-		webGL.bindBuffer(webGL.ELEMENT_ARRAY_BUFFER, hwBuffer);
-		webGL.bufferData(webGL.ELEMENT_ARRAY_BUFFER, values, this.streamable ? webGL.STREAM_DRAW : webGL.STATIC_DRAW);
-		webGL.deleteBuffer(this.hwBuffer);
-		this.hwBuffer = hwBuffer;
+		const glBuffer = gl.createBuffer();
+		if (glBuffer === null)
+			throw new Error(`Oozaru was unable to create a WebGL buffer object`);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, glBuffer);
+		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, values, gl.STREAM_DRAW);
+		gl.deleteBuffer(this.glBuffer);
+		this.glBuffer = glBuffer;
 		this.length = values.length;
 	}
 }
@@ -1044,35 +1039,35 @@ class Shader
 
 	constructor(vertexSource: string, fragmentSource: string)
 	{
-		const program = webGL.createProgram();
-		const vertShader = webGL.createShader(webGL.VERTEX_SHADER);
-		const fragShader = webGL.createShader(webGL.FRAGMENT_SHADER);
+		const program = gl.createProgram();
+		const vertShader = gl.createShader(gl.VERTEX_SHADER);
+		const fragShader = gl.createShader(gl.FRAGMENT_SHADER);
 		if (program === null || vertShader === null || fragShader === null)
-			throw new Error(`Unable to create WebGL shader program object`);
+			throw new Error(`Oozaru was unable to create a WebGL shader object`);
 
 		// compile vertex and fragment shaders and check for errors
-		webGL.shaderSource(vertShader, vertexSource);
-		webGL.shaderSource(fragShader, fragmentSource);
-		webGL.compileShader(vertShader);
-		if (!webGL.getShaderParameter(vertShader, webGL.COMPILE_STATUS)) {
-			const message = webGL.getShaderInfoLog(vertShader);
-			throw new Error(`Couldn't compile vertex shader...\n${message}`);
+		gl.shaderSource(vertShader, vertexSource);
+		gl.shaderSource(fragShader, fragmentSource);
+		gl.compileShader(vertShader);
+		if (!gl.getShaderParameter(vertShader, gl.COMPILE_STATUS)) {
+			const message = gl.getShaderInfoLog(vertShader);
+			throw new Error(`Unable to compile vertex shader...\n${message}`);
 		}
-		webGL.compileShader(fragShader);
-		if (!webGL.getShaderParameter(fragShader, webGL.COMPILE_STATUS)) {
-			const message = webGL.getShaderInfoLog(fragShader);
-			throw new Error(`Couldn't compile fragment shader...\n${message}`);
+		gl.compileShader(fragShader);
+		if (!gl.getShaderParameter(fragShader, gl.COMPILE_STATUS)) {
+			const message = gl.getShaderInfoLog(fragShader);
+			throw new Error(`Unable to compile fragment shader...\n${message}`);
 		}
 
 		// link the individual shaders into a program, check for errors
-		webGL.attachShader(program, vertShader);
-		webGL.attachShader(program, fragShader);
-		webGL.bindAttribLocation(program, 0, 'al_pos');
-		webGL.bindAttribLocation(program, 1, 'al_color');
-		webGL.bindAttribLocation(program, 2, 'al_texcoord');
-		webGL.linkProgram(program);
-		if (!webGL.getProgramParameter(program, webGL.LINK_STATUS)) {
-			const message = webGL.getProgramInfoLog(program);
+		gl.attachShader(program, vertShader);
+		gl.attachShader(program, fragShader);
+		gl.bindAttribLocation(program, 0, 'al_pos');
+		gl.bindAttribLocation(program, 1, 'al_color');
+		gl.bindAttribLocation(program, 2, 'al_texcoord');
+		gl.linkProgram(program);
+		if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+			const message = gl.getProgramInfoLog(program);
 			throw new Error(`Couldn't link shader program...\n${message}`);
 		}
 
@@ -1089,43 +1084,43 @@ class Shader
 	activate(useTexture: boolean)
 	{
 		if (activeShader !== this) {
-			webGL.useProgram(this.program);
+			gl.useProgram(this.program);
 			for (const name of Object.keys(this.deferredValues)) {
 				const entry = this.deferredValues[name];
 				const slot = this.uniformIDs[name];
 				let size: number;
 				switch (entry.type) {
 					case 'bool':
-						webGL.uniform1i(slot, entry.value ? 1 : 0);
+						gl.uniform1i(slot, entry.value ? 1 : 0);
 						break;
 					case 'float':
-						webGL.uniform1f(slot, entry.value);
+						gl.uniform1f(slot, entry.value);
 						break;
 					case 'floatArray':
-						webGL.uniform1fv(slot, entry.value);
+						gl.uniform1fv(slot, entry.value);
 						break;
 					case 'floatVec':
 						size = entry.value.length;
-						size === 4 ? webGL.uniform4fv(slot, entry.value)
-							: size === 3 ? webGL.uniform3fv(slot, entry.value)
-							: size === 2 ? webGL.uniform2fv(slot, entry.value)
-							: webGL.uniform1fv(slot, entry.value);
+						size === 4 ? gl.uniform4fv(slot, entry.value)
+							: size === 3 ? gl.uniform3fv(slot, entry.value)
+							: size === 2 ? gl.uniform2fv(slot, entry.value)
+							: gl.uniform1fv(slot, entry.value);
 						break;
 					case 'int':
-						webGL.uniform1i(slot, entry.value);
+						gl.uniform1i(slot, entry.value);
 						break;
 					case 'intArray':
-						webGL.uniform1iv(slot, entry.value);
+						gl.uniform1iv(slot, entry.value);
 						break;
 					case 'intVec':
 						size = entry.value.length;
-						size === 4 ? webGL.uniform4iv(slot, entry.value)
-							: size === 3 ? webGL.uniform3iv(slot, entry.value)
-							: size === 2 ? webGL.uniform2iv(slot, entry.value)
-							: webGL.uniform1iv(slot, entry.value);
+						size === 4 ? gl.uniform4iv(slot, entry.value)
+							: size === 3 ? gl.uniform3iv(slot, entry.value)
+							: size === 2 ? gl.uniform2iv(slot, entry.value)
+							: gl.uniform1iv(slot, entry.value);
 						break;
 					case 'matrix':
-						webGL.uniformMatrix4fv(slot, false, entry.value.values);
+						gl.uniformMatrix4fv(slot, false, entry.value.values);
 						break;
 				}
 			}
@@ -1147,11 +1142,11 @@ class Shader
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
-			location = webGL.getUniformLocation(this.program, name);
+			location = gl.getUniformLocation(this.program, name);
 			this.uniformIDs[name] = location;
 		}
 		if (activeShader === this)
-			webGL.uniform1i(location, value ? 1 : 0);
+			gl.uniform1i(location, value ? 1 : 0);
 		else
 			this.deferredValues[name] = { type: 'bool', value };
 	}
@@ -1160,11 +1155,11 @@ class Shader
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
-			location = webGL.getUniformLocation(this.program, name);
+			location = gl.getUniformLocation(this.program, name);
 			this.uniformIDs[name] = location;
 		}
 		if (activeShader === this)
-			webGL.uniform1fv(location, values);
+			gl.uniform1fv(location, values);
 		else
 			this.deferredValues[name] = { type: 'floatArray', value: values };
 	}
@@ -1173,11 +1168,11 @@ class Shader
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
-			location = webGL.getUniformLocation(this.program, name);
+			location = gl.getUniformLocation(this.program, name);
 			this.uniformIDs[name] = location;
 		}
 		if (activeShader === this)
-			webGL.uniform1f(location, value);
+			gl.uniform1f(location, value);
 		else
 			this.deferredValues[name] = { type: 'float', value };
 	}
@@ -1186,15 +1181,15 @@ class Shader
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
-			location = webGL.getUniformLocation(this.program, name);
+			location = gl.getUniformLocation(this.program, name);
 			this.uniformIDs[name] = location;
 		}
 		if (activeShader === this) {
 			const size = values.length;
-			size === 4 ? webGL.uniform4fv(location, values)
-				: size === 3 ? webGL.uniform3fv(location, values)
-				: size === 2 ? webGL.uniform2fv(location, values)
-				: webGL.uniform1fv(location, values);
+			size === 4 ? gl.uniform4fv(location, values)
+				: size === 3 ? gl.uniform3fv(location, values)
+				: size === 2 ? gl.uniform2fv(location, values)
+				: gl.uniform1fv(location, values);
 		}
 		else {
 			this.deferredValues[name] = { type: 'floatVec', value: values };
@@ -1205,11 +1200,11 @@ class Shader
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
-			location = webGL.getUniformLocation(this.program, name);
+			location = gl.getUniformLocation(this.program, name);
 			this.uniformIDs[name] = location;
 		}
 		if (activeShader === this)
-			webGL.uniform1iv(location, values);
+			gl.uniform1iv(location, values);
 		else
 			this.deferredValues[name] = { type: 'intArray', value: values };
 	}
@@ -1218,11 +1213,11 @@ class Shader
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
-			location = webGL.getUniformLocation(this.program, name);
+			location = gl.getUniformLocation(this.program, name);
 			this.uniformIDs[name] = location;
 		}
 		if (activeShader === this)
-			webGL.uniform1i(location, value);
+			gl.uniform1i(location, value);
 		else
 			this.deferredValues[name] = { type: 'int', value };
 	}
@@ -1231,15 +1226,15 @@ class Shader
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
-			location = webGL.getUniformLocation(this.program, name);
+			location = gl.getUniformLocation(this.program, name);
 			this.uniformIDs[name] = location;
 		}
 		if (activeShader === this) {
 			const size = values.length;
-			size === 4 ? webGL.uniform4iv(location, values)
-				: size === 3 ? webGL.uniform3iv(location, values)
-				: size === 2 ? webGL.uniform2iv(location, values)
-				: webGL.uniform1iv(location, values);
+			size === 4 ? gl.uniform4iv(location, values)
+				: size === 3 ? gl.uniform3iv(location, values)
+				: size === 2 ? gl.uniform2iv(location, values)
+				: gl.uniform1iv(location, values);
 		}
 		else {
 			this.deferredValues[name] = { type: 'intVec', value: values };
@@ -1250,11 +1245,11 @@ class Shader
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
-			location = webGL.getUniformLocation(this.program, name);
+			location = gl.getUniformLocation(this.program, name);
 			this.uniformIDs[name] = location;
 		}
 		if (activeShader === this)
-			webGL.uniformMatrix4fv(location, false, value.values);
+			gl.uniformMatrix4fv(location, false, value.values);
 		else
 			this.deferredValues[name] = { type: 'matrix', value };
 	}
@@ -1275,7 +1270,7 @@ class Shape
 	vertices: VertexBuffer;
 	indices: IndexBuffer | null;
 
-	constructor(vertexBuffer: VertexBuffer, indexBuffer: IndexBuffer | null, type: ShapeType)
+	constructor(type: ShapeType, vertexBuffer: VertexBuffer, indexBuffer: IndexBuffer | null)
 	{
 		this.type = type;
 		this.vertices = vertexBuffer;
@@ -1291,7 +1286,7 @@ class Shape
 export
 class Texture
 {
-	hwTexture: WebGLTexture;
+	glTexture: WebGLTexture;
 	width: number;
 	height: number;
 
@@ -1299,15 +1294,15 @@ class Texture
 	constructor(width: number, height: number, content?: BufferSource | RGBA);
 	constructor(arg1: HTMLImageElement | number, arg2?: number, arg3?: BufferSource | RGBA)
 	{
-		const hwTexture = webGL.createTexture();
-		if (hwTexture === null)
+		const glTexture = gl.createTexture();
+		if (glTexture === null)
 			throw new Error(`Unable to create WebGL texture object`);
-		this.hwTexture = hwTexture;
-		const oldBinding = webGL.getParameter(webGL.TEXTURE_BINDING_2D);
-		webGL.bindTexture(webGL.TEXTURE_2D, this.hwTexture);
-		webGL.pixelStorei(webGL.UNPACK_FLIP_Y_WEBGL, true);
+		this.glTexture = glTexture;
+		const oldBinding = gl.getParameter(gl.TEXTURE_BINDING_2D);
+		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
+		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 		if (arg1 instanceof HTMLImageElement) {
-			webGL.texImage2D(webGL.TEXTURE_2D, 0, webGL.RGBA, webGL.RGBA, webGL.UNSIGNED_BYTE, arg1);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, arg1);
 			this.width = arg1.width;
 			this.height = arg1.height;
 		}
@@ -1316,27 +1311,27 @@ class Texture
 			this.height = arg2 as number;
 			if (arg3 instanceof ArrayBuffer || ArrayBuffer.isView(arg3)) {
 				const buffer = arg3 instanceof ArrayBuffer ? arg3 : arg3.buffer;
-				webGL.texImage2D(webGL.TEXTURE_2D, 0, webGL.RGBA, this.width, this.height, 0, webGL.RGBA, webGL.UNSIGNED_BYTE,
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.width, this.height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
 					new Uint8Array(buffer));
 			}
 			else {
 				let pixels = new Uint32Array(this.width * this.height);
 				if (arg3 !== undefined)
 					pixels.fill((arg3.a * 255 << 24) + (arg3.b * 255 << 16) + (arg3.g * 255 << 8) + (arg3.r * 255));
-				webGL.texImage2D(webGL.TEXTURE_2D, 0, webGL.RGBA, this.width, this.height, 0, webGL.RGBA, webGL.UNSIGNED_BYTE,
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.width, this.height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
 					new Uint8Array(pixels.buffer));
 			}
 		}
-		webGL.texParameteri(webGL.TEXTURE_2D, webGL.TEXTURE_MIN_FILTER, webGL.LINEAR);
-		webGL.texParameteri(webGL.TEXTURE_2D, webGL.TEXTURE_WRAP_S, webGL.CLAMP_TO_EDGE);
-		webGL.texParameteri(webGL.TEXTURE_2D, webGL.TEXTURE_WRAP_T, webGL.CLAMP_TO_EDGE);
-		webGL.bindTexture(webGL.TEXTURE_2D, oldBinding);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+		gl.bindTexture(gl.TEXTURE_2D, oldBinding);
 	}
 
 	activate(textureUnit = 0)
 	{
-		webGL.activeTexture(webGL.TEXTURE0 + textureUnit);
-		webGL.bindTexture(webGL.TEXTURE_2D, this.hwTexture);
+		gl.activeTexture(gl.TEXTURE0 + textureUnit);
+		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
 	}
 
 	upload(content: BufferSource, x = 0, y = 0, width = this.width, height = this.height)
@@ -1344,34 +1339,31 @@ class Texture
 		const pixelData = ArrayBuffer.isView(content)
 			? new Uint8Array(content.buffer)
 			: new Uint8Array(content);
-		webGL.bindTexture(webGL.TEXTURE_2D, this.hwTexture);
-		webGL.texSubImage2D(webGL.TEXTURE_2D, 0, x, this.height - y - height, width, height, webGL.RGBA, webGL.UNSIGNED_BYTE, pixelData);
+		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
+		gl.texSubImage2D(gl.TEXTURE_2D, 0, x, this.height - y - height, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
 	}
 }
 
 export
 class VertexBuffer
 {
-	hwBuffer: WebGLBuffer | null = null;
+	glBuffer: WebGLBuffer | null = null;
 	length: number = 0;
-	streamable: boolean;
 
-	constructor(vertices?: ArrayLike<Vertex>)
+	constructor(vertices: ArrayLike<Vertex>)
 	{
-		this.streamable = vertices === undefined;
-		if (vertices !== undefined)
-			this.upload(vertices);
+		this.upload(vertices);
 	}
 
 	activate()
 	{
-		webGL.bindBuffer(webGL.ARRAY_BUFFER, this.hwBuffer);
-		webGL.enableVertexAttribArray(0);
-		webGL.enableVertexAttribArray(1);
-		webGL.enableVertexAttribArray(2);
-		webGL.vertexAttribPointer(0, 4, webGL.FLOAT, false, 40, 0);
-		webGL.vertexAttribPointer(1, 4, webGL.FLOAT, false, 40, 16);
-		webGL.vertexAttribPointer(2, 2, webGL.FLOAT, false, 40, 32);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.glBuffer);
+		gl.enableVertexAttribArray(0);
+		gl.enableVertexAttribArray(1);
+		gl.enableVertexAttribArray(2);
+		gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 40, 0);
+		gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 40, 16);
+		gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 40, 32);
 	}
 
 	upload(vertices: ArrayLike<Vertex>)
@@ -1390,13 +1382,13 @@ class VertexBuffer
 			data[8 + i * 10] = vertex.u ?? 0.0;
 			data[9 + i * 10] = vertex.v ?? 0.0;
 		}
-		const hwBuffer = webGL.createBuffer();
-		if (hwBuffer === null)
-			throw new Error(`Unable to create WebGL vertex buffer object`);
-		webGL.bindBuffer(webGL.ARRAY_BUFFER, hwBuffer);
-		webGL.bufferData(webGL.ARRAY_BUFFER, data, this.streamable ? webGL.STREAM_DRAW : webGL.STATIC_DRAW);
-		webGL.deleteBuffer(this.hwBuffer);
-		this.hwBuffer = hwBuffer;
+		const glBuffer = gl.createBuffer();
+		if (glBuffer === null)
+			throw new Error(`Oozaru was unable to create a WebGL buffer object.`);
+		gl.bindBuffer(gl.ARRAY_BUFFER, glBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, data, gl.STREAM_DRAW);
+		gl.deleteBuffer(this.glBuffer);
+		this.glBuffer = glBuffer;
 		this.length = vertices.length;
 	}
 }
@@ -1405,59 +1397,59 @@ function applyBlendOp(op: BlendOp)
 {
 	switch (op) {
 		case BlendOp.Default:
-			webGL.blendEquation(webGL.FUNC_ADD);
-			webGL.blendFunc(webGL.SRC_ALPHA, webGL.ONE_MINUS_SRC_ALPHA);
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 			break;
 		case BlendOp.Add:
-			webGL.blendEquation(webGL.FUNC_ADD);
-			webGL.blendFunc(webGL.ONE, webGL.ONE);
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.ONE, gl.ONE);
 			break;
 		case BlendOp.Average:
-			webGL.blendEquation(webGL.FUNC_ADD);
-			webGL.blendFunc(webGL.CONSTANT_COLOR, webGL.CONSTANT_COLOR);
-			webGL.blendColor(0.5, 0.5, 0.5, 0.5);
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.CONSTANT_COLOR, gl.CONSTANT_COLOR);
+			gl.blendColor(0.5, 0.5, 0.5, 0.5);
 			break;
 		case BlendOp.CopyAlpha:
-			webGL.blendEquation(webGL.FUNC_ADD);
-			webGL.blendFuncSeparate(webGL.ZERO, webGL.ONE, webGL.ONE, webGL.ZERO);
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFuncSeparate(gl.ZERO, gl.ONE, gl.ONE, gl.ZERO);
 			break;
 		case BlendOp.CopyRGB:
-			webGL.blendEquation(webGL.FUNC_ADD);
-			webGL.blendFuncSeparate(webGL.ONE, webGL.ZERO, webGL.ZERO, webGL.ONE);
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFuncSeparate(gl.ONE, gl.ZERO, gl.ZERO, gl.ONE);
 			break;
 		case BlendOp.Invert:
-			webGL.blendEquation(webGL.FUNC_ADD);
-			webGL.blendFunc(webGL.ZERO, webGL.ONE_MINUS_SRC_COLOR);
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.ZERO, gl.ONE_MINUS_SRC_COLOR);
 			break;
 		case BlendOp.Multiply:
-			webGL.blendEquation(webGL.FUNC_ADD);
-			webGL.blendFunc(webGL.DST_COLOR, webGL.ZERO);
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.DST_COLOR, gl.ZERO);
 			break;
 		case BlendOp.Replace:
-			webGL.blendEquation(webGL.FUNC_ADD);
-			webGL.blendFunc(webGL.ONE, webGL.ZERO);
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.ONE, gl.ZERO);
 			break;
 		case BlendOp.Subtract:
-			webGL.blendEquation(webGL.FUNC_REVERSE_SUBTRACT);
-			webGL.blendFunc(webGL.ONE, webGL.ONE);
+			gl.blendEquation(gl.FUNC_REVERSE_SUBTRACT);
+			gl.blendFunc(gl.ONE, gl.ONE);
 			break;
 		default:
 			// something went horribly wrong if we got here; just set the blender to output
 			// nothing so the user can see something went awry.
-			webGL.blendEquation(webGL.FUNC_ADD);
-			webGL.blendFunc(webGL.ZERO, webGL.ZERO);
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.ZERO, gl.ZERO);
 	}
 }
 
 function applyDepthOp(op: DepthOp)
 {
-	const depthFunc = op === DepthOp.AlwaysPass ? webGL.ALWAYS
-		: op === DepthOp.Equal ? webGL.EQUAL
-		: op === DepthOp.Greater ? webGL.GREATER
-		: op === DepthOp.GreaterOrEqual ? webGL.GEQUAL
-		: op === DepthOp.Less ? webGL.LESS
-		: op === DepthOp.LessOrEqual ? webGL.LEQUAL
-		: op === DepthOp.NotEqual ? webGL.NOTEQUAL
-		: webGL.NEVER;
-	webGL.depthFunc(depthFunc);
+	const depthFunc = op === DepthOp.AlwaysPass ? gl.ALWAYS
+		: op === DepthOp.Equal ? gl.EQUAL
+		: op === DepthOp.Greater ? gl.GREATER
+		: op === DepthOp.GreaterOrEqual ? gl.GEQUAL
+		: op === DepthOp.Less ? gl.LESS
+		: op === DepthOp.LessOrEqual ? gl.LEQUAL
+		: op === DepthOp.NotEqual ? gl.NOTEQUAL
+		: gl.NEVER;
+	gl.depthFunc(depthFunc);
 }

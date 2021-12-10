@@ -89,18 +89,15 @@ interface Vertex
 const console = globalThis.console;
 const jobQueue = new JobQueue();
 
-let defaultFont: Font;
-let defaultShader: Shader;
-let immediateVBO: Galileo.VertexBuffer;
-let mainObject: { [x: string]: any } | undefined;
+var defaultFont: Font;
+var defaultShader: Shader;
+var mainObject: { [x: string]: any } | undefined;
 
 export default
 class Pegasus
 {
 	static initialize()
 	{
-		immediateVBO = new Galileo.VertexBuffer();
-	
 		Object.defineProperty(globalThis, 'global', {
 			writable: false,
 			enumerable: false,
@@ -784,15 +781,15 @@ class Shape
 			Shader.Default.program.transform(Galileo.Matrix.Identity);
 			if (arg1 !== null)
 				arg1.texture.activate(0);
-			immediateVBO.upload(arg2 as ArrayLike<Vertex>);
-			Galileo.default.draw(immediateVBO, null, type);
+			const vb = new Galileo.VertexBuffer(arg2 as ArrayLike<Vertex>);
+			Galileo.default.draw(vb, null, type);
 		}
 		else {
 			Shader.Default.program.activate(false);
 			Shader.Default.program.project(surface.projection.matrix);
 			Shader.Default.program.transform(Galileo.Matrix.Identity);
-			immediateVBO.upload(arg1);
-			Galileo.default.draw(immediateVBO, null, type);
+			const vb = new Galileo.VertexBuffer(arg1);
+			Galileo.default.draw(vb, null, type);
 		}
 	}
 
@@ -805,7 +802,7 @@ class Shape
 				throw new Error("Expected Texture or null as second parameter to new Shape");
 			const vbo = arg2.buffer;
 			const ibo = arg3 !== null ? arg3.buffer : null;
-			this.shape = new Galileo.Shape(vbo, ibo, arg0);
+			this.shape = new Galileo.Shape(arg0, vbo, ibo);
 			this.texture = arg1;
 			this.indexList = arg3;
 		}
@@ -814,7 +811,7 @@ class Shape
 				throw new Error("Expected VertexList or Texture as second parameter to new Shape");
 			let vbo = arg1.buffer;
 			const ibo = arg2 !== null ? arg2.buffer : null;
-			this.shape = new Galileo.Shape(vbo, ibo, arg0);
+			this.shape = new Galileo.Shape(arg0, vbo, ibo);
 			this.texture = null;
 			this.indexList = arg2;
 		}
