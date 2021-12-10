@@ -31,7 +31,7 @@
 **/
 
 import Galileo from './galileo.js';
-import { InputEngine } from './input-engine.js';
+import InputEngine from './input-engine.js';
 import Pegasus from './pegasus.js';
 import { fetchJSON } from './utilities.js';
 
@@ -96,7 +96,8 @@ async function main()
 			powerButton.classList.toggle('on');
 			powerText.classList.remove('visible');
 			canvas.focus();
-			Pegasus.initialize(new InputEngine(canvas));
+			InputEngine.initialize(canvas);
+			Pegasus.initialize();
 			await Pegasus.launchGame(gameID !== null ? `games/${gameID}` : 'dist');
 		}
 		else {

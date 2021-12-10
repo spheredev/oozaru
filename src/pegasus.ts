@@ -36,7 +36,7 @@ import Fido from './fido.js';
 import Game from './game.js';
 import * as Galileo from './galileo.js';
 import { BlendOp, Color, DepthOp, ShapeType } from './galileo.js';
-import { InputEngine, Key, MouseKey } from './input-engine.js';
+import InputEngine, { Key, Keyboard, Mouse, MouseKey } from './input-engine.js';
 import { JobQueue, JobType } from './job-queue.js';
 import { fetchJSON, fetchRawFile, fetchScript, fetchTextFile, fullURL, isConstructor } from './utilities.js';
 import { Version } from './version.js';
@@ -92,15 +92,13 @@ const jobQueue = new JobQueue();
 let defaultFont: Font;
 let defaultShader: Shader;
 let immediateVBO: Galileo.VertexBuffer;
-let inputEngine: InputEngine;
 let mainObject: { [x: string]: any } | undefined;
 
 export default
 class Pegasus
 {
-	static initialize(input: InputEngine)
+	static initialize()
 	{
-		inputEngine = input;
 		immediateVBO = new Galileo.VertexBuffer();
 	
 		Object.defineProperty(globalThis, 'global', {
@@ -578,105 +576,6 @@ class Joystick
 	}
 }
 
-class Keyboard
-{
-	static get Default()
-	{
-		const keyboard = new Keyboard();
-		Object.defineProperty(Keyboard, 'Default', {
-			writable: false,
-			enumerable: false,
-			configurable: true,
-			value: keyboard,
-		});
-		return keyboard;
-	}
-
-	get capsLock()
-	{
-		return false;
-	}
-
-	get numLock()
-	{
-		return false;
-	}
-
-	get scrollLock()
-	{
-		return false;
-	}
-
-	charOf(key: Key, shifted = false): string
-	{
-		return key === Key.Space ? " "
-			: key === Key.Apostrophe ? shifted ? "\"" : "'"
-			: key === Key.Backslash ? shifted ? "|" : "\\"
-			: key === Key.Comma ? shifted ? "<" : ","
-			: key === Key.CloseBrace ? shifted ? "}" : "]"
-			: key === Key.Equals ? shifted ? "+" : "="
-			: key === Key.Hyphen ? shifted ? "_" : "-"
-			: key === Key.OpenBrace ? shifted ? "{" : "["
-			: key === Key.Period ? shifted ? ">" : "."
-			: key === Key.Semicolon ? shifted ? ":" : ";"
-			: key === Key.Slash ? shifted ? "?" : "/"
-			: key === Key.Tab ? "\t"
-			: key === Key.Tilde ? shifted ? "~" : "`"
-			: key === Key.D0 ? shifted ? ")" : "0"
-			: key === Key.D1 ? shifted ? "!" : "1"
-			: key === Key.D2 ? shifted ? "@" : "2"
-			: key === Key.D3 ? shifted ? "#" : "3"
-			: key === Key.D4 ? shifted ? "$" : "4"
-			: key === Key.D5 ? shifted ? "%" : "5"
-			: key === Key.D6 ? shifted ? "^" : "6"
-			: key === Key.D7 ? shifted ? "&" : "7"
-			: key === Key.D8 ? shifted ? "*" : "8"
-			: key === Key.D9 ? shifted ? "(" : "9"
-			: key === Key.A ? shifted ? "A" : "a"
-			: key === Key.B ? shifted ? "B" : "b"
-			: key === Key.C ? shifted ? "C" : "c"
-			: key === Key.D ? shifted ? "D" : "d"
-			: key === Key.E ? shifted ? "E" : "e"
-			: key === Key.F ? shifted ? "F" : "f"
-			: key === Key.G ? shifted ? "G" : "g"
-			: key === Key.H ? shifted ? "H" : "h"
-			: key === Key.I ? shifted ? "I" : "i"
-			: key === Key.J ? shifted ? "J" : "j"
-			: key === Key.K ? shifted ? "K" : "k"
-			: key === Key.L ? shifted ? "L" : "l"
-			: key === Key.M ? shifted ? "M" : "m"
-			: key === Key.N ? shifted ? "N" : "n"
-			: key === Key.O ? shifted ? "O" : "o"
-			: key === Key.P ? shifted ? "P" : "p"
-			: key === Key.Q ? shifted ? "Q" : "q"
-			: key === Key.R ? shifted ? "R" : "r"
-			: key === Key.S ? shifted ? "S" : "s"
-			: key === Key.T ? shifted ? "T" : "t"
-			: key === Key.U ? shifted ? "U" : "u"
-			: key === Key.V ? shifted ? "V" : "v"
-			: key === Key.W ? shifted ? "W" : "w"
-			: key === Key.X ? shifted ? "X" : "x"
-			: key === Key.Y ? shifted ? "Y" : "y"
-			: key === Key.Z ? shifted ? "Z" : "z"
-			: "";
-	}
-
-	clearQueue()
-	{
-		inputEngine.clearKeyQueue();
-	}
-
-	getKey(): Key | null
-	{
-		return inputEngine.getKey();
-	}
-
-	isPressed(key: Key)
-	{
-		return inputEngine.isKeyDown(key);
-	}
-}
-
 class Model
 {
 	private shapes: Shape[];
@@ -719,51 +618,6 @@ class Model
 				shape.texture.texture.activate(0);
 			shape.shape.draw();
 		}
-	}
-}
-
-class Mouse
-{
-	static get Default()
-	{
-		const mouse = new Mouse();
-		Object.defineProperty(Mouse, 'Default', {
-			writable: false,
-			enumerable: false,
-			configurable: true,
-			value: mouse,
-		});
-		return mouse;
-	}
-
-	get position()
-	{
-		return [ inputEngine.mouseX, inputEngine.mouseY ];
-	}
-
-	get x()
-	{
-		return inputEngine.mouseX;
-	}
-
-	get y()
-	{
-		return inputEngine.mouseY;
-	}
-
-	clearQueue()
-	{
-		inputEngine.clearMouseQueue();
-	}
-
-	getEvent()
-	{
-		return inputEngine.getMouseEvent();
-	}
-
-	isPressed(key: MouseKey)
-	{
-		return inputEngine.isMouseKeyDown(key);
 	}
 }
 

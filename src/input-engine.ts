@@ -155,130 +155,130 @@ enum MouseKey
 	WheelDown,
 }
 
-export
+var buttonDown: { [x: number]: boolean } = {};
+var keyQueue: Key[] = [];
+var keyState: { [x: string]: boolean } = { '': false };
+var lastMouseX: number | undefined = undefined;
+var lastMouseY: number | undefined = undefined;
+var mouseQueue: MouseEvent[] = [];
+
+export default
 class InputEngine
 {
-	#buttonDown: { [x: number]: boolean } = {};
-	#keyQueue: Key[] = [];
-	#lastMouseX: number | undefined = undefined;
-	#lastMouseY: number | undefined = undefined;
-	#mouseQueue: MouseEvent[] = [];
-	#pressed: { [x: string]: boolean } = { '': false };
-
-	constructor(canvas: HTMLCanvasElement)
+	static initialize(canvas: HTMLCanvasElement)
 	{
 		canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 		canvas.addEventListener('keydown', e => {
 			e.preventDefault();
-			this.#pressed[e.code] = true;
+			keyState[e.code] = true;
 			switch (e.code) {
-				case 'ArrowLeft': this.#keyQueue.push(Key.Left); break;
-				case 'ArrowRight': this.#keyQueue.push(Key.Right); break;
-				case 'ArrowDown': this.#keyQueue.push(Key.Down); break;
-				case 'ArrowUp': this.#keyQueue.push(Key.Up); break;
-				case 'Backquote': this.#keyQueue.push(Key.Tilde); break;
-				case 'Backslash': this.#keyQueue.push(Key.Backslash); break;
-				case 'Backspace': this.#keyQueue.push(Key.Backspace); break;
-				case 'BracketLeft': this.#keyQueue.push(Key.OpenBrace); break;
-				case 'BracketRight': this.#keyQueue.push(Key.CloseBrace); break;
-				case 'Comma': this.#keyQueue.push(Key.Comma); break;
-				case 'Delete': this.#keyQueue.push(Key.Delete); break;
-				case 'Digit0': this.#keyQueue.push(Key.D0); break;
-				case 'Digit1': this.#keyQueue.push(Key.D1); break;
-				case 'Digit2': this.#keyQueue.push(Key.D2); break;
-				case 'Digit3': this.#keyQueue.push(Key.D3); break;
-				case 'Digit4': this.#keyQueue.push(Key.D4); break;
-				case 'Digit5': this.#keyQueue.push(Key.D5); break;
-				case 'Digit6': this.#keyQueue.push(Key.D6); break;
-				case 'Digit7': this.#keyQueue.push(Key.D7); break;
-				case 'Digit8': this.#keyQueue.push(Key.D8); break;
-				case 'Digit9': this.#keyQueue.push(Key.D9); break;
-				case 'End': this.#keyQueue.push(Key.End); break;
-				case 'Enter': this.#keyQueue.push(Key.Enter); break;
-				case 'Equal': this.#keyQueue.push(Key.Equals); break;
-				case 'Escape': this.#keyQueue.push(Key.Escape); break;
-				case 'F1': this.#keyQueue.push(Key.F1); break;
-				case 'F2': this.#keyQueue.push(Key.F2); break;
-				case 'F3': this.#keyQueue.push(Key.F3); break;
-				case 'F4': this.#keyQueue.push(Key.F4); break;
-				case 'F5': this.#keyQueue.push(Key.F5); break;
-				case 'F6': this.#keyQueue.push(Key.F6); break;
-				case 'F7': this.#keyQueue.push(Key.F7); break;
-				case 'F8': this.#keyQueue.push(Key.F8); break;
-				case 'F9': this.#keyQueue.push(Key.F9); break;
-				case 'F10': this.#keyQueue.push(Key.F10); break;
-				case 'F11': this.#keyQueue.push(Key.F11); break;
-				case 'F12': this.#keyQueue.push(Key.F12); break;
-				case 'Home': this.#keyQueue.push(Key.Home); break;
-				case 'Insert': this.#keyQueue.push(Key.Insert); break;
-				case 'KeyA': this.#keyQueue.push(Key.A); break;
-				case 'KeyB': this.#keyQueue.push(Key.B); break;
-				case 'KeyC': this.#keyQueue.push(Key.C); break;
-				case 'KeyD': this.#keyQueue.push(Key.D); break;
-				case 'KeyE': this.#keyQueue.push(Key.E); break;
-				case 'KeyF': this.#keyQueue.push(Key.F); break;
-				case 'KeyG': this.#keyQueue.push(Key.G); break;
-				case 'KeyH': this.#keyQueue.push(Key.H); break;
-				case 'KeyI': this.#keyQueue.push(Key.I); break;
-				case 'KeyJ': this.#keyQueue.push(Key.J); break;
-				case 'KeyK': this.#keyQueue.push(Key.K); break;
-				case 'KeyL': this.#keyQueue.push(Key.L); break;
-				case 'KeyM': this.#keyQueue.push(Key.M); break;
-				case 'KeyN': this.#keyQueue.push(Key.N); break;
-				case 'KeyO': this.#keyQueue.push(Key.O); break;
-				case 'KeyP': this.#keyQueue.push(Key.P); break;
-				case 'KeyQ': this.#keyQueue.push(Key.Q); break;
-				case 'KeyR': this.#keyQueue.push(Key.R); break;
-				case 'KeyS': this.#keyQueue.push(Key.S); break;
-				case 'KeyT': this.#keyQueue.push(Key.T); break;
-				case 'KeyU': this.#keyQueue.push(Key.U); break;
-				case 'KeyV': this.#keyQueue.push(Key.V); break;
-				case 'KeyW': this.#keyQueue.push(Key.W); break;
-				case 'KeyX': this.#keyQueue.push(Key.X); break;
-				case 'KeyY': this.#keyQueue.push(Key.Y); break;
-				case 'KeyZ': this.#keyQueue.push(Key.Z); break;
-				case 'Minus': this.#keyQueue.push(Key.Hyphen); break;
-				case 'Numpad0': this.#keyQueue.push(Key.NumPad0); break;
-				case 'Numpad1': this.#keyQueue.push(Key.NumPad1); break;
-				case 'Numpad2': this.#keyQueue.push(Key.NumPad2); break;
-				case 'Numpad3': this.#keyQueue.push(Key.NumPad3); break;
-				case 'Numpad4': this.#keyQueue.push(Key.NumPad4); break;
-				case 'Numpad5': this.#keyQueue.push(Key.NumPad5); break;
-				case 'Numpad6': this.#keyQueue.push(Key.NumPad6); break;
-				case 'Numpad7': this.#keyQueue.push(Key.NumPad7); break;
-				case 'Numpad8': this.#keyQueue.push(Key.NumPad8); break;
-				case 'Numpad9': this.#keyQueue.push(Key.NumPad9); break;
-				case 'NumpadAdd': this.#keyQueue.push(Key.Add); break;
-				case 'NumpadDecimal': this.#keyQueue.push(Key.Decimal); break;
-				case 'NumpadDivide': this.#keyQueue.push(Key.Divide); break;
-				case 'NumpadEnter': this.#keyQueue.push(Key.NumPadEnter); break;
-				case 'NumpadMultiply': this.#keyQueue.push(Key.Multiply); break;
-				case 'NumpadSubtract': this.#keyQueue.push(Key.Subtract); break;
-				case 'PageDown': this.#keyQueue.push(Key.PageDown); break;
-				case 'PageUp': this.#keyQueue.push(Key.PageUp); break;
-				case 'Period': this.#keyQueue.push(Key.Period); break;
-				case 'Quote': this.#keyQueue.push(Key.Apostrophe); break;
-				case 'Semicolon': this.#keyQueue.push(Key.Semicolon); break;
-				case 'Slash': this.#keyQueue.push(Key.Slash); break;
-				case 'Space': this.#keyQueue.push(Key.Space); break;
-				case 'Tab': this.#keyQueue.push(Key.Tab); break;
+				case 'ArrowLeft': keyQueue.push(Key.Left); break;
+				case 'ArrowRight': keyQueue.push(Key.Right); break;
+				case 'ArrowDown': keyQueue.push(Key.Down); break;
+				case 'ArrowUp': keyQueue.push(Key.Up); break;
+				case 'Backquote': keyQueue.push(Key.Tilde); break;
+				case 'Backslash': keyQueue.push(Key.Backslash); break;
+				case 'Backspace': keyQueue.push(Key.Backspace); break;
+				case 'BracketLeft': keyQueue.push(Key.OpenBrace); break;
+				case 'BracketRight': keyQueue.push(Key.CloseBrace); break;
+				case 'Comma': keyQueue.push(Key.Comma); break;
+				case 'Delete': keyQueue.push(Key.Delete); break;
+				case 'Digit0': keyQueue.push(Key.D0); break;
+				case 'Digit1': keyQueue.push(Key.D1); break;
+				case 'Digit2': keyQueue.push(Key.D2); break;
+				case 'Digit3': keyQueue.push(Key.D3); break;
+				case 'Digit4': keyQueue.push(Key.D4); break;
+				case 'Digit5': keyQueue.push(Key.D5); break;
+				case 'Digit6': keyQueue.push(Key.D6); break;
+				case 'Digit7': keyQueue.push(Key.D7); break;
+				case 'Digit8': keyQueue.push(Key.D8); break;
+				case 'Digit9': keyQueue.push(Key.D9); break;
+				case 'End': keyQueue.push(Key.End); break;
+				case 'Enter': keyQueue.push(Key.Enter); break;
+				case 'Equal': keyQueue.push(Key.Equals); break;
+				case 'Escape': keyQueue.push(Key.Escape); break;
+				case 'F1': keyQueue.push(Key.F1); break;
+				case 'F2': keyQueue.push(Key.F2); break;
+				case 'F3': keyQueue.push(Key.F3); break;
+				case 'F4': keyQueue.push(Key.F4); break;
+				case 'F5': keyQueue.push(Key.F5); break;
+				case 'F6': keyQueue.push(Key.F6); break;
+				case 'F7': keyQueue.push(Key.F7); break;
+				case 'F8': keyQueue.push(Key.F8); break;
+				case 'F9': keyQueue.push(Key.F9); break;
+				case 'F10': keyQueue.push(Key.F10); break;
+				case 'F11': keyQueue.push(Key.F11); break;
+				case 'F12': keyQueue.push(Key.F12); break;
+				case 'Home': keyQueue.push(Key.Home); break;
+				case 'Insert': keyQueue.push(Key.Insert); break;
+				case 'KeyA': keyQueue.push(Key.A); break;
+				case 'KeyB': keyQueue.push(Key.B); break;
+				case 'KeyC': keyQueue.push(Key.C); break;
+				case 'KeyD': keyQueue.push(Key.D); break;
+				case 'KeyE': keyQueue.push(Key.E); break;
+				case 'KeyF': keyQueue.push(Key.F); break;
+				case 'KeyG': keyQueue.push(Key.G); break;
+				case 'KeyH': keyQueue.push(Key.H); break;
+				case 'KeyI': keyQueue.push(Key.I); break;
+				case 'KeyJ': keyQueue.push(Key.J); break;
+				case 'KeyK': keyQueue.push(Key.K); break;
+				case 'KeyL': keyQueue.push(Key.L); break;
+				case 'KeyM': keyQueue.push(Key.M); break;
+				case 'KeyN': keyQueue.push(Key.N); break;
+				case 'KeyO': keyQueue.push(Key.O); break;
+				case 'KeyP': keyQueue.push(Key.P); break;
+				case 'KeyQ': keyQueue.push(Key.Q); break;
+				case 'KeyR': keyQueue.push(Key.R); break;
+				case 'KeyS': keyQueue.push(Key.S); break;
+				case 'KeyT': keyQueue.push(Key.T); break;
+				case 'KeyU': keyQueue.push(Key.U); break;
+				case 'KeyV': keyQueue.push(Key.V); break;
+				case 'KeyW': keyQueue.push(Key.W); break;
+				case 'KeyX': keyQueue.push(Key.X); break;
+				case 'KeyY': keyQueue.push(Key.Y); break;
+				case 'KeyZ': keyQueue.push(Key.Z); break;
+				case 'Minus': keyQueue.push(Key.Hyphen); break;
+				case 'Numpad0': keyQueue.push(Key.NumPad0); break;
+				case 'Numpad1': keyQueue.push(Key.NumPad1); break;
+				case 'Numpad2': keyQueue.push(Key.NumPad2); break;
+				case 'Numpad3': keyQueue.push(Key.NumPad3); break;
+				case 'Numpad4': keyQueue.push(Key.NumPad4); break;
+				case 'Numpad5': keyQueue.push(Key.NumPad5); break;
+				case 'Numpad6': keyQueue.push(Key.NumPad6); break;
+				case 'Numpad7': keyQueue.push(Key.NumPad7); break;
+				case 'Numpad8': keyQueue.push(Key.NumPad8); break;
+				case 'Numpad9': keyQueue.push(Key.NumPad9); break;
+				case 'NumpadAdd': keyQueue.push(Key.Add); break;
+				case 'NumpadDecimal': keyQueue.push(Key.Decimal); break;
+				case 'NumpadDivide': keyQueue.push(Key.Divide); break;
+				case 'NumpadEnter': keyQueue.push(Key.NumPadEnter); break;
+				case 'NumpadMultiply': keyQueue.push(Key.Multiply); break;
+				case 'NumpadSubtract': keyQueue.push(Key.Subtract); break;
+				case 'PageDown': keyQueue.push(Key.PageDown); break;
+				case 'PageUp': keyQueue.push(Key.PageUp); break;
+				case 'Period': keyQueue.push(Key.Period); break;
+				case 'Quote': keyQueue.push(Key.Apostrophe); break;
+				case 'Semicolon': keyQueue.push(Key.Semicolon); break;
+				case 'Slash': keyQueue.push(Key.Slash); break;
+				case 'Space': keyQueue.push(Key.Space); break;
+				case 'Tab': keyQueue.push(Key.Tab); break;
 			}
 		});
 		canvas.addEventListener('keyup', e => {
 			e.preventDefault();
-			this.#pressed[e.code] = false;
+			keyState[e.code] = false;
 		});
 
 		canvas.addEventListener('mousemove', e => {
 			e.preventDefault();
-			this.#lastMouseX = e.offsetX;
-			this.#lastMouseY = e.offsetY;
+			lastMouseX = e.offsetX;
+			lastMouseY = e.offsetY;
 		});
 		canvas.addEventListener('mouseout', e => {
 			e.preventDefault();
-			this.#lastMouseX = undefined;
-			this.#lastMouseY = undefined;
+			lastMouseX = undefined;
+			lastMouseY = undefined;
 		});
 		canvas.addEventListener('mousedown', e => {
 			e.preventDefault();
@@ -288,7 +288,7 @@ class InputEngine
 				: e.button === 3 ? MouseKey.Back
 				: e.button === 4 ? MouseKey.Forward
 				: MouseKey.Left;
-			this.#buttonDown[key] = true;
+			buttonDown[key] = true;
 		});
 		canvas.addEventListener('mouseup', e => {
 			e.preventDefault();
@@ -297,8 +297,8 @@ class InputEngine
 				: e.button === 3 ? MouseKey.Back
 				: e.button === 4 ? MouseKey.Forward
 				: MouseKey.Left;
-			this.#buttonDown[key] = false;
-			this.#mouseQueue.push({
+			buttonDown[key] = false;
+			mouseQueue.push({
 				key,
 				x: e.offsetX,
 				y: e.offsetY,
@@ -308,7 +308,7 @@ class InputEngine
 			e.preventDefault();
 			const key = e.deltaY < 0.0 ? MouseKey.WheelUp
 				: MouseKey.WheelDown;
-			this.#mouseQueue.push({
+			mouseQueue.push({
 				key,
 				delta: Math.abs(e.deltaY),
 				x: e.offsetX,
@@ -316,40 +316,97 @@ class InputEngine
 			});
 		});
 	}
+}
 
-	get mouseX()
+export
+class Keyboard
+{
+	static get Default()
 	{
-		return this.#lastMouseX;
+		return this;
 	}
 
-	get mouseY()
+	static get capsLock()
 	{
-		return this.#lastMouseY;
+		return false;
 	}
 
-	clearKeyQueue()
+	static get numLock()
 	{
-		this.#keyQueue.length = 0;
+		return false;
 	}
 
-	clearMouseQueue()
+	static get scrollLock()
 	{
-		this.#mouseQueue.length = 0;
+		return false;
 	}
 
-	getKey()
+	static charOf(key: Key, shifted = false): string
 	{
-		const key = this.#keyQueue.pop();
+		return key === Key.Space ? " "
+			: key === Key.Apostrophe ? shifted ? "\"" : "'"
+			: key === Key.Backslash ? shifted ? "|" : "\\"
+			: key === Key.Comma ? shifted ? "<" : ","
+			: key === Key.CloseBrace ? shifted ? "}" : "]"
+			: key === Key.Equals ? shifted ? "+" : "="
+			: key === Key.Hyphen ? shifted ? "_" : "-"
+			: key === Key.OpenBrace ? shifted ? "{" : "["
+			: key === Key.Period ? shifted ? ">" : "."
+			: key === Key.Semicolon ? shifted ? ":" : ";"
+			: key === Key.Slash ? shifted ? "?" : "/"
+			: key === Key.Tab ? "\t"
+			: key === Key.Tilde ? shifted ? "~" : "`"
+			: key === Key.D0 ? shifted ? ")" : "0"
+			: key === Key.D1 ? shifted ? "!" : "1"
+			: key === Key.D2 ? shifted ? "@" : "2"
+			: key === Key.D3 ? shifted ? "#" : "3"
+			: key === Key.D4 ? shifted ? "$" : "4"
+			: key === Key.D5 ? shifted ? "%" : "5"
+			: key === Key.D6 ? shifted ? "^" : "6"
+			: key === Key.D7 ? shifted ? "&" : "7"
+			: key === Key.D8 ? shifted ? "*" : "8"
+			: key === Key.D9 ? shifted ? "(" : "9"
+			: key === Key.A ? shifted ? "A" : "a"
+			: key === Key.B ? shifted ? "B" : "b"
+			: key === Key.C ? shifted ? "C" : "c"
+			: key === Key.D ? shifted ? "D" : "d"
+			: key === Key.E ? shifted ? "E" : "e"
+			: key === Key.F ? shifted ? "F" : "f"
+			: key === Key.G ? shifted ? "G" : "g"
+			: key === Key.H ? shifted ? "H" : "h"
+			: key === Key.I ? shifted ? "I" : "i"
+			: key === Key.J ? shifted ? "J" : "j"
+			: key === Key.K ? shifted ? "K" : "k"
+			: key === Key.L ? shifted ? "L" : "l"
+			: key === Key.M ? shifted ? "M" : "m"
+			: key === Key.N ? shifted ? "N" : "n"
+			: key === Key.O ? shifted ? "O" : "o"
+			: key === Key.P ? shifted ? "P" : "p"
+			: key === Key.Q ? shifted ? "Q" : "q"
+			: key === Key.R ? shifted ? "R" : "r"
+			: key === Key.S ? shifted ? "S" : "s"
+			: key === Key.T ? shifted ? "T" : "t"
+			: key === Key.U ? shifted ? "U" : "u"
+			: key === Key.V ? shifted ? "V" : "v"
+			: key === Key.W ? shifted ? "W" : "w"
+			: key === Key.X ? shifted ? "X" : "x"
+			: key === Key.Y ? shifted ? "Y" : "y"
+			: key === Key.Z ? shifted ? "Z" : "z"
+			: "";
+	}
+
+	static clearQueue()
+	{
+		keyQueue.length = 0;
+	}
+
+	static getKey()
+	{
+		const key = keyQueue.pop();
 		return key !== undefined ? key : null;
 	}
 
-	getMouseEvent()
-	{
-		const event = this.#mouseQueue.pop();
-		return event !== undefined ? event : { key: null };
-	}
-
-	isKeyDown(key: Key)
+	static isPressed(key: Key)
 	{
 		const keySpec = key === Key.Tilde ? 'Backquote'
 			: key === Key.D0 ? 'Digit0'
@@ -396,12 +453,47 @@ class InputEngine
 			: key === Key.RShift ? 'ShiftRight'
 			: key === Key.RCtrl ? 'ControlRight'
 			: key === Key.AltGr ? 'AltRight'
-			: "";
-		return this.#pressed[keySpec];
+			: '';
+		return keyState[keySpec];
+	}
+}
+
+export
+class Mouse
+{
+	static get Default()
+	{
+		return this;
 	}
 
-	isMouseKeyDown(key: MouseKey)
+	static get position()
 	{
-		return !!this.#buttonDown[key];
+		return [ lastMouseX, lastMouseY ];
+	}
+
+	static get x()
+	{
+		return lastMouseX;
+	}
+
+	static get y()
+	{
+		return lastMouseY;
+	}
+
+	static clearQueue()
+	{
+		mouseQueue.length = 0;
+	}
+
+	static getEvent()
+	{
+		const event = mouseQueue.pop();
+		return event !== undefined ? event : { key: null };
+	}
+
+	static isPressed(key: MouseKey)
+	{
+		return !!buttonDown[key];
 	}
 }
