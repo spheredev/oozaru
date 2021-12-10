@@ -31,7 +31,7 @@
 **/
 
 import { DataStream } from './data-stream.js';
-import { Fido } from './fido.js';
+import Fido from './fido.js';
 
 interface FileRecord
 {
@@ -47,9 +47,9 @@ class Package
 	#stream: DataStream;
 	#toc: Record<string, FileRecord> = {};
 	
-	static async fromFile(fido: Fido, url: string)
+	static async fromFile(url: string)
 	{
-		const response = await fido.fetch(url);
+		const response = await Fido.fetch(url);
 		const buffer = await response.arrayBuffer();
 		const stream = new DataStream(buffer);
 		return new this(stream);

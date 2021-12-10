@@ -30,10 +30,9 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import { Fido } from './fido.js';
 import Galileo from './galileo.js';
 import { InputEngine } from './input-engine.js';
-import { initializeAPI, launchGame } from './pegasus.js';
+import Pegasus from './pegasus.js';
 import { fetchJSON } from './utilities.js';
 
 main();
@@ -54,7 +53,7 @@ async function main()
 	});
 
 	const canvas = document.getElementById('screen') as HTMLCanvasElement;
-	Galileo.initialize(canvas);
+	await Galileo.initialize(canvas);
 
 	const menu = document.getElementById('menu')!;
 	let useDistDir = true;
@@ -97,8 +96,8 @@ async function main()
 			powerButton.classList.toggle('on');
 			powerText.classList.remove('visible');
 			canvas.focus();
-			initializeAPI(new Fido(), new InputEngine(canvas));
-			await launchGame(gameID !== null ? `games/${gameID}` : 'dist');
+			Pegasus.initialize(new InputEngine(canvas));
+			await Pegasus.launchGame(gameID !== null ? `games/${gameID}` : 'dist');
 		}
 		else {
 			reportException("Please select a game from the top menu first.");

@@ -148,8 +148,10 @@ class Galileo
 		DrawTarget.Screen.activate();
 	}
 
-	static clear()
+	static flip()
 	{
+		DrawTarget.Screen.activate();
+		DrawTarget.Screen.unclip();		
 		webGL.disable(webGL.SCISSOR_TEST);
 		webGL.clear(webGL.COLOR_BUFFER_BIT | webGL.DEPTH_BUFFER_BIT);
 		webGL.enable(webGL.SCISSOR_TEST);

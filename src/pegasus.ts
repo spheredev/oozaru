@@ -32,7 +32,7 @@
 
 import { Mixer, Sound, SoundStream } from './audialis.js';
 import { DataStream } from './data-stream.js';
-import { Fido } from './fido.js';
+import Fido from './fido.js';
 import Game from './game.js';
 import * as Galileo from './galileo.js';
 import { BlendOp, Color, DepthOp, ShapeType } from './galileo.js';
@@ -91,104 +91,103 @@ const jobQueue = new JobQueue();
 
 let defaultFont: Font;
 let defaultShader: Shader;
-let game: Game;
-let theFido: Fido;
 let immediateVBO: Galileo.VertexBuffer;
 let inputEngine: InputEngine;
 let mainObject: { [x: string]: any } | undefined;
 
-export
-function initializeAPI(fido: Fido, input: InputEngine)
+export default
+class Pegasus
 {
-	inputEngine = input;
-	immediateVBO = new Galileo.VertexBuffer();
-	theFido = fido;
+	static initialize(input: InputEngine)
+	{
+		inputEngine = input;
+		immediateVBO = new Galileo.VertexBuffer();
+	
+		Object.defineProperty(globalThis, 'global', {
+			writable: false,
+			enumerable: false,
+			configurable: false,
+			value: globalThis,
+		});
+	
+		// register Sphere v2 API globals
+		Object.assign(globalThis, {
+			// enumerations
+			BlendOp,
+			DataType,
+			DepthOp,
+			FileOp,
+			Key,
+			MouseKey,
+			ShapeType,
+	
+			// classes and namespaces
+			Sphere,
+			Color,
+			Dispatch,
+			FS,
+			FileStream,
+			Font,
+			IndexList,
+			Joystick,
+			Keyboard,
+			Mixer,
+			Model,
+			Mouse,
+			RNG,
+			SSj,
+			Shader,
+			Shape,
+			Sound,
+			SoundStream,
+			Surface,
+			Texture,
+			Transform,
+			VertexList,
+		});
+	
+		Object.defineProperty(JSON, 'fromFile', {
+			writable: true,
+			enumerable: false,
+			configurable: true,
+			value: async function fromFile(fileName: string) {
+				const url = Game.urlOf(fileName);
+				return fetchJSON(url);
+			},
+		})
+	}
 
-	Object.defineProperty(globalThis, 'global', {
-		writable: false,
-		enumerable: false,
-		configurable: false,
-		value: globalThis,
-	});
+	static async launchGame(rootPath: string)
+	{
+		// load the game's JSON manifest
+		await Game.initialize(rootPath);
+		Galileo.default.rerez(Game.manifest.resolution.x, Game.manifest.resolution.y);
+		document.title = Game.manifest.name;
+		document.getElementById('gameTitle')!.innerHTML = Game.manifest.name;
+		document.getElementById('copyright')!.innerHTML = `game by ${Game.manifest.author}`;
 
-	// register Sphere v2 API globals
-	Object.assign(globalThis, {
-		// enumerations
-		BlendOp,
-		DataType,
-		DepthOp,
-		FileOp,
-		Key,
-		MouseKey,
-		ShapeType,
+		defaultFont = await Font.fromFile('#/default.rfn');
+		defaultShader = await Shader.fromFiles({
+			vertexFile: '#/default.vert.glsl',
+			fragmentFile: '#/default.frag.glsl',
+		});
 
-		// classes and namespaces
-		Sphere,
-		Color,
-		Dispatch,
-		FS,
-		FileStream,
-		Font,
-		IndexList,
-		Joystick,
-		Keyboard,
-		Mixer,
-		Model,
-		Mouse,
-		RNG,
-		SSj,
-		Shader,
-		Shape,
-		Sound,
-		SoundStream,
-		Surface,
-		Texture,
-		Transform,
-		VertexList,
-	});
+		jobQueue.add(JobType.Render, () => {
+			if (Fido.progress >= 1.0)
+				return;
+			const status = `fido: ${Math.floor(100.0 * Fido.progress)}% (${Fido.numJobs} files)`;
+			const textSize = defaultFont.getTextSize(status);
+			const x = Surface.Screen.width - textSize.width - 5;
+			const y = Surface.Screen.height - textSize.height - 5;
+			defaultFont.drawText(Surface.Screen, x + 1, y + 1, status, Color.Black);
+			defaultFont.drawText(Surface.Screen, x, y, status, Color.Silver);
+		}, true, Infinity);
 
-	Object.defineProperty(JSON, 'fromFile', {
-		writable: true,
-		enumerable: false,
-		configurable: true,
-		value: async function fromFile(fileName: string) {
-			const url = Game.urlOf(fileName);
-			return fetchJSON(url);
-		},
-	})
-}
+		// start the Sphere v2 event loop
+		jobQueue.start();
 
-export	
-async function launchGame(rootPath: string)
-{
-	// load the game's JSON manifest
-	await Game.initialize(rootPath);
-	Galileo.default.rerez(Game.manifest.resolution.x, Game.manifest.resolution.y);
-	document.title = Game.manifest.name;
-	document.getElementById('gameTitle')!.innerHTML = Game.manifest.name;
-	document.getElementById('copyright')!.innerHTML = `game by ${Game.manifest.author}`;
-
-	defaultFont = await Font.fromFile('#/default.rfn');
-	defaultShader = await Shader.fromFiles({
-		vertexFile: '#/default.vert.glsl',
-		fragmentFile: '#/default.frag.glsl',
-	});
-
-	jobQueue.add(JobType.Render, () => {
-		if (theFido.progress >= 1.0)
-			return;
-		const status = `fido: ${Math.floor(100.0 * theFido.progress)}% (${theFido.numJobs} files)`;
-		const textSize = defaultFont.getTextSize(status);
-		const x = Surface.Screen.width - textSize.width - 5;
-		const y = Surface.Screen.height - textSize.height - 5;
-		defaultFont.drawText(Surface.Screen, x + 1, y + 1, status, Color.Black);
-		defaultFont.drawText(Surface.Screen, x, y, status, Color.Silver);
-	}, true, Infinity);
-
-	// start the Sphere v2 event loop
-	jobQueue.start();
-
-	await Game.launch();
+		await Game.launch();
+	}
 }
 
 class Sphere
@@ -987,7 +986,7 @@ class Texture
 	static async fromFile(fileName: string)
 	{
 		const url = Game.urlOf(fileName);
-		const image = await theFido.fetchImage(url);
+		const image = await Fido.fetchImage(url);
 		return new Texture(image);
 	}
 
