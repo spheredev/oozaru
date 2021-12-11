@@ -31,6 +31,7 @@
 **/
 
 import Fido from './fido.js';
+import Galileo from './galileo.js';
 import { fullURL, isConstructor } from './utilities.js';
 import { Version } from './version.js';
 
@@ -96,6 +97,12 @@ class Game
 
 	static async launch()
 	{
+		document.title = `${Game.manifest.name} - ${Version.name}`;
+		document.getElementById('gameTitle')!.innerHTML = Game.manifest.name;
+		document.getElementById('copyright')!.innerHTML = `game by ${Game.manifest.author}`;
+
+		Galileo.rerez(Game.manifest.resolution.x, Game.manifest.resolution.y);
+
 		// load and execute the game's main module.  if it exports a startup
 		// function or class, call it.
 		const scriptURL = this.urlOf(this.manifest.mainPath);

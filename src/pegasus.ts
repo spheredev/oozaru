@@ -35,7 +35,7 @@ import { DataStream } from './data-stream.js';
 import Fido from './fido.js';
 import Game from './game.js';
 import * as Galileo from './galileo.js';
-import { BlendOp, Color, DepthOp, ShapeType } from './galileo.js';
+import { BlendOp, Color, DepthOp, IndexList, ShapeType, Vertex, VertexList } from './galileo.js';
 import InputEngine, { Key, Keyboard, Mouse, MouseKey } from './input-engine.js';
 import { JobQueue, JobType } from './job-queue.js';
 import { fetchScript } from './utilities.js';
@@ -74,16 +74,6 @@ interface ShaderOptions
 {
 	vertexFile: string;
 	fragmentFile: string;
-}
-
-interface Vertex
-{
-	x: number;
-	y: number;
-	z?: number;
-	u?: number;
-	v?: number;
-	color?: Color;
 }
 
 const console = globalThis.console;
@@ -157,10 +147,6 @@ class Pegasus
 	{
 		// load the game's JSON manifest
 		await Game.initialize(rootPath);
-		Galileo.default.rerez(Game.manifest.resolution.x, Game.manifest.resolution.y);
-		document.title = Game.manifest.name;
-		document.getElementById('gameTitle')!.innerHTML = Game.manifest.name;
-		document.getElementById('copyright')!.innerHTML = `game by ${Game.manifest.author}`;
 
 		defaultFont = await Font.fromFile('#/default.rfn');
 		defaultShader = await Shader.fromFiles({
@@ -486,16 +472,6 @@ class Font
 	}
 }
 
-class IndexList
-{
-	buffer: Galileo.IndexBuffer;
-
-	constructor(indices: Iterable<number>)
-	{
-		this.buffer = new Galileo.IndexBuffer(indices);
-	}
-}
-
 class JobToken
 {
 	jobID: number;
@@ -767,13 +743,12 @@ class Shader
 
 class Shape
 {
-	texture: Texture | null;
-	indexList: IndexList | null;
 	shape: Galileo.Shape;
+	texture: Texture | null;
 
-	static drawImmediate(surface: Surface, type: Galileo.ShapeType, texture: Texture | null, vertices: ArrayLike<Vertex>): void
-	static drawImmediate(surface: Surface, type: Galileo.ShapeType, vertices: ArrayLike<Vertex>): void
-	static drawImmediate(surface: Surface, type: Galileo.ShapeType, arg1: Texture | ArrayLike<Vertex> | null, arg2?: ArrayLike<Vertex>)
+	static drawImmediate(surface: Surface, type: ShapeType, texture: Texture | null, vertices: ArrayLike<Vertex>): void
+	static drawImmediate(surface: Surface, type: ShapeType, vertices: ArrayLike<Vertex>): void
+	static drawImmediate(surface: Surface, type: ShapeType, arg1: Texture | ArrayLike<Vertex> | null, arg2?: ArrayLike<Vertex>)
 	{
 		surface.drawTarget.activate();
 		if (arg1 instanceof Texture || arg1 === null) {
@@ -782,39 +757,31 @@ class Shape
 			Shader.Default.program.transform(Galileo.Matrix.Identity);
 			if (arg1 !== null)
 				arg1.texture.activate(0);
-			const vb = new Galileo.VertexBuffer(arg2 as ArrayLike<Vertex>);
-			Galileo.default.draw(vb, null, type);
+			Galileo.default.draw(type, new VertexList(arg2!));
 		}
 		else {
 			Shader.Default.program.activate(false);
 			Shader.Default.program.project(surface.projection.matrix);
 			Shader.Default.program.transform(Galileo.Matrix.Identity);
-			const vb = new Galileo.VertexBuffer(arg1);
-			Galileo.default.draw(vb, null, type);
+			Galileo.default.draw(type, new VertexList(arg1));
 		}
 	}
 
-	constructor(type: Galileo.ShapeType, texture: Texture | null, vbo: VertexList, indexList?: IndexList | null)
-	constructor(type: Galileo.ShapeType, vbo: VertexList, indexList?: IndexList | null)
-	constructor(arg0: Galileo.ShapeType, arg1: Texture | VertexList | null, arg2: VertexList | IndexList | null = null, arg3: IndexList | null = null)
+	constructor(type: ShapeType, texture: Texture | null, vertices: VertexList, indices?: IndexList | null)
+	constructor(type: ShapeType, vertices: VertexList, indices?: IndexList | null)
+	constructor(arg0: ShapeType, arg1: Texture | VertexList | null, arg2: VertexList | IndexList | null = null, arg3: IndexList | null = null)
 	{
 		if (arg2 instanceof VertexList) {
 			if (!(arg1 instanceof Texture) && arg1 != undefined)
-				throw new Error("Expected Texture or null as second parameter to new Shape");
-			const vbo = arg2.buffer;
-			const ibo = arg3 !== null ? arg3.buffer : null;
-			this.shape = new Galileo.Shape(arg0, vbo, ibo);
+				throw new Error("Expected a Texture or 'null' as second argument to Shape constructor");
+			this.shape = new Galileo.Shape(arg0, arg2, arg3);
 			this.texture = arg1;
-			this.indexList = arg3;
 		}
 		else {
 			if (!(arg1 instanceof VertexList))
-				throw new Error("Expected VertexList or Texture as second parameter to new Shape");
-			let vbo = arg1.buffer;
-			const ibo = arg2 !== null ? arg2.buffer : null;
-			this.shape = new Galileo.Shape(arg0, vbo, ibo);
+				throw new Error("Expected a VertexList or Texture as second argument to Shape constructor");
+			this.shape = new Galileo.Shape(arg0, arg1, arg2);
 			this.texture = null;
-			this.indexList = arg2;
 		}
 	}
 
@@ -1019,16 +986,6 @@ class Transform
 	{
 		this.matrix.translate(tX, tY, tZ);
 		return this;
-	}
-}
-
-class VertexList
-{
-	buffer: Galileo.VertexBuffer;
-
-	constructor(vertices: Iterable<Vertex>)
-	{
-		this.buffer = new Galileo.VertexBuffer([ ...vertices ]);
 	}
 }
 

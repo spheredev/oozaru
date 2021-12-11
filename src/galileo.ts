@@ -70,15 +70,6 @@ enum DepthOp
 }
 
 export
-interface RGBA
-{
-	r: number;
-	g: number;
-	b: number;
-	a: number;
-}
-
-export
 interface Rectangle
 {
 	x: number;
@@ -114,7 +105,7 @@ interface Vertex
 	z?: number;
 	u?: number;
 	v?: number;
-	color?: RGBA;
+	color?: Color;
 }
 
 var activeDrawTarget: DrawTarget | null = null;
@@ -126,10 +117,10 @@ class Galileo
 {
 	static initialize(canvas: HTMLCanvasElement)
 	{
-		const glOptions = { alpha: false, preserveDrawingBuffer: true };
-		const glContext = (canvas.getContext('webgl2', glOptions)
-			|| canvas.getContext('webgl', glOptions)
-			|| canvas.getContext('experimental-webgl', glOptions)) as WebGLRenderingContext | null;
+		const glContext = canvas.getContext('webgl', {
+			alpha: false,
+			preserveDrawingBuffer: true,
+		});
 		if (glContext === null)
 			throw new Error(`Oozaru was unable to create a WebGL context.`);
 		gl = glContext;
@@ -155,7 +146,7 @@ class Galileo
 		gl.enable(gl.SCISSOR_TEST);
 	}
 
-	static draw(vertexBuffer: VertexBuffer, indexBuffer: IndexBuffer | null, type: ShapeType, offset = 0, numVertices?: number)
+	static draw(type: ShapeType, vertices: VertexList, indices?: IndexList | null, offset = 0, numVertices?: number)
 	{
 		const drawMode = type === ShapeType.Fan ? gl.TRIANGLE_FAN
 			: type === ShapeType.Lines ? gl.LINES
@@ -164,16 +155,16 @@ class Galileo
 			: type === ShapeType.Points ? gl.POINTS
 			: type === ShapeType.TriStrip ? gl.TRIANGLE_STRIP
 			: gl.TRIANGLES;
-		vertexBuffer.activate();
-		if (indexBuffer !== null) {
+		vertices.activate();
+		if (indices != null) {
 			if (numVertices === undefined)
-				numVertices = indexBuffer.length - offset;
-			indexBuffer.activate();
+				numVertices = indices.length - offset;
+			indices.activate();
 			gl.drawElements(drawMode, numVertices, gl.UNSIGNED_SHORT, offset);
 		}
 		else {
 			if (numVertices === undefined)
-				numVertices = vertexBuffer.length - offset;
+				numVertices = vertices.length - offset;
 			gl.drawArrays(drawMode, offset, numVertices);
 		}
 	}
@@ -469,8 +460,8 @@ class DrawTarget
 		if (frameBuffer === null || depthBuffer === null)
 			throw new Error(`Unable to create WebGL framebuffer object`);
 
-		// in order to set up the FBO we need to change the current FB binding, so make sure it gets
-		// changed back afterwards.
+		// in order to set up a new FBO we need to change the current framebuffer binding, so make sure
+		// it gets changed back afterwards.
 		const previousFBO = gl.getParameter(gl.FRAMEBUFFER_BINDING);
 		gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
 		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture.glTexture, 0);
@@ -614,7 +605,7 @@ class Font
 		return this.lineHeight;
 	}
 
-	drawText(text: string, color: RGBA, matrix: Matrix)
+	drawText(text: string, color: Color, matrix: Matrix)
 	{
 		if (text === "")
 			return;  // empty string, nothing to render
@@ -677,8 +668,7 @@ class Font
 			);
 			x += glyph.width;
 		}
-		const vb = new VertexBuffer(vertices);
-		Galileo.draw(vb, null, ShapeType.Triangles);
+		Galileo.draw(ShapeType.Triangles, new VertexList(vertices));
 	}
 
 	getTextSize(text: string, wrapWidth?: number): Size
@@ -835,13 +825,16 @@ class Font
 }
 
 export
-class IndexBuffer
+class IndexList
 {
 	glBuffer: WebGLBuffer | null = null;
 	length: number = 0;
 
-	constructor(indices: Iterable<number>)
+	constructor(indices: ArrayLike<number>)
 	{
+		this.glBuffer = gl.createBuffer();
+		if (this.glBuffer === null)
+			throw new Error(`Oozaru was unable to create a WebGL buffer object.`);
 		this.upload(indices);
 	}
 
@@ -850,16 +843,11 @@ class IndexBuffer
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.glBuffer);
 	}
 
-	upload(indices: Iterable<number>)
+	upload(indices: ArrayLike<number>)
 	{
 		const values = new Uint16Array(indices);
-		const glBuffer = gl.createBuffer();
-		if (glBuffer === null)
-			throw new Error(`Oozaru was unable to create a WebGL buffer object`);
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, glBuffer);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.glBuffer);
 		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, values, gl.STREAM_DRAW);
-		gl.deleteBuffer(this.glBuffer);
-		this.glBuffer = glBuffer;
 		this.length = values.length;
 	}
 }
@@ -1269,19 +1257,19 @@ export
 class Shape
 {
 	type: ShapeType;
-	vertices: VertexBuffer;
-	indices: IndexBuffer | null;
+	vertices: VertexList;
+	indices: IndexList | null;
 
-	constructor(type: ShapeType, vertexBuffer: VertexBuffer, indexBuffer: IndexBuffer | null)
+	constructor(type: ShapeType, vertices: VertexList, indices: IndexList | null)
 	{
 		this.type = type;
-		this.vertices = vertexBuffer;
-		this.indices = indexBuffer;
+		this.vertices = vertices;
+		this.indices = indices;
 	}
 
 	draw()
 	{
-		Galileo.draw(this.vertices, this.indices, this.type);
+		Galileo.draw(this.type, this.vertices, this.indices);
 	}
 }
 
@@ -1293,8 +1281,8 @@ class Texture
 	height: number;
 
 	constructor(image: HTMLImageElement);
-	constructor(width: number, height: number, content?: BufferSource | RGBA);
-	constructor(arg1: HTMLImageElement | number, arg2?: number, arg3?: BufferSource | RGBA)
+	constructor(width: number, height: number, content?: BufferSource | Color);
+	constructor(arg1: HTMLImageElement | number, arg2?: number, arg3?: BufferSource | Color)
 	{
 		const glTexture = gl.createTexture();
 		if (glTexture === null)
@@ -1347,13 +1335,16 @@ class Texture
 }
 
 export
-class VertexBuffer
+class VertexList
 {
 	glBuffer: WebGLBuffer | null = null;
 	length: number = 0;
 
 	constructor(vertices: ArrayLike<Vertex>)
 	{
+		this.glBuffer = gl.createBuffer();
+		if (this.glBuffer === null)
+			throw new Error(`Oozaru was unable to create a WebGL buffer object.`);
 		this.upload(vertices);
 	}
 
@@ -1384,13 +1375,8 @@ class VertexBuffer
 			data[8 + i * 10] = vertex.u ?? 0.0;
 			data[9 + i * 10] = vertex.v ?? 0.0;
 		}
-		const glBuffer = gl.createBuffer();
-		if (glBuffer === null)
-			throw new Error(`Oozaru was unable to create a WebGL buffer object.`);
-		gl.bindBuffer(gl.ARRAY_BUFFER, glBuffer);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.glBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, data, gl.STREAM_DRAW);
-		gl.deleteBuffer(this.glBuffer);
-		this.glBuffer = glBuffer;
 		this.length = vertices.length;
 	}
 }
