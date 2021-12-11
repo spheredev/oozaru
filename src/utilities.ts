@@ -43,19 +43,6 @@ async function fetchAudioFile(url: string)
 }
 
 export
-async function fetchJSON(url: string)
-{
-	return (await fetch(url)).json();
-}
-
-export
-async function fetchRawFile(url: string)
-{
-	const fileRequest = await fetch(url);
-	return fileRequest.arrayBuffer();
-}
-
-export
 async function fetchScript(url: string)
 {
 	return new Promise<void>((resolve, reject) => {
@@ -71,13 +58,6 @@ async function fetchScript(url: string)
 		script.src = url;
 		document.head.appendChild(script);
 	});
-}
-
-export
-async function fetchTextFile(url: string)
-{
-	const response = await fetch(url);
-	return response.text();
 }
 
 export

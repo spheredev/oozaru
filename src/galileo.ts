@@ -31,7 +31,7 @@
 **/
 
 import { DataStream } from './data-stream.js';
-import { fetchRawFile } from './utilities.js';
+import Fido from './fido.js';
 
 interface Glyph
 {
@@ -488,22 +488,10 @@ class DrawTarget
 	{
 		return this.blendOp_;
 	}
-	set blendOp(value)
-	{
-		this.blendOp_ = value;
-		if (activeDrawTarget === this)
-			applyBlendOp(value);
-	}
 
 	get depthOp()
 	{
 		return this.depthOp_;
-	}
-	set depthOp(value)
-	{
-		this.depthOp_ = value;
-		if (activeDrawTarget === this)
-			applyDepthOp(value);
 	}
 
 	get height()
@@ -514,6 +502,20 @@ class DrawTarget
 	get width()
 	{
 		return this.texture?.width ?? gl.canvas.width;
+	}
+
+	set blendOp(value)
+	{
+		this.blendOp_ = value;
+		if (activeDrawTarget === this)
+			applyBlendOp(value);
+	}
+
+	set depthOp(value)
+	{
+		this.depthOp_ = value;
+		if (activeDrawTarget === this)
+			applyDepthOp(value);
 	}
 
 	activate()
@@ -559,7 +561,7 @@ class Font
 
 	static async fromFile(url: string)
 	{
-		const data = await fetchRawFile(url);
+		const data = await Fido.fetchData(url);
 		return new this(data);
 	}
 

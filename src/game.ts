@@ -30,7 +30,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import { fetchTextFile, fullURL, isConstructor } from './utilities.js';
+import Fido from './fido.js';
+import { fullURL, isConstructor } from './utilities.js';
 import { Version } from './version.js';
 
 export default
@@ -142,7 +143,7 @@ class Manifest
 
 	static async fromFile(url: string)
 	{
-		const content = await fetchTextFile(url);
+		const content = await Fido.fetchText(url);
 		const values: Record<string, string> = {};
 		for (const line of content.split(/\r?\n/)) {
 			const lineParse = line.match(/(.*)=(.*)/);

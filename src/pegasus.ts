@@ -38,7 +38,7 @@ import * as Galileo from './galileo.js';
 import { BlendOp, Color, DepthOp, ShapeType } from './galileo.js';
 import InputEngine, { Key, Keyboard, Mouse, MouseKey } from './input-engine.js';
 import { JobQueue, JobType } from './job-queue.js';
-import { fetchJSON, fetchRawFile, fetchScript, fetchTextFile, fullURL, isConstructor } from './utilities.js';
+import { fetchScript } from './utilities.js';
 import { Version } from './version.js';
 
 enum DataType
@@ -147,7 +147,8 @@ class Pegasus
 			configurable: true,
 			value: async function fromFile(fileName: string) {
 				const url = Game.urlOf(fileName);
-				return fetchJSON(url);
+				const text = await Fido.fetchText(url);
+				return JSON.parse(text);
 			},
 		})
 	}
@@ -330,15 +331,15 @@ class FS
 		const url = Game.urlOf(fileName);
 		switch (dataType) {
 			case DataType.Bytes:
-				const data = await fetchRawFile(url);
+				const data = await Fido.fetchData(url);
 				return new Uint8Array(data);
 			case DataType.Lines:
-				const text = await fetchTextFile(url);
+				const text = await Fido.fetchText(url);
 				return text.split(/\r?\n/);
 			case DataType.Raw:
-				return fetchRawFile(url);
+				return Fido.fetchData(url);
 			case DataType.Text:
-				return fetchTextFile(url);
+				return Fido.fetchText(url);
 		}
 	}
 }
@@ -354,7 +355,7 @@ class FileStream
 			throw new RangeError(`Oozaru currently only supports FileStreams in read mode`);
 
 		const url = Game.urlOf(fileName);
-		const data = await fetchRawFile(url);
+		const data = await Fido.fetchData(url);
 		const fileStream = Object.create(this.prototype) as FileStream;
 		fileStream.fullPath = fileName;
 		fileStream.stream = new DataStream(data);
@@ -363,7 +364,7 @@ class FileStream
 
 	constructor()
 	{
-		throw new RangeError(`new FileStream() with filename is not supported`);
+		throw new RangeError(`new FileStream() is not supported under Oozaru.`);
 	}
 
 	get fileName()
@@ -690,8 +691,8 @@ class Shader
 		const fragmentURL = Game.urlOf(options.fragmentFile);
 		const shader = Object.create(this.prototype) as Shader;
 		const [ vertexSource, fragmentSource ] = await Promise.all([
-			fetchTextFile(vertexURL),
-			fetchTextFile(fragmentURL)
+			Fido.fetchText(vertexURL),
+			Fido.fetchText(fragmentURL)
 		]);
 		shader.program = new Galileo.Shader(vertexSource, fragmentSource);
 		shader.vertexSource = vertexSource;

@@ -30,10 +30,10 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
+import Fido from './fido.js';
 import Galileo from './galileo.js';
 import InputEngine from './input-engine.js';
 import Pegasus from './pegasus.js';
-import { fetchJSON } from './utilities.js';
 
 main();
 
@@ -58,7 +58,7 @@ async function main()
 	const menu = document.getElementById('menu')!;
 	let useDistDir = true;
 	try {
-		const gameList = await fetchJSON('games/index.json');
+		const gameList = await Fido.fetchJSON('games/index.json');
 		for (const entry of gameList) {
 			const iconImage = document.createElement('img');
 			iconImage.src = `games/${entry.gameID}/icon.png`;
