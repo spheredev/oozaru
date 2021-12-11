@@ -32,6 +32,7 @@
 
 import { DataStream } from './data-stream.js';
 import Fido from './fido.js';
+import Game from './game.js';
 
 interface Glyph
 {
@@ -438,19 +439,19 @@ class DrawTarget
 
 	static get Screen()
 	{
-		const surface = Object.create(DrawTarget.prototype) as DrawTarget;
-		surface.blendOp_ = BlendOp.Default;
-		surface.clipping = { x: 0, y: 0, w: gl.canvas.width, h: gl.canvas.height };
-		surface.depthOp_ = DepthOp.AlwaysPass;
-		surface.frameBuffer = null;
-		surface.texture = null;
+		const drawTarget = Object.create(DrawTarget.prototype) as DrawTarget;
+		drawTarget.blendOp_ = BlendOp.Default;
+		drawTarget.clipping = { x: 0, y: 0, w: gl.canvas.width, h: gl.canvas.height };
+		drawTarget.depthOp_ = DepthOp.AlwaysPass;
+		drawTarget.frameBuffer = null;
+		drawTarget.texture = null;
 		Object.defineProperty(DrawTarget, 'Screen', {
+			value: drawTarget,
 			writable: false,
 			enumerable: false,
 			configurable: true,
-			value: surface,
 		});
-		return surface;
+		return drawTarget;
 	}
 
 	constructor(texture: Texture)
@@ -1021,8 +1022,8 @@ class Matrix
 export
 class Shader
 {
-	program: WebGLProgram;
-	deferredValues: { [x: string]: { type: string, value: any } } = {};
+	deferred: { [x: string]: { type: string, value: any } } = {};
+	glProgram: WebGLProgram;
 	modelView: Matrix;
 	projection: Matrix;
 	uniformIDs: { [x: string]: WebGLUniformLocation | null } = {};
@@ -1061,7 +1062,7 @@ class Shader
 			throw new Error(`Couldn't link shader program...\n${message}`);
 		}
 
-		this.program = program;
+		this.glProgram = program;
 		this.projection = Matrix.Identity;
 		this.modelView = Matrix.Identity;
 
@@ -1074,9 +1075,9 @@ class Shader
 	activate(useTexture: boolean)
 	{
 		if (activeShader !== this) {
-			gl.useProgram(this.program);
-			for (const name of Object.keys(this.deferredValues)) {
-				const entry = this.deferredValues[name];
+			gl.useProgram(this.glProgram);
+			for (const name of Object.keys(this.deferred)) {
+				const entry = this.deferred[name];
 				const slot = this.uniformIDs[name];
 				let size: number;
 				switch (entry.type) {
@@ -1114,7 +1115,7 @@ class Shader
 						break;
 				}
 			}
-			this.deferredValues = {};
+			this.deferred = {};
 			activeShader = this;
 		}
 		this.setBoolValue('al_use_tex', useTexture);
@@ -1132,46 +1133,46 @@ class Shader
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
-			location = gl.getUniformLocation(this.program, name);
+			location = gl.getUniformLocation(this.glProgram, name);
 			this.uniformIDs[name] = location;
 		}
 		if (activeShader === this)
 			gl.uniform1i(location, value ? 1 : 0);
 		else
-			this.deferredValues[name] = { type: 'bool', value };
+			this.deferred[name] = { type: 'bool', value };
 	}
 
 	setFloatArray(name: string, values: number[])
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
-			location = gl.getUniformLocation(this.program, name);
+			location = gl.getUniformLocation(this.glProgram, name);
 			this.uniformIDs[name] = location;
 		}
 		if (activeShader === this)
 			gl.uniform1fv(location, values);
 		else
-			this.deferredValues[name] = { type: 'floatArray', value: values };
+			this.deferred[name] = { type: 'floatArray', value: values };
 	}
 
 	setFloatValue(name: string, value: number)
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
-			location = gl.getUniformLocation(this.program, name);
+			location = gl.getUniformLocation(this.glProgram, name);
 			this.uniformIDs[name] = location;
 		}
 		if (activeShader === this)
 			gl.uniform1f(location, value);
 		else
-			this.deferredValues[name] = { type: 'float', value };
+			this.deferred[name] = { type: 'float', value };
 	}
 
 	setFloatVec(name: string, values: number[])
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
-			location = gl.getUniformLocation(this.program, name);
+			location = gl.getUniformLocation(this.glProgram, name);
 			this.uniformIDs[name] = location;
 		}
 		if (activeShader === this) {
@@ -1182,7 +1183,7 @@ class Shader
 				: gl.uniform1fv(location, values);
 		}
 		else {
-			this.deferredValues[name] = { type: 'floatVec', value: values };
+			this.deferred[name] = { type: 'floatVec', value: values };
 		}
 	}
 
@@ -1190,33 +1191,33 @@ class Shader
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
-			location = gl.getUniformLocation(this.program, name);
+			location = gl.getUniformLocation(this.glProgram, name);
 			this.uniformIDs[name] = location;
 		}
 		if (activeShader === this)
 			gl.uniform1iv(location, values);
 		else
-			this.deferredValues[name] = { type: 'intArray', value: values };
+			this.deferred[name] = { type: 'intArray', value: values };
 	}
 
 	setIntValue(name: string, value: number)
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
-			location = gl.getUniformLocation(this.program, name);
+			location = gl.getUniformLocation(this.glProgram, name);
 			this.uniformIDs[name] = location;
 		}
 		if (activeShader === this)
 			gl.uniform1i(location, value);
 		else
-			this.deferredValues[name] = { type: 'int', value };
+			this.deferred[name] = { type: 'int', value };
 	}
 
 	setIntVec(name: string, values: number[])
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
-			location = gl.getUniformLocation(this.program, name);
+			location = gl.getUniformLocation(this.glProgram, name);
 			this.uniformIDs[name] = location;
 		}
 		if (activeShader === this) {
@@ -1227,7 +1228,7 @@ class Shader
 				: gl.uniform1iv(location, values);
 		}
 		else {
-			this.deferredValues[name] = { type: 'intVec', value: values };
+			this.deferred[name] = { type: 'intVec', value: values };
 		}
 	}
 
@@ -1235,13 +1236,13 @@ class Shader
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
-			location = gl.getUniformLocation(this.program, name);
+			location = gl.getUniformLocation(this.glProgram, name);
 			this.uniformIDs[name] = location;
 		}
 		if (activeShader === this)
 			gl.uniformMatrix4fv(location, false, value.values);
 		else
-			this.deferredValues[name] = { type: 'matrix', value };
+			this.deferred[name] = { type: 'matrix', value };
 	}
 
 	transform(matrix: Matrix)
@@ -1276,14 +1277,24 @@ class Shape
 export
 class Texture
 {
+	static async fromFile(fileName: string)
+	{
+		fileName = Game.urlOf(fileName);
+		const image = await Fido.fetchImage(fileName);
+		return new this(image);
+	}
+	
 	glTexture: WebGLTexture;
-	width: number;
-	height: number;
+	size: Size;
 
 	constructor(image: HTMLImageElement);
 	constructor(width: number, height: number, content?: BufferSource | Color);
-	constructor(arg1: HTMLImageElement | number, arg2?: number, arg3?: BufferSource | Color)
+	constructor(image: string);
+	constructor(arg1: HTMLImageElement | number | string, arg2?: number, arg3?: BufferSource | Color)
 	{
+		if (typeof arg1 === 'string')
+			throw RangeError("new Texture() from filename is unsupported under Oozaru.");
+		
 		const glTexture = gl.createTexture();
 		if (glTexture === null)
 			throw new Error(`Unable to create WebGL texture object`);
@@ -1293,24 +1304,24 @@ class Texture
 		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 		if (arg1 instanceof HTMLImageElement) {
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, arg1);
-			this.width = arg1.width;
-			this.height = arg1.height;
+			this.size = { width: arg1.width, height: arg1.height };
 		}
 		else {
-			this.width = arg1;
-			this.height = arg2 as number;
+			const width = arg1;
+			const height = arg2!;
 			if (arg3 instanceof ArrayBuffer || ArrayBuffer.isView(arg3)) {
 				const buffer = arg3 instanceof ArrayBuffer ? arg3 : arg3.buffer;
-				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.width, this.height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
 					new Uint8Array(buffer));
 			}
 			else {
-				let pixels = new Uint32Array(this.width * this.height);
+				let pixels = new Uint32Array(width * height);
 				if (arg3 !== undefined)
 					pixels.fill((arg3.a * 255 << 24) + (arg3.b * 255 << 16) + (arg3.g * 255 << 8) + (arg3.r * 255));
-				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.width, this.height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
 					new Uint8Array(pixels.buffer));
 			}
+			this.size = { width, height };
 		}
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -1318,19 +1329,29 @@ class Texture
 		gl.bindTexture(gl.TEXTURE_2D, oldBinding);
 	}
 
+	get height()
+	{
+		return this.size.height;
+	}
+	
+	get width()
+	{
+		return this.size.width;
+	}
+	
 	activate(textureUnit = 0)
 	{
 		gl.activeTexture(gl.TEXTURE0 + textureUnit);
 		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
 	}
 
-	upload(content: BufferSource, x = 0, y = 0, width = this.width, height = this.height)
+	upload(content: BufferSource, x = 0, y = 0, width = this.size.width, height = this.size.height)
 	{
 		const pixelData = ArrayBuffer.isView(content)
 			? new Uint8Array(content.buffer)
 			: new Uint8Array(content);
 		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
-		gl.texSubImage2D(gl.TEXTURE_2D, 0, x, this.height - y - height, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
+		gl.texSubImage2D(gl.TEXTURE_2D, 0, x, this.size.height - y - height, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
 	}
 }
 

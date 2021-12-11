@@ -39,14 +39,14 @@ class Mixer
 {
 	static get Default()
 	{
-		const mixer = new Mixer(44100, 16, 2);
+		const defaultMixer = new Mixer(44100, 16, 2);
 		Object.defineProperty(Mixer, 'Default', {
+			value: defaultMixer,
 			writable: false,
 			enumerable: false,
 			configurable: true,
-			value: mixer,
 		});
-		return mixer;
+		return defaultMixer;
 	}
 
 	context: AudioContext;
@@ -164,11 +164,6 @@ class SoundStream
 
 	play(mixer = Mixer.Default)
 	{
-		// IMPORTANT: the first call to .play() must specify a mixer.  not doing so invokes undefined
-		//            behavior and I can't be held responsible for what happens afterwards.  if you do
-		//            this and it summons an evil man-eating pig that devours you, your dog, your house,
-		//            and everything else in a hundred-mile radius, don't blame me!
-
 		this.paused = false;
 		if (mixer !== this.currentMixer) {
 			if (this.node !== null) {

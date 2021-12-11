@@ -35,7 +35,7 @@ import { DataStream } from './data-stream.js';
 import Fido from './fido.js';
 import Game from './game.js';
 import * as Galileo from './galileo.js';
-import { BlendOp, Color, DepthOp, IndexList, ShapeType, Vertex, VertexList } from './galileo.js';
+import { BlendOp, Color, DepthOp, IndexList, ShapeType, Texture, Vertex, VertexList } from './galileo.js';
 import InputEngine, { Key, Keyboard, Mouse, MouseKey } from './input-engine.js';
 import { JobQueue, JobType } from './job-queue.js';
 import { fetchScript } from './utilities.js';
@@ -589,7 +589,7 @@ class Model
 		for (const shape of this.shapes) {
 			this.shader_.program.activate(shape.texture !== null);
 			if (shape.texture !== null)
-				shape.texture.texture.activate(0);
+				shape.texture.activate(0);
 			shape.shape.draw();
 		}
 	}
@@ -756,7 +756,7 @@ class Shape
 			Shader.Default.program.project(surface.projection.matrix);
 			Shader.Default.program.transform(Galileo.Matrix.Identity);
 			if (arg1 !== null)
-				arg1.texture.activate(0);
+				arg1.activate(0);
 			Galileo.default.draw(type, new VertexList(arg2!));
 		}
 		else {
@@ -792,53 +792,8 @@ class Shape
 		shader.program.project(surface.projection.matrix);
 		shader.program.transform(transform.matrix);
 		if (this.texture !== null)
-			this.texture.texture.activate(0);
+			this.texture.activate(0);
 		this.shape.draw();
-	}
-}
-
-class Texture
-{
-	hasLoaded = false;
-	texture: Galileo.Texture;
-
-	static async fromFile(fileName: string)
-	{
-		const url = Game.urlOf(fileName);
-		const image = await Fido.fetchImage(url);
-		return new Texture(image);
-	}
-
-	constructor(fileName: string);
-	constructor(width: number, height: number, content?: BufferSource | Color);
-	constructor(image: HTMLImageElement);
-	constructor(...args: [ any, any?, any? ])
-	{
-		if (typeof args[0] === 'string') {
-			throw new RangeError("new Texture() with filename is not supported");
-		}
-		else if (args[0] instanceof HTMLImageElement) {
-			const image = args[0];
-			this.texture = new Galileo.Texture(image);
-			this.hasLoaded = true;
-		}
-		else {
-			const width: number = args[0];
-			const height: number = args[1];
-			const content: ArrayBufferView | Color | undefined = args[2];
-			this.texture = new Galileo.Texture(width, height, content);
-			this.hasLoaded = true;
-		}
-	}
-
-	get height()
-	{
-		return this.texture.height;
-	}
-
-	get width()
-	{
-		return this.texture.width;
 	}
 }
 
@@ -854,6 +809,7 @@ class Surface extends Texture
 		surface.drawTarget = drawTarget;
 		surface.projection = new Transform()
 			.project2D(0, 0, drawTarget.width, drawTarget.height);
+		surface.size = drawTarget;
 		Object.defineProperty(this, 'Screen', {
 			writable: false,
 			enumerable: false,
@@ -869,7 +825,7 @@ class Surface extends Texture
 	{
 		super(...args);
 
-		this.drawTarget = new Galileo.DrawTarget(this.texture);
+		this.drawTarget = new Galileo.DrawTarget(this);
 		this.projection = new Transform()
 			.project2D(0, 0, this.drawTarget.width, this.drawTarget.height);
 	}
@@ -878,37 +834,30 @@ class Surface extends Texture
 	{
 		return this.drawTarget.blendOp;
 	}
-	set blendOp(value)
-	{
-		this.drawTarget.blendOp = value;
-	}
 
 	get depthOp()
 	{
 		return this.drawTarget.depthOp;
-	}
-	set depthOp(value)
-	{
-		this.drawTarget.depthOp = value;
-	}
-
-	get height()
-	{
-		return this.drawTarget.height;
 	}
 
 	get transform()
 	{
 		return this.projection;
 	}
+
+	set blendOp(value)
+	{
+		this.drawTarget.blendOp = value;
+	}
+
+	set depthOp(value)
+	{
+		this.drawTarget.depthOp = value;
+	}
+
 	set transform(value)
 	{
 		this.projection = value;
-	}
-
-	get width()
-	{
-		return this.drawTarget.width;
 	}
 
 	clipTo(x: number, y: number, width: number, height: number)
