@@ -125,7 +125,7 @@ class Galileo
 		if (glContext === null)
 			throw new Error(`Oozaru was unable to create a WebGL context.`);
 		gl = glContext;
-	
+
 		gl.clearColor(0.0, 0.0, 0.0, 1.0);
 		gl.clearDepth(1.0);
 		gl.blendEquation(glContext.FUNC_ADD);
@@ -435,6 +435,7 @@ class DrawTarget
 	private clipping: Rectangle;
 	private depthOp_ = DepthOp.AlwaysPass;
 	private frameBuffer: WebGLFramebuffer | null;
+	private projection: Transform;
 	private texture: Texture | null;
 
 	static get Screen()
@@ -444,6 +445,8 @@ class DrawTarget
 		drawTarget.clipping = { x: 0, y: 0, w: gl.canvas.width, h: gl.canvas.height };
 		drawTarget.depthOp_ = DepthOp.AlwaysPass;
 		drawTarget.frameBuffer = null;
+		drawTarget.projection = Transform.Identity
+			.project2D(0, 0, drawTarget.width, drawTarget.height);
 		drawTarget.texture = null;
 		Object.defineProperty(DrawTarget, 'Screen', {
 			value: drawTarget,
@@ -459,7 +462,7 @@ class DrawTarget
 		const frameBuffer = gl.createFramebuffer();
 		const depthBuffer = gl.createRenderbuffer();
 		if (frameBuffer === null || depthBuffer === null)
-			throw new Error(`Unable to create WebGL framebuffer object`);
+			throw new Error(`Oozaru was unable to create a WebGL frame buffer.`);
 
 		// in order to set up a new FBO we need to change the current framebuffer binding, so make sure
 		// it gets changed back afterwards.
@@ -473,6 +476,8 @@ class DrawTarget
 
 		this.clipping = { x: 0, y: 0, w: texture.width, h: texture.height };
 		this.frameBuffer = frameBuffer;
+		this.projection = Transform.Identity
+			.project2D(0, 0, texture.width, texture.height);
 		this.texture = texture;
 	}
 
@@ -606,7 +611,7 @@ class Font
 		return this.lineHeight;
 	}
 
-	drawText(text: string, color: Color, matrix: Matrix)
+	drawText(text: string, color: Color, matrix: Transform)
 	{
 		if (text === "")
 			return;  // empty string, nothing to render
@@ -854,178 +859,12 @@ class IndexList
 }
 
 export
-class Matrix
-{
-	values: Float32Array;
-
-	static get Identity()
-	{
-		return new this().identity();
-	}
-
-	constructor(values?: ArrayLike<number>)
-	{
-		if (values !== undefined)
-			this.values = new Float32Array(values);
-		else
-			this.values = new Float32Array(4 * 4);
-	}
-
-	clone()
-	{
-		const dolly = new Matrix();
-		dolly.values.set(this.values);
-		return dolly;
-	}
-
-	composeWith(other: Matrix)
-	{
-		const m1 = this.values;
-		const m2 = other.values;
-
-		// multiply from the left (i.e. `other * this`).  this emulates the way Allegro's
-		// `al_compose_transform()` function works--that is, transformations are logically applied in
-		// the order they're specified, rather than reversed as in classic OpenGL.
-		const a00  = m2[0], a01 = m2[1], a02 = m2[2], a03 = m2[3];
-		const a10  = m2[4], a11 = m2[5], a12 = m2[6], a13 = m2[7];
-		const a20  = m2[8], a21 = m2[9], a22 = m2[10], a23 = m2[11];
-		const a30  = m2[12], a31 = m2[13], a32 = m2[14], a33 = m2[15];
-		const b00 = m1[0], b01 = m1[1], b02 = m1[2], b03 = m1[3];
-		const b10 = m1[4], b11 = m1[5], b12 = m1[6], b13 = m1[7];
-		const b20 = m1[8], b21 = m1[9], b22 = m1[10], b23 = m1[11];
-		const b30 = m1[12], b31 = m1[13], b32 = m1[14], b33 = m1[15];
-
-		// multiply the matrices together.  funny story: I still don't understand how this
-		// works.  but it does, so...
-		m1[0] = b00 * a00 + b01 * a10 + b02 * a20 + b03 * a30;
-		m1[1] = b00 * a01 + b01 * a11 + b02 * a21 + b03 * a31;
-		m1[2] = b00 * a02 + b01 * a12 + b02 * a22 + b03 * a32;
-		m1[3] = b00 * a03 + b01 * a13 + b02 * a23 + b03 * a33;
-		m1[4] = b10 * a00 + b11 * a10 + b12 * a20 + b13 * a30;
-		m1[5] = b10 * a01 + b11 * a11 + b12 * a21 + b13 * a31;
-		m1[6] = b10 * a02 + b11 * a12 + b12 * a22 + b13 * a32;
-		m1[7] = b10 * a03 + b11 * a13 + b12 * a23 + b13 * a33;
-		m1[8] = b20 * a00 + b21 * a10 + b22 * a20 + b23 * a30;
-		m1[9] = b20 * a01 + b21 * a11 + b22 * a21 + b23 * a31;
-		m1[10] = b20 * a02 + b21 * a12 + b22 * a22 + b23 * a32;
-		m1[11] = b20 * a03 + b21 * a13 + b22 * a23 + b23 * a33;
-		m1[12] = b30 * a00 + b31 * a10 + b32 * a20 + b33 * a30;
-		m1[13] = b30 * a01 + b31 * a11 + b32 * a21 + b33 * a31;
-		m1[14] = b30 * a02 + b31 * a12 + b32 * a22 + b33 * a32;
-		m1[15] = b30 * a03 + b31 * a13 + b32 * a23 + b33 * a33;
-
-		return this;
-	}
-
-	identity()
-	{
-		this.values.set([
-			1.0, 0.0, 0.0, 0.0,
-			0.0, 1.0, 0.0, 0.0,
-			0.0, 0.0, 1.0, 0.0,
-			0.0, 0.0, 0.0, 1.0,
-		]);
-
-		return this;
-	}
-
-	ortho(left: number, top: number, right: number, bottom: number, near = -1.0, far = 1.0)
-	{
-		const deltaX = right - left;
-		const deltaY = top - bottom;
-		const deltaZ = far - near;
-
-		const projection = new Matrix();
-		const values = projection.values;
-		values[0] = 2.0 / deltaX;
-		values[5] = 2.0 / deltaY;
-		values[10] = 2.0 / deltaZ;
-		values[15] = 1.0;
-		values[12] = -(right + left) / deltaX;
-		values[13] = -(top + bottom) / deltaY;
-		values[14] = -(far + near) / deltaZ;
-
-		return this.composeWith(projection);
-	}
-
-	perspective(left: number, top: number, right: number, bottom: number, near: number, far: number)
-	{
-		const deltaX = right - left;
-		const deltaY = top - bottom;
-		const deltaZ = far - near;
-
-		const projection = new Matrix();
-		const values = projection.values;
-		values[0] = 2.0 * near / deltaX;
-		values[5] = 2.0 * near / deltaY;
-		values[8] = (right + left) / deltaX;
-		values[9] = (top + bottom) / deltaY;
-		values[10] = -(far + near) / deltaZ;
-		values[11] = -1.0;
-		values[14] = -2.0 * far * near / deltaZ;
-		values[15] = 0.0;
-
-		return this.composeWith(projection);
-	}
-
-	rotate(theta: number, vX: number, vY: number, vZ: number)
-	{
-		const cos = Math.cos(theta);
-		const sin = Math.sin(theta);
-		const siv = 1.0 - cos;
-
-		const rotation = new Matrix();
-		const values = rotation.values;
-		values[0] = (siv * vX * vX) + cos;
-		values[1] = (siv * vX * vY) + (vZ * sin);
-		values[2] = (siv * vX * vZ) - (vY * sin);
-		values[4] = (siv * vX * vY) - (vZ * sin);
-		values[5] = (siv * vY * vY) + cos;
-		values[6] = (siv * vZ * vY) + (vX * sin);
-		values[8] = (siv * vX * vZ) + (vY * sin);
-		values[9] = (siv * vY * vZ) - (vX * sin);
-		values[10] = (siv * vZ * vZ) + cos;
-		values[15] = 1.0;
-
-		return this.composeWith(rotation);
-	}
-
-	scale(sX: number, sY: number, sZ = 1.0)
-	{
-		this.values[0] *= sX;
-		this.values[4] *= sX;
-		this.values[8] *= sX;
-		this.values[12] *= sX;
-
-		this.values[1] *= sY;
-		this.values[5] *= sY;
-		this.values[9] *= sY;
-		this.values[13] *= sY;
-
-		this.values[2] *= sZ;
-		this.values[6] *= sZ;
-		this.values[10] *= sZ;
-		this.values[14] *= sZ;
-
-		return this;
-	}
-
-	translate(tX: number, tY: number, tZ = 0.0)
-	{
-		this.values[12]	+= tX;
-		this.values[13] += tY;
-		this.values[14] += tZ;
-		return this;
-	}
-}
-
-export
 class Shader
 {
 	deferred: { [x: string]: { type: string, value: any } } = {};
 	glProgram: WebGLProgram;
-	modelView: Matrix;
-	projection: Matrix;
+	modelView: Transform;
+	projection: Transform;
 	uniformIDs: { [x: string]: WebGLUniformLocation | null } = {};
 
 	constructor(vertexSource: string, fragmentSource: string)
@@ -1063,11 +902,11 @@ class Shader
 		}
 
 		this.glProgram = program;
-		this.projection = Matrix.Identity;
-		this.modelView = Matrix.Identity;
+		this.projection = Transform.Identity;
+		this.modelView = Transform.Identity;
 
 		let transformation = this.modelView.clone()
-			.composeWith(this.projection);
+			.compose(this.projection);
 		this.setMatrixValue('al_projview_matrix', transformation);
 		this.setIntValue('al_tex', 0);
 	}
@@ -1121,11 +960,11 @@ class Shader
 		this.setBoolValue('al_use_tex', useTexture);
 	}
 
-	project(matrix: Matrix)
+	project(matrix: Transform)
 	{
 		this.projection = matrix.clone();
 		let transformation = this.modelView.clone()
-			.composeWith(this.projection);
+			.compose(this.projection);
 		this.setMatrixValue('al_projview_matrix', transformation);
 	}
 
@@ -1232,7 +1071,7 @@ class Shader
 		}
 	}
 
-	setMatrixValue(name: string, value: Matrix)
+	setMatrixValue(name: string, value: Transform)
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
@@ -1245,11 +1084,11 @@ class Shader
 			this.deferred[name] = { type: 'matrix', value };
 	}
 
-	transform(matrix: Matrix)
+	transform(matrix: Transform)
 	{
 		this.modelView = matrix.clone();
 		let transformation = this.modelView.clone()
-			.composeWith(this.projection);
+			.compose(this.projection);
 		this.setMatrixValue('al_projview_matrix', transformation);
 	}
 }
@@ -1283,7 +1122,7 @@ class Texture
 		const image = await Fido.fetchImage(fileName);
 		return new this(image);
 	}
-	
+
 	glTexture: WebGLTexture;
 	size: Size;
 
@@ -1352,6 +1191,203 @@ class Texture
 			: new Uint8Array(content);
 		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
 		gl.texSubImage2D(gl.TEXTURE_2D, 0, x, this.size.height - y - height, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
+	}
+}
+
+export
+class Transform
+{
+	values: Float32Array;
+
+	static get Identity()
+	{
+		return new this().identity();
+	}
+
+	static get Zero()
+	{
+		return new this([
+			0.0, 0.0, 0.0, 0.0,
+			0.0, 0.0, 0.0, 0.0,
+			0.0, 0.0, 0.0, 0.0,
+			0.0, 0.0, 0.0, 0.0,
+		]);
+	}
+
+	constructor(values?: ArrayLike<number>)
+	{
+		if (values !== undefined) {
+			if (values.length !== 16)
+				throw RangeError("new Transform() requires a 16-element array of numbers as input.");
+			this.values = new Float32Array(values);
+		}
+		else {
+			this.values = new Float32Array([
+				1.0, 0.0, 0.0, 0.0,
+				0.0, 1.0, 0.0, 0.0,
+				0.0, 0.0, 1.0, 0.0,
+				0.0, 0.0, 0.0, 1.0,
+			]);
+		}
+	}
+
+	clone()
+	{
+		return new Transform(this.values);
+	}
+
+	compose(other: Transform)
+	{
+		const m1 = this.values;
+		const m2 = other.values;
+
+		// multiply from the left (i.e. `other * this`).  this emulates the way Allegro's
+		// `al_compose_transform()` function works--that is, transformations are logically applied in
+		// the order they're specified, rather than reversed as in classic OpenGL.
+		const a00  = m2[0], a01 = m2[1], a02 = m2[2], a03 = m2[3];
+		const a10  = m2[4], a11 = m2[5], a12 = m2[6], a13 = m2[7];
+		const a20  = m2[8], a21 = m2[9], a22 = m2[10], a23 = m2[11];
+		const a30  = m2[12], a31 = m2[13], a32 = m2[14], a33 = m2[15];
+		const b00 = m1[0], b01 = m1[1], b02 = m1[2], b03 = m1[3];
+		const b10 = m1[4], b11 = m1[5], b12 = m1[6], b13 = m1[7];
+		const b20 = m1[8], b21 = m1[9], b22 = m1[10], b23 = m1[11];
+		const b30 = m1[12], b31 = m1[13], b32 = m1[14], b33 = m1[15];
+
+		// multiply the matrices together.  funny story: I still don't understand how this
+		// works.  but it does, so...
+		m1[0] = b00 * a00 + b01 * a10 + b02 * a20 + b03 * a30;
+		m1[1] = b00 * a01 + b01 * a11 + b02 * a21 + b03 * a31;
+		m1[2] = b00 * a02 + b01 * a12 + b02 * a22 + b03 * a32;
+		m1[3] = b00 * a03 + b01 * a13 + b02 * a23 + b03 * a33;
+		m1[4] = b10 * a00 + b11 * a10 + b12 * a20 + b13 * a30;
+		m1[5] = b10 * a01 + b11 * a11 + b12 * a21 + b13 * a31;
+		m1[6] = b10 * a02 + b11 * a12 + b12 * a22 + b13 * a32;
+		m1[7] = b10 * a03 + b11 * a13 + b12 * a23 + b13 * a33;
+		m1[8] = b20 * a00 + b21 * a10 + b22 * a20 + b23 * a30;
+		m1[9] = b20 * a01 + b21 * a11 + b22 * a21 + b23 * a31;
+		m1[10] = b20 * a02 + b21 * a12 + b22 * a22 + b23 * a32;
+		m1[11] = b20 * a03 + b21 * a13 + b22 * a23 + b23 * a33;
+		m1[12] = b30 * a00 + b31 * a10 + b32 * a20 + b33 * a30;
+		m1[13] = b30 * a01 + b31 * a11 + b32 * a21 + b33 * a31;
+		m1[14] = b30 * a02 + b31 * a12 + b32 * a22 + b33 * a32;
+		m1[15] = b30 * a03 + b31 * a13 + b32 * a23 + b33 * a33;
+
+		return this;
+	}
+
+	identity()
+	{
+		this.values.set([
+			1.0, 0.0, 0.0, 0.0,
+			0.0, 1.0, 0.0, 0.0,
+			0.0, 0.0, 1.0, 0.0,
+			0.0, 0.0, 0.0, 1.0,
+		]);
+
+		return this;
+	}
+
+	project2D(left: number, top: number, right: number, bottom: number, near = -1.0, far = 1.0)
+	{
+		const deltaX = right - left;
+		const deltaY = top - bottom;
+		const deltaZ = far - near;
+
+		const projection = Transform.Zero;
+		const values = projection.values;
+		values[0] = 2.0 / deltaX;
+		values[5] = 2.0 / deltaY;
+		values[10] = 2.0 / deltaZ;
+		values[15] = 1.0;
+		values[12] = -(right + left) / deltaX;
+		values[13] = -(top + bottom) / deltaY;
+		values[14] = -(far + near) / deltaZ;
+
+		return this.compose(projection);
+	}
+
+	project3D(fov: number, aspect: number, near: number, far: number)
+	{
+		const fh = Math.tan(fov * Math.PI / 360.0) * near;
+		const fw = fh * aspect;
+
+		const deltaX = fw - -fw;
+		const deltaY = -fh - fh;
+		const deltaZ = far - near;
+
+		const projection = Transform.Zero;
+		const values = projection.values;
+		values[0] = 2.0 * near / deltaX;
+		values[5] = 2.0 * near / deltaY;
+		values[8] = (fw + -fw) / deltaX;
+		values[9] = (-fh + fh) / deltaY;
+		values[10] = -(far + near) / deltaZ;
+		values[11] = -1.0;
+		values[14] = -2.0 * far * near / deltaZ;
+		values[15] = 0.0;
+
+		return this.compose(projection);
+	}
+
+	rotate(angle: number, vX: number, vY: number, vZ: number)
+	{
+		// normalize the rotation axis vector
+		const norm = Math.sqrt(vX * vX + vY * vY + vZ * vZ);
+		if (norm > 0.0) {
+			vX = vX / norm;
+			vY = vY / norm;
+			vZ = vZ / norm;
+		}
+
+		// convert degrees to radians
+		const theta = angle * Math.PI / 180.0;
+
+		const cos = Math.cos(theta);
+		const sin = Math.sin(theta);
+		const siv = 1.0 - cos;
+
+		const rotation = Transform.Zero;
+		const values = rotation.values;
+		values[0] = (siv * vX * vX) + cos;
+		values[1] = (siv * vX * vY) + (vZ * sin);
+		values[2] = (siv * vX * vZ) - (vY * sin);
+		values[4] = (siv * vX * vY) - (vZ * sin);
+		values[5] = (siv * vY * vY) + cos;
+		values[6] = (siv * vZ * vY) + (vX * sin);
+		values[8] = (siv * vX * vZ) + (vY * sin);
+		values[9] = (siv * vY * vZ) - (vX * sin);
+		values[10] = (siv * vZ * vZ) + cos;
+		values[15] = 1.0;
+
+		return this.compose(rotation);
+	}
+
+	scale(sX: number, sY: number, sZ = 1.0)
+	{
+		this.values[0] *= sX;
+		this.values[4] *= sX;
+		this.values[8] *= sX;
+		this.values[12] *= sX;
+
+		this.values[1] *= sY;
+		this.values[5] *= sY;
+		this.values[9] *= sY;
+		this.values[13] *= sY;
+
+		this.values[2] *= sZ;
+		this.values[6] *= sZ;
+		this.values[10] *= sZ;
+		this.values[14] *= sZ;
+
+		return this;
+	}
+
+	translate(tX: number, tY: number, tZ = 0.0)
+	{
+		this.values[12]	+= tX;
+		this.values[13] += tY;
+		this.values[14] += tZ;
+		return this;
 	}
 }
 

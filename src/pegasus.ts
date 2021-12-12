@@ -35,7 +35,7 @@ import { DataStream } from './data-stream.js';
 import Fido from './fido.js';
 import Game from './game.js';
 import * as Galileo from './galileo.js';
-import { BlendOp, Color, DepthOp, IndexList, ShapeType, Texture, Vertex, VertexList } from './galileo.js';
+import { BlendOp, Color, DepthOp, IndexList, ShapeType, Texture, Transform, Vertex, VertexList } from './galileo.js';
 import InputEngine, { Key, Keyboard, Mouse, MouseKey } from './input-engine.js';
 import { JobQueue, JobType } from './job-queue.js';
 import { fetchScript } from './utilities.js';
@@ -44,6 +44,7 @@ import { Version } from './version.js';
 enum DataType
 {
 	Bytes,
+	JSON,
 	Lines,
 	Raw,
 	Text,
@@ -65,6 +66,7 @@ interface JobOptions
 interface ReadFileReturn
 {
 	[DataType.Bytes]: Uint8Array;
+	[DataType.JSON]: any;
 	[DataType.Lines]: string[];
 	[DataType.Raw]: ArrayBuffer;
 	[DataType.Text]: string;
@@ -319,6 +321,8 @@ class FS
 			case DataType.Bytes:
 				const data = await Fido.fetchData(url);
 				return new Uint8Array(data);
+			case DataType.JSON:
+				return Fido.fetchJSON(url);
 			case DataType.Lines:
 				const text = await Fido.fetchText(url);
 				return text.split(/\r?\n/);
@@ -435,10 +439,10 @@ class Font
 
 	drawText(surface: Surface, x: number, y: number, text: any, color = Color.White, wrapWidth?: number)
 	{
-		const matrix = Galileo.Matrix.Identity.translate(Math.trunc(x), Math.trunc(y));
+		const matrix = Galileo.Transform.Identity.translate(Math.trunc(x), Math.trunc(y));
 		surface.drawTarget.activate();
 		Shader.Default.program.activate(false);
-		Shader.Default.program.project(surface.projection.matrix);
+		Shader.Default.program.project(surface.projection);
 		if (wrapWidth !== undefined) {
 			const lines = this.wordWrap(String(text), wrapWidth);
 			for (let i = 0, len = lines.length; i < len; ++i) {
@@ -584,8 +588,8 @@ class Model
 	draw(surface = Surface.Screen)
 	{
 		surface.drawTarget.activate();
-		this.shader_.program.project(surface.projection.matrix);
-		this.shader_.program.transform(this.transform_.matrix);
+		this.shader_.program.project(surface.projection);
+		this.shader_.program.transform(this.transform_);
 		for (const shape of this.shapes) {
 			this.shader_.program.activate(shape.texture !== null);
 			if (shape.texture !== null)
@@ -737,7 +741,7 @@ class Shader
 
 	setMatrix(name: string, value: Transform)
 	{
-		this.program.setMatrixValue(name, value.matrix);
+		this.program.setMatrixValue(name, value);
 	}
 }
 
@@ -753,16 +757,16 @@ class Shape
 		surface.drawTarget.activate();
 		if (arg1 instanceof Texture || arg1 === null) {
 			Shader.Default.program.activate(arg1 !== null);
-			Shader.Default.program.project(surface.projection.matrix);
-			Shader.Default.program.transform(Galileo.Matrix.Identity);
+			Shader.Default.program.project(surface.projection);
+			Shader.Default.program.transform(Galileo.Transform.Identity);
 			if (arg1 !== null)
 				arg1.activate(0);
 			Galileo.default.draw(type, new VertexList(arg2!));
 		}
 		else {
 			Shader.Default.program.activate(false);
-			Shader.Default.program.project(surface.projection.matrix);
-			Shader.Default.program.transform(Galileo.Matrix.Identity);
+			Shader.Default.program.project(surface.projection);
+			Shader.Default.program.transform(Galileo.Transform.Identity);
 			Galileo.default.draw(type, new VertexList(arg1));
 		}
 	}
@@ -789,8 +793,8 @@ class Shape
 	{
 		surface.drawTarget.activate();
 		shader.program.activate(this.texture !== null);
-		shader.program.project(surface.projection.matrix);
-		shader.program.transform(transform.matrix);
+		shader.program.project(surface.projection);
+		shader.program.transform(transform);
 		if (this.texture !== null)
 			this.texture.activate(0);
 		this.shape.draw();
@@ -863,78 +867,6 @@ class Surface extends Texture
 	clipTo(x: number, y: number, width: number, height: number)
 	{
 		this.drawTarget.clipTo(x, y, width, height);
-	}
-}
-
-class Transform
-{
-	matrix: Galileo.Matrix;
-
-	static get Identity()
-	{
-		let transform = new this();
-		return transform;
-	}
-
-	constructor()
-	{
-		this.matrix = new Galileo.Matrix();
-		this.matrix.identity();
-	}
-
-	compose(transform: Transform)
-	{
-		this.matrix.composeWith(transform.matrix);
-		return this;
-	}
-
-	identity()
-	{
-		this.matrix.identity();
-		return this;
-	}
-
-	project2D(left: number, top: number, right: number, bottom: number, near = -1.0, far = 1.0)
-	{
-		this.matrix.ortho(left, top, right, bottom, near, far);
-		return this;
-	}
-
-	project3D(fov: number, aspect: number, near: number, far: number)
-	{
-		const fh = Math.tan(fov * Math.PI / 360.0) * near;
-		const fw = fh * aspect;
-		this.matrix.perspective(-fw, -fh, fw, fh, near, far);
-		return this;
-	}
-
-	rotate(angle: number, vX = 0.0, vY = 0.0, vZ = 1.0)
-	{
-		// normalize the rotation axis vector
-		const norm = Math.sqrt(vX * vX + vY * vY + vZ * vZ);
-		if (norm > 0.0) {
-			vX = vX / norm;
-			vY = vY / norm;
-			vZ = vZ / norm;
-		}
-
-		// convert degrees to radians
-		const theta = angle * Math.PI / 180.0;
-
-		this.matrix.rotate(theta, vX, vY, vZ);
-		return this;
-	}
-
-	scale(sX: number, sY: number, sZ = 1.0)
-	{
-		this.matrix.scale(sX, sY, sZ);
-		return this;
-	}
-
-	translate(tX: number, tY: number, tZ = 0.0)
-	{
-		this.matrix.translate(tX, tY, tZ);
-		return this;
 	}
 }
 
