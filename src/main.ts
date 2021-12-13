@@ -31,6 +31,7 @@
 **/
 
 import Fido from './fido.js';
+import FontSystem from './font-system.js';
 import Galileo from './galileo.js';
 import InputEngine from './input-engine.js';
 import Pegasus from './pegasus.js';
@@ -54,6 +55,7 @@ async function main()
 
 	const canvas = document.getElementById('screen') as HTMLCanvasElement;
 	await Galileo.initialize(canvas);
+	await FontSystem.initialize();
 
 	const menu = document.getElementById('menu')!;
 	let useDistDir = true;

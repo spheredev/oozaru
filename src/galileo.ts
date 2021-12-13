@@ -30,18 +30,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-import { DataStream } from './data-stream.js';
 import Fido from './fido.js';
 import Game from './game.js';
-
-interface Glyph
-{
-	pixelData: Uint8Array;
-	width: number;
-	height: number;
-	u: number;
-	v: number;
-}
 
 export
 enum BlendOp
@@ -118,7 +108,6 @@ interface Vertex
 
 var activeShader: Shader | null = null;
 var activeSurface: Surface | null = null;
-var defaultFont: Font;
 var defaultShader: Shader;
 var gl: WebGLRenderingContext;
 
@@ -141,7 +130,6 @@ class Galileo
 		gl.enable(glContext.DEPTH_TEST);
 		gl.enable(glContext.SCISSOR_TEST);
 
-		defaultFont = await Font.fromFile('#/default.rfn');
 		defaultShader = await Shader.fromFiles({
 			vertexFile: '#/default.vert.glsl',
 			fragmentFile: '#/default.frag.glsl',
@@ -175,7 +163,7 @@ class Galileo
 
 	static flip()
 	{
-		Surface.Screen.activate();
+		Surface.Screen.activate(defaultShader);
 		Surface.Screen.unclip();
 		gl.disable(gl.SCISSOR_TEST);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -445,316 +433,6 @@ class Color
 	toVector()
 	{
 		return [ this.r, this.g, this.b, this.a ];
-	}
-}
-
-export
-class Font
-{
-	static get Default()
-	{
-		return defaultFont;
-	}
-
-	static async fromFile(fileName: string)
-	{
-		fileName = Game.urlOf(fileName);
-		const data = await Fido.fetchData(fileName);
-		return new Font(data);
-	}
-
-	atlas: Texture;
-	glyphs: Glyph[] = [];
-	lineHeight = 0;
-	maxWidth = 0;
-	numGlyphs = 0;
-	stride: number;
-
-	constructor(source: BufferSource | string)
-	{
-		if (typeof source === 'string')
-			throw RangeError("new Font() from file is not supported under Oozaru.");
-		let stream = new DataStream(source);
-		let rfn = stream.readStruct({
-			signature: 'string/4',
-			version:   'uint16-le',
-			numGlyphs: 'uint16-le',
-			reserved:  'reserve/248',
-		});
-		if (rfn.signature !== '.rfn')
-			throw new Error(`Unable to load RFN font file`);
-		if (rfn.version < 2 || rfn.version > 2)
-			throw new Error(`Unsupported RFN version '${rfn.version}'`)
-		if (rfn.numGlyphs <= 0)
-			throw new Error(`Malformed RFN font (no glyphs)`);
-		const numAcross = Math.ceil(Math.sqrt(rfn.numGlyphs));
-		this.stride = 1.0 / numAcross;
-		for (let i = 0; i < rfn.numGlyphs; ++i) {
-			let charInfo = stream.readStruct({
-				width:    'uint16-le',
-				height:   'uint16-le',
-				reserved: 'reserve/28',
-			});
-			this.lineHeight = Math.max(this.lineHeight, charInfo.height);
-			this.maxWidth = Math.max(this.maxWidth, charInfo.width);
-			const pixelData = stream.readBytes(charInfo.width * charInfo.height * 4);
-			this.glyphs.push({
-				width: charInfo.width,
-				height: charInfo.height,
-				u: i % numAcross / numAcross,
-				v: 1.0 - Math.floor(i / numAcross) / numAcross,
-				pixelData,
-			});
-		}
-		this.atlas = new Texture(numAcross * this.maxWidth, numAcross * this.lineHeight);
-		this.numGlyphs = rfn.numGlyphs;
-		for (let i = 0; i < this.numGlyphs; ++i) {
-			const glyph = this.glyphs[i];
-			const x = i % numAcross * this.maxWidth;
-			const y = Math.floor(i / numAcross) * this.lineHeight;
-			this.atlas.upload(glyph.pixelData, x, y, glyph.width, glyph.height);
-		}
-	}
-
-	get height()
-	{
-		return this.lineHeight;
-	}
-
-	drawText(surface: Surface, x: number, y: number, text: string, color = Color.White, wrapWidth?: number)
-	{
-		const matrix = new Transform().translate(Math.trunc(x), Math.trunc(y));
-		surface.activate();
-		defaultShader.activate(false);
-		defaultShader.project(surface.projection);
-		if (wrapWidth !== undefined) {
-			const lines = this.wordWrap(text, wrapWidth);
-			for (let i = 0, len = lines.length; i < len; ++i) {
-				this.renderString(lines[i], color, matrix);
-				matrix.translate(0, this.lineHeight);
-			}
-		}
-		else {
-			this.renderString(text, color, matrix);
-		}
-	}
-
-	getTextSize(text: string, wrapWidth?: number): Size
-	{
-		if (wrapWidth !== undefined) {
-			const lines = this.wordWrap(text, wrapWidth);
-			return {
-				width: wrapWidth,
-				height: lines.length * this.lineHeight,
-			};
-		}
-		else {
-			return {
-				width: this.widthOf(text),
-				height: this.lineHeight,
-			};
-		}
-	}
-
-	heightOf(text: string, wrapWidth?: number)
-	{
-		return this.getTextSize(text, wrapWidth).height;
-	}
-
-	renderString(text: string, color: Color, matrix: Transform)
-	{
-		if (text === "")
-			return;  // empty string, nothing to render
-		if (activeShader !== null) {
-			activeShader.activate(true);
-			activeShader.transform(matrix);
-		}
-		let cp: number | undefined;
-		let ptr = 0;
-		let x = 0;
-		const vertices: Vertex[] = [];
-		while ((cp = text.codePointAt(ptr++)) !== undefined) {
-			if (cp > 0xFFFF)  // surrogate pair?
-				++ptr;
-			cp = cp == 0x20AC ? 128
-				: cp == 0x201A ? 130
-				: cp == 0x0192 ? 131
-				: cp == 0x201E ? 132
-				: cp == 0x2026 ? 133
-				: cp == 0x2020 ? 134
-				: cp == 0x2021 ? 135
-				: cp == 0x02C6 ? 136
-				: cp == 0x2030 ? 137
-				: cp == 0x0160 ? 138
-				: cp == 0x2039 ? 139
-				: cp == 0x0152 ? 140
-				: cp == 0x017D ? 142
-				: cp == 0x2018 ? 145
-				: cp == 0x2019 ? 146
-				: cp == 0x201C ? 147
-				: cp == 0x201D ? 148
-				: cp == 0x2022 ? 149
-				: cp == 0x2013 ? 150
-				: cp == 0x2014 ? 151
-				: cp == 0x02DC ? 152
-				: cp == 0x2122 ? 153
-				: cp == 0x0161 ? 154
-				: cp == 0x203A ? 155
-				: cp == 0x0153 ? 156
-				: cp == 0x017E ? 158
-				: cp == 0x0178 ? 159
-				: cp;
-			if (cp >= this.numGlyphs)
-				cp = 0x1A;
-			const glyph = this.glyphs[cp];
-			const x1 = x, x2 = x1 + glyph.width;
-			const y1 = 0, y2 = y1 + glyph.height;
-			const u1 = glyph.u;
-			const u2 = u1 + glyph.width / this.maxWidth * this.stride;
-			const v1 = glyph.v;
-			const v2 = v1 - glyph.height / this.lineHeight * this.stride;
-			vertices.push(
-				{ x: x1, y: y1, u: u1, v: v1, color },
-				{ x: x2, y: y1, u: u2, v: v1, color },
-				{ x: x1, y: y2, u: u1, v: v2, color },
-				{ x: x2, y: y1, u: u2, v: v1, color },
-				{ x: x1, y: y2, u: u1, v: v2, color },
-				{ x: x2, y: y2, u: u2, v: v2, color },
-			);
-			x += glyph.width;
-		}
-		this.atlas.useTexture(0);
-		Galileo.draw(ShapeType.Triangles, new VertexList(vertices));
-	}
-
-	widthOf(text: string)
-	{
-		let cp: number | undefined;
-		let ptr = 0;
-		let width = 0;
-		while ((cp = text.codePointAt(ptr++)) !== undefined) {
-			if (cp > 0xFFFF)  // surrogate pair?
-				++ptr;
-			cp = cp == 0x20AC ? 128
-				: cp == 0x201A ? 130
-				: cp == 0x0192 ? 131
-				: cp == 0x201E ? 132
-				: cp == 0x2026 ? 133
-				: cp == 0x2020 ? 134
-				: cp == 0x2021 ? 135
-				: cp == 0x02C6 ? 136
-				: cp == 0x2030 ? 137
-				: cp == 0x0160 ? 138
-				: cp == 0x2039 ? 139
-				: cp == 0x0152 ? 140
-				: cp == 0x017D ? 142
-				: cp == 0x2018 ? 145
-				: cp == 0x2019 ? 146
-				: cp == 0x201C ? 147
-				: cp == 0x201D ? 148
-				: cp == 0x2022 ? 149
-				: cp == 0x2013 ? 150
-				: cp == 0x2014 ? 151
-				: cp == 0x02DC ? 152
-				: cp == 0x2122 ? 153
-				: cp == 0x0161 ? 154
-				: cp == 0x203A ? 155
-				: cp == 0x0153 ? 156
-				: cp == 0x017E ? 158
-				: cp == 0x0178 ? 159
-				: cp;
-			if (cp >= this.numGlyphs)
-				cp = 0x1A;
-			const glyph = this.glyphs[cp];
-			width += glyph.width;
-		}
-		return width;
-	}
-
-	wordWrap(text: string, wrapWidth: number)
-	{
-		const lines: string[] = [];
-		let codepoints: number[] = [];
-		let currentLine = "";
-		let lineWidth = 0;
-		let lineFinished = false;
-		let wordWidth = 0;
-		let wordFinished = false;
-		let cp: number | undefined;
-		let ptr = 0;
-		while ((cp = text.codePointAt(ptr++)) !== undefined) {
-			if (cp > 0xFFFF)  // surrogate pair?
-				++ptr;
-			cp = cp == 0x20AC ? 128
-				: cp == 0x201A ? 130
-				: cp == 0x0192 ? 131
-				: cp == 0x201E ? 132
-				: cp == 0x2026 ? 133
-				: cp == 0x2020 ? 134
-				: cp == 0x2021 ? 135
-				: cp == 0x02C6 ? 136
-				: cp == 0x2030 ? 137
-				: cp == 0x0160 ? 138
-				: cp == 0x2039 ? 139
-				: cp == 0x0152 ? 140
-				: cp == 0x017D ? 142
-				: cp == 0x2018 ? 145
-				: cp == 0x2019 ? 146
-				: cp == 0x201C ? 147
-				: cp == 0x201D ? 148
-				: cp == 0x2022 ? 149
-				: cp == 0x2013 ? 150
-				: cp == 0x2014 ? 151
-				: cp == 0x02DC ? 152
-				: cp == 0x2122 ? 153
-				: cp == 0x0161 ? 154
-				: cp == 0x203A ? 155
-				: cp == 0x0153 ? 156
-				: cp == 0x017E ? 158
-				: cp == 0x0178 ? 159
-				: cp;
-			if (cp >= this.numGlyphs)
-				cp = 0x1A;
-			const glyph = this.glyphs[cp];
-			switch (cp) {
-				case 13: case 10:  // newline
-					if (cp === 13 && text.codePointAt(ptr) == 10)
-						++ptr;  // treat CRLF as a single newline
-					lineFinished = true;
-					break;
-				case 8:  // tab
-					codepoints.push(cp);
-					wordWidth += this.glyphs[32].width * 3;
-					wordFinished = true;
-					break;
-				case 32:  // space
-					codepoints.push(cp);
-					wordWidth += glyph.width;
-					wordFinished = true;
-					break;
-				default:
-					codepoints.push(cp);
-					wordWidth += glyph.width;
-					break;
-			}
-			if (wordFinished || lineFinished) {
-				currentLine += String.fromCodePoint(...codepoints);
-				lineWidth += wordWidth;
-				codepoints.length = 0;
-				wordWidth = 0;
-				wordFinished = false;
-			}
-			if (lineWidth + wordWidth > wrapWidth || lineFinished) {
-				lines.push(currentLine);
-				currentLine = "";
-				lineWidth = 0;
-				lineFinished = false;
-			}
-		}
-		currentLine += String.fromCodePoint(...codepoints);
-		if (currentLine !== "")
-			lines.push(currentLine);
-		return lines;
 	}
 }
 
@@ -1099,18 +777,12 @@ class Shape
 	static drawImmediate(surface: Surface, type: ShapeType, vertices: ArrayLike<Vertex>): void
 	static drawImmediate(surface: Surface, type: ShapeType, arg1: Texture | ArrayLike<Vertex> | null, arg2?: ArrayLike<Vertex>)
 	{
-		surface.activate();
 		if (arg1 instanceof Texture || arg1 === null) {
-			defaultShader.activate(arg1 !== null);
-			defaultShader.project(surface.projection);
-			defaultShader.transform(Transform.Identity);
-			arg1?.useTexture(0);
+			surface.activate(defaultShader, arg1);
 			Galileo.draw(type, new VertexList(arg2!));
 		}
 		else {
-			defaultShader.activate(false);
-			defaultShader.project(surface.projection);
-			defaultShader.transform(Transform.Identity);
+			surface.activate(defaultShader);
 			Galileo.draw(type, new VertexList(arg1));
 		}
 	}
@@ -1143,11 +815,7 @@ class Shape
 
 	draw(surface = Surface.Screen, transform = Transform.Identity, shader = Shader.Default)
 	{
-		surface.activate();
-		shader.activate(this.texture !== null);
-		shader.project(surface.projection);
-		shader.transform(transform);
-		this.texture?.useTexture(0);
+		surface.activate(shader, this.texture, transform);
 		Galileo.draw(this.type, this.vertices, this.indices);
 	}
 }
@@ -1323,16 +991,20 @@ class Surface extends Texture
 		this.projection = value;
 	}
 
-	activate()
+	activate(shader: Shader, texture: Texture | null = null, transform = Transform.Identity)
 	{
-		if (activeSurface === this)
-			return;
-		gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
-		gl.viewport(0, 0, this.width, this.height);
-		gl.scissor(this.clipping.x, this.clipping.y, this.clipping.w, this.clipping.h);
-		applyBlendOp(this.blendOp_);
-		applyDepthOp(this.depthOp_);
-		activeSurface = this;
+		if (this !== activeSurface) {
+			gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
+			gl.viewport(0, 0, this.width, this.height);
+			gl.scissor(this.clipping.x, this.clipping.y, this.clipping.w, this.clipping.h);
+			applyBlendOp(this.blendOp_);
+			applyDepthOp(this.depthOp_);
+			activeSurface = this;
+		}
+		shader.activate(texture !== null);
+		shader.project(this.projection);
+		shader.transform(transform);
+		texture?.useTexture(0);
 	}
 
 	clipTo(x: number, y: number, width: number, height: number)

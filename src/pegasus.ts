@@ -33,9 +33,9 @@
 import { Mixer, Sound, SoundStream } from './audialis.js';
 import { DataStream } from './data-stream.js';
 import Fido from './fido.js';
+import { Font } from './font-system.js';
 import Game from './game.js';
-import * as Galileo from './galileo.js';
-import { BlendOp, Color, DepthOp, Font, IndexList, Model, Shader, Shape, ShapeType, Surface, Texture, Transform, VertexList } from './galileo.js';
+import Galileo, { BlendOp, Color, DepthOp, IndexList, Model, Shader, Shape, ShapeType, Surface, Texture, Transform, VertexList } from './galileo.js';
 import InputEngine, { Joystick, Key, Keyboard, Mouse, MouseKey } from './input-engine.js';
 import { JobQueue, JobType } from './job-queue.js';
 import { fetchScript } from './utilities.js';
@@ -237,7 +237,7 @@ class Sphere
 
 	static setResolution(width: number, height: number)
 	{
-		Galileo.default.rerez(width, height);
+		Galileo.rerez(width, height);
 	}
 }
 
