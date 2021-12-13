@@ -175,34 +175,7 @@ class Font
 		while ((cp = text.codePointAt(ptr++)) !== undefined) {
 			if (cp > 0xFFFF)  // surrogate pair?
 				++ptr;
-			cp = cp == 0x20AC ? 128
-				: cp == 0x201A ? 130
-				: cp == 0x0192 ? 131
-				: cp == 0x201E ? 132
-				: cp == 0x2026 ? 133
-				: cp == 0x2020 ? 134
-				: cp == 0x2021 ? 135
-				: cp == 0x02C6 ? 136
-				: cp == 0x2030 ? 137
-				: cp == 0x0160 ? 138
-				: cp == 0x2039 ? 139
-				: cp == 0x0152 ? 140
-				: cp == 0x017D ? 142
-				: cp == 0x2018 ? 145
-				: cp == 0x2019 ? 146
-				: cp == 0x201C ? 147
-				: cp == 0x201D ? 148
-				: cp == 0x2022 ? 149
-				: cp == 0x2013 ? 150
-				: cp == 0x2014 ? 151
-				: cp == 0x02DC ? 152
-				: cp == 0x2122 ? 153
-				: cp == 0x0161 ? 154
-				: cp == 0x203A ? 155
-				: cp == 0x0153 ? 156
-				: cp == 0x017E ? 158
-				: cp == 0x0178 ? 159
-				: cp;
+			cp = unicodeToASCII(cp);
 			if (cp >= this.numGlyphs)
 				cp = 0x1A;
 			const glyph = this.glyphs[cp];
@@ -233,34 +206,7 @@ class Font
 		while ((cp = text.codePointAt(ptr++)) !== undefined) {
 			if (cp > 0xFFFF)  // surrogate pair?
 				++ptr;
-			cp = cp == 0x20AC ? 128
-				: cp == 0x201A ? 130
-				: cp == 0x0192 ? 131
-				: cp == 0x201E ? 132
-				: cp == 0x2026 ? 133
-				: cp == 0x2020 ? 134
-				: cp == 0x2021 ? 135
-				: cp == 0x02C6 ? 136
-				: cp == 0x2030 ? 137
-				: cp == 0x0160 ? 138
-				: cp == 0x2039 ? 139
-				: cp == 0x0152 ? 140
-				: cp == 0x017D ? 142
-				: cp == 0x2018 ? 145
-				: cp == 0x2019 ? 146
-				: cp == 0x201C ? 147
-				: cp == 0x201D ? 148
-				: cp == 0x2022 ? 149
-				: cp == 0x2013 ? 150
-				: cp == 0x2014 ? 151
-				: cp == 0x02DC ? 152
-				: cp == 0x2122 ? 153
-				: cp == 0x0161 ? 154
-				: cp == 0x203A ? 155
-				: cp == 0x0153 ? 156
-				: cp == 0x017E ? 158
-				: cp == 0x0178 ? 159
-				: cp;
+			cp = unicodeToASCII(cp);
 			if (cp >= this.numGlyphs)
 				cp = 0x1A;
 			const glyph = this.glyphs[cp];
@@ -283,34 +229,7 @@ class Font
 		while ((cp = text.codePointAt(ptr++)) !== undefined) {
 			if (cp > 0xFFFF)  // surrogate pair?
 				++ptr;
-			cp = cp == 0x20AC ? 128
-				: cp == 0x201A ? 130
-				: cp == 0x0192 ? 131
-				: cp == 0x201E ? 132
-				: cp == 0x2026 ? 133
-				: cp == 0x2020 ? 134
-				: cp == 0x2021 ? 135
-				: cp == 0x02C6 ? 136
-				: cp == 0x2030 ? 137
-				: cp == 0x0160 ? 138
-				: cp == 0x2039 ? 139
-				: cp == 0x0152 ? 140
-				: cp == 0x017D ? 142
-				: cp == 0x2018 ? 145
-				: cp == 0x2019 ? 146
-				: cp == 0x201C ? 147
-				: cp == 0x201D ? 148
-				: cp == 0x2022 ? 149
-				: cp == 0x2013 ? 150
-				: cp == 0x2014 ? 151
-				: cp == 0x02DC ? 152
-				: cp == 0x2122 ? 153
-				: cp == 0x0161 ? 154
-				: cp == 0x203A ? 155
-				: cp == 0x0153 ? 156
-				: cp == 0x017E ? 158
-				: cp == 0x0178 ? 159
-				: cp;
+			cp = unicodeToASCII(cp);
 			if (cp >= this.numGlyphs)
 				cp = 0x1A;
 			const glyph = this.glyphs[cp];
@@ -354,4 +273,36 @@ class Font
 			lines.push(currentLine);
 		return lines;
 	}
+}
+
+function unicodeToASCII(codepoint: number)
+{
+	return codepoint == 0x20AC ? 128
+		: codepoint == 0x201A ? 130
+		: codepoint == 0x0192 ? 131
+		: codepoint == 0x201E ? 132
+		: codepoint == 0x2026 ? 133
+		: codepoint == 0x2020 ? 134
+		: codepoint == 0x2021 ? 135
+		: codepoint == 0x02C6 ? 136
+		: codepoint == 0x2030 ? 137
+		: codepoint == 0x0160 ? 138
+		: codepoint == 0x2039 ? 139
+		: codepoint == 0x0152 ? 140
+		: codepoint == 0x017D ? 142
+		: codepoint == 0x2018 ? 145
+		: codepoint == 0x2019 ? 146
+		: codepoint == 0x201C ? 147
+		: codepoint == 0x201D ? 148
+		: codepoint == 0x2022 ? 149
+		: codepoint == 0x2013 ? 150
+		: codepoint == 0x2014 ? 151
+		: codepoint == 0x02DC ? 152
+		: codepoint == 0x2122 ? 153
+		: codepoint == 0x0161 ? 154
+		: codepoint == 0x203A ? 155
+		: codepoint == 0x0153 ? 156
+		: codepoint == 0x017E ? 158
+		: codepoint == 0x0178 ? 159
+		: codepoint;
 }

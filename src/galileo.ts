@@ -194,7 +194,7 @@ export
 class Color
 {
 	// note: predefined colors encoded in 8-bit RGBA (not float) because this whole table was
-	//       copied and pasted from miniSphere and I was too lazy to convert it.
+	//       copied and pasted from neoSphere and I was too lazy to convert it.
 	static get AliceBlue ()            { return new Color(240 / 255, 248 / 255, 255 / 255, 255 / 255); }
 	static get AntiqueWhite ()         { return new Color(250 / 255, 235 / 255, 215 / 255, 255 / 255); }
 	static get Aqua ()                 { return new Color(0   / 255, 255 / 255, 255 / 255, 255 / 255); }
