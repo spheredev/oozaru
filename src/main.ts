@@ -30,6 +30,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
+import Audialis from './audialis.js';
 import Fido from './fido.js';
 import FontSystem from './font-system.js';
 import Galileo from './galileo.js';
@@ -55,6 +56,7 @@ async function main()
 
 	const canvas = document.getElementById('screen') as HTMLCanvasElement;
 	await Galileo.initialize(canvas);
+	await Audialis.initialize();
 	await FontSystem.initialize();
 
 	const menu = document.getElementById('menu')!;

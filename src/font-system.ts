@@ -32,7 +32,7 @@
 
 import { DataStream } from './data-stream.js';
 import Fido from './fido.js';
-import { Color, Model, Shader, Shape, ShapeType, Size, Surface, Texture, Transform, Vertex, VertexList } from './galileo.js';
+import { Color, Shape, ShapeType, Size, Surface, Texture, Vertex } from './galileo.js';
 import Game from './game.js';
 
 interface Glyph

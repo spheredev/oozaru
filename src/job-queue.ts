@@ -31,13 +31,12 @@
 **/
 
 import Galileo from './galileo.js';
-import { Awaitable } from './types.js';
 
 interface Job
 {
 	jobID: number;
 	type: JobType;
-	callback: () => Awaitable<void>;
+	callback: () => void | PromiseLike<void>;
 	cancelled: boolean;
 	paused: boolean;
 	priority: number;
@@ -66,9 +65,9 @@ class JobQueue
 	#rafID = 0;
 	#sortingNeeded = false;
 
-	add(type: JobType, callback: () => Awaitable<void>, recurring?: false, delay?: number): number;
-	add(type: JobType, callback: () => Awaitable<void>, recurring: true, priority?: number): number;
-	add(type: JobType, callback: () => Awaitable<void>, recurring = false, delayOrPriority = 0)
+	add(type: JobType, callback: () => void | PromiseLike<void>, recurring?: false, delay?: number): number;
+	add(type: JobType, callback: () => void | PromiseLike<void>, recurring: true, priority?: number): number;
+	add(type: JobType, callback: () => void | PromiseLike<void>, recurring = false, delayOrPriority = 0)
 	{
 		const timer = !recurring ? delayOrPriority : 0;
 		let priority = recurring ? delayOrPriority : 0.0;
@@ -176,7 +175,7 @@ class JobQueue
 				&& !job.paused)
 			{
 				job.busy = true;
-				(async () => job.callback())()
+				Promise.resolve(job.callback())
 					.then(() => {
 						job.busy = false;
 					})

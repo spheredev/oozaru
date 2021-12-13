@@ -34,18 +34,22 @@ import { Deque } from './deque.js';
 import Game from './game.js';
 import { fetchAudioFile } from './utilities.js';
 
+var defaultMixer: Mixer;
+
+export default
+class Audialis
+{
+	static async initialize()
+	{
+		defaultMixer = new Mixer(44100, 16, 2);
+	}
+}
+
 export
 class Mixer
 {
 	static get Default()
 	{
-		const defaultMixer = new Mixer(44100, 16, 2);
-		Object.defineProperty(Mixer, 'Default', {
-			value: defaultMixer,
-			writable: false,
-			enumerable: false,
-			configurable: true,
-		});
 		return defaultMixer;
 	}
 

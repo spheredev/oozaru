@@ -905,7 +905,7 @@ export
 class Surface extends Texture
 {
 	blendOp_ = BlendOp.Default;
-	clipping: Rectangle;
+	clipRectangle: Rectangle;
 	depthOp_ = DepthOp.AlwaysPass;
 	frameBuffer: WebGLFramebuffer | null;
 	projection: Transform;
@@ -915,7 +915,7 @@ class Surface extends Texture
 		const screenSurface = Object.create(Surface.prototype) as Surface;
 		screenSurface.size = { width: gl.canvas.width, height: gl.canvas.height };
 		screenSurface.blendOp_ = BlendOp.Default;
-		screenSurface.clipping = { x: 0, y: 0, w: gl.canvas.width, h: gl.canvas.height };
+		screenSurface.clipRectangle = { x: 0, y: 0, w: gl.canvas.width, h: gl.canvas.height };
 		screenSurface.depthOp_ = DepthOp.AlwaysPass;
 		screenSurface.frameBuffer = null;
 		screenSurface.projection = new Transform()
@@ -951,7 +951,7 @@ class Surface extends Texture
 		gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
 		gl.bindFramebuffer(gl.FRAMEBUFFER, previousFBO);
 
-		this.clipping = { x: 0, y: 0, w: this.width, h: this.height };
+		this.clipRectangle = { x: 0, y: 0, w: this.width, h: this.height };
 		this.frameBuffer = frameBuffer;
 		this.projection = new Transform()
 			.project2D(0, 0, this.width, this.height);
@@ -996,7 +996,7 @@ class Surface extends Texture
 		if (this !== activeSurface) {
 			gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
 			gl.viewport(0, 0, this.width, this.height);
-			gl.scissor(this.clipping.x, this.clipping.y, this.clipping.w, this.clipping.h);
+			gl.scissor(this.clipRectangle.x, this.clipRectangle.y, this.clipRectangle.w, this.clipRectangle.h);
 			applyBlendOp(this.blendOp_);
 			applyDepthOp(this.depthOp_);
 			activeSurface = this;
@@ -1009,10 +1009,10 @@ class Surface extends Texture
 
 	clipTo(x: number, y: number, width: number, height: number)
 	{
-		this.clipping.x = x;
-		this.clipping.y = y;
-		this.clipping.w = width;
-		this.clipping.h = height;
+		this.clipRectangle.x = x;
+		this.clipRectangle.y = y;
+		this.clipRectangle.w = width;
+		this.clipRectangle.h = height;
 		if (this === activeSurface)
 			gl.scissor(x, this.height - y - height, width, height);
 	}
