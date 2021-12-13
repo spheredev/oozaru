@@ -109,8 +109,8 @@ interface Vertex
 	color?: Color;
 }
 
-var activeDrawTarget: DrawTarget | null = null;
 var activeShader: Shader | null = null;
+var activeSurface: Surface | null = null;
 var gl: WebGLRenderingContext;
 
 export default
@@ -118,10 +118,7 @@ class Galileo
 {
 	static initialize(canvas: HTMLCanvasElement)
 	{
-		const glContext = canvas.getContext('webgl', {
-			alpha: false,
-			preserveDrawingBuffer: true,
-		});
+		const glContext = canvas.getContext('webgl', { alpha: false });
 		if (glContext === null)
 			throw new Error(`Oozaru was unable to create a WebGL context.`);
 		gl = glContext;
@@ -140,8 +137,8 @@ class Galileo
 
 	static flip()
 	{
-		DrawTarget.Screen.activate();
-		DrawTarget.Screen.unclip();		
+		Surface.Screen.activate();
+		Surface.Screen.unclip();
 		gl.disable(gl.SCISSOR_TEST);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		gl.enable(gl.SCISSOR_TEST);
@@ -174,6 +171,9 @@ class Galileo
 	{
 		gl.canvas.width = width;
 		gl.canvas.height = height;
+		Surface.Screen.size = { width, height };
+		Surface.Screen.projection = new Transform()
+			.project2D(0, 0, width, height);
 		if (width <= 400 && height <= 300) {
 			gl.canvas.style.width = `${width * 2}px`;
 			gl.canvas.style.height = `${height * 2}px`;
@@ -182,7 +182,7 @@ class Galileo
 			gl.canvas.style.width = `${width}px`;
 			gl.canvas.style.height = `${height}px`;
 		}
-		if (activeDrawTarget === DrawTarget.Screen)
+		if (activeSurface === Surface.Screen)
 			gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 	}
 }
@@ -429,132 +429,14 @@ class Color
 }
 
 export
-class DrawTarget
-{
-	private blendOp_ = BlendOp.Default;
-	private clipping: Rectangle;
-	private depthOp_ = DepthOp.AlwaysPass;
-	private frameBuffer: WebGLFramebuffer | null;
-	private projection: Transform;
-	private texture: Texture | null;
-
-	static get Screen()
-	{
-		const drawTarget = Object.create(DrawTarget.prototype) as DrawTarget;
-		drawTarget.blendOp_ = BlendOp.Default;
-		drawTarget.clipping = { x: 0, y: 0, w: gl.canvas.width, h: gl.canvas.height };
-		drawTarget.depthOp_ = DepthOp.AlwaysPass;
-		drawTarget.frameBuffer = null;
-		drawTarget.projection = Transform.Identity
-			.project2D(0, 0, drawTarget.width, drawTarget.height);
-		drawTarget.texture = null;
-		Object.defineProperty(DrawTarget, 'Screen', {
-			value: drawTarget,
-			writable: false,
-			enumerable: false,
-			configurable: true,
-		});
-		return drawTarget;
-	}
-
-	constructor(texture: Texture)
-	{
-		const frameBuffer = gl.createFramebuffer();
-		const depthBuffer = gl.createRenderbuffer();
-		if (frameBuffer === null || depthBuffer === null)
-			throw new Error(`Oozaru was unable to create a WebGL frame buffer.`);
-
-		// in order to set up a new FBO we need to change the current framebuffer binding, so make sure
-		// it gets changed back afterwards.
-		const previousFBO = gl.getParameter(gl.FRAMEBUFFER_BINDING);
-		gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
-		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture.glTexture, 0);
-		gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
-		gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, texture.width, texture.height);
-		gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
-		gl.bindFramebuffer(gl.FRAMEBUFFER, previousFBO);
-
-		this.clipping = { x: 0, y: 0, w: texture.width, h: texture.height };
-		this.frameBuffer = frameBuffer;
-		this.projection = Transform.Identity
-			.project2D(0, 0, texture.width, texture.height);
-		this.texture = texture;
-	}
-
-	get blendOp()
-	{
-		return this.blendOp_;
-	}
-
-	get depthOp()
-	{
-		return this.depthOp_;
-	}
-
-	get height()
-	{
-		return this.texture?.height ?? gl.canvas.height;
-	}
-
-	get width()
-	{
-		return this.texture?.width ?? gl.canvas.width;
-	}
-
-	set blendOp(value)
-	{
-		this.blendOp_ = value;
-		if (activeDrawTarget === this)
-			applyBlendOp(value);
-	}
-
-	set depthOp(value)
-	{
-		this.depthOp_ = value;
-		if (activeDrawTarget === this)
-			applyDepthOp(value);
-	}
-
-	activate()
-	{
-		if (activeDrawTarget === this)
-			return;
-		gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
-		if (this.texture !== null)
-			gl.viewport(0, 0, this.texture.width, this.texture.height);
-		else
-			gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-		gl.scissor(this.clipping.x, this.clipping.y, this.clipping.w, this.clipping.h);
-		applyBlendOp(this.blendOp_);
-		applyDepthOp(this.depthOp_);
-		activeDrawTarget = this;
-	}
-
-	clipTo(x: number, y: number, width: number, height: number)
-	{
-		this.clipping.x = x;
-		this.clipping.y = y;
-		this.clipping.w = width;
-		this.clipping.h = height;
-		if (this === activeDrawTarget)
-			gl.scissor(x, this.height - y - height, width, height);
-	}
-
-	unclip()
-	{
-		this.clipTo(0, 0, this.width, this.height);
-	}
-}
-
-export
 class Font
 {
-	private atlas: Texture;
-	private glyphs: Glyph[] = [];
-	private lineHeight = 0;
-	private maxWidth = 0;
-	private numGlyphs = 0;
-	private stride: number;
+	atlas: Texture;
+	glyphs: Glyph[] = [];
+	lineHeight = 0;
+	maxWidth = 0;
+	numGlyphs = 0;
+	stride: number;
 
 	static async fromFile(url: string)
 	{
@@ -619,7 +501,6 @@ class Font
 			activeShader.activate(true);
 			activeShader.transform(matrix);
 		}
-		this.atlas.activate(0);
 		let cp: number | undefined;
 		let ptr = 0;
 		let x = 0;
@@ -674,6 +555,7 @@ class Font
 			);
 			x += glyph.width;
 		}
+		this.atlas.useTexture(0);
 		Galileo.draw(ShapeType.Triangles, new VertexList(vertices));
 	}
 
@@ -1133,7 +1015,7 @@ class Texture
 	{
 		if (typeof arg1 === 'string')
 			throw RangeError("new Texture() from filename is unsupported under Oozaru.");
-		
+
 		const glTexture = gl.createTexture();
 		if (glTexture === null)
 			throw new Error(`Unable to create WebGL texture object`);
@@ -1172,16 +1054,10 @@ class Texture
 	{
 		return this.size.height;
 	}
-	
+
 	get width()
 	{
 		return this.size.width;
-	}
-	
-	activate(textureUnit = 0)
-	{
-		gl.activeTexture(gl.TEXTURE0 + textureUnit);
-		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
 	}
 
 	upload(content: BufferSource, x = 0, y = 0, width = this.size.width, height = this.size.height)
@@ -1192,6 +1068,130 @@ class Texture
 		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
 		gl.texSubImage2D(gl.TEXTURE_2D, 0, x, this.size.height - y - height, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
 	}
+
+	useTexture(textureUnit = 0)
+	{
+		gl.activeTexture(gl.TEXTURE0 + textureUnit);
+		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
+	}
+}
+
+export
+class Surface extends Texture
+{
+	blendOp_ = BlendOp.Default;
+	clipping: Rectangle;
+	depthOp_ = DepthOp.AlwaysPass;
+	frameBuffer: WebGLFramebuffer | null;
+	projection: Transform;
+
+	static get Screen()
+	{
+		const screenSurface = Object.create(Surface.prototype) as Surface;
+		screenSurface.size = { width: gl.canvas.width, height: gl.canvas.height };
+		screenSurface.blendOp_ = BlendOp.Default;
+		screenSurface.clipping = { x: 0, y: 0, w: gl.canvas.width, h: gl.canvas.height };
+		screenSurface.depthOp_ = DepthOp.AlwaysPass;
+		screenSurface.frameBuffer = null;
+		screenSurface.projection = new Transform()
+			.project2D(0, 0, gl.canvas.width, gl.canvas.height);
+		Object.defineProperty(Surface, 'Screen', {
+			value: screenSurface,
+			writable: false,
+			enumerable: false,
+			configurable: true,
+		});
+		return screenSurface;
+	}
+
+	constructor(...args: | [ HTMLImageElement ]
+	                     | [ string ]
+	                     | [ number, number, (BufferSource | Color)? ])
+	{
+		// @ts-expect-error
+		super(...args);
+
+		const frameBuffer = gl.createFramebuffer();
+		const depthBuffer = gl.createRenderbuffer();
+		if (frameBuffer === null || depthBuffer === null)
+			throw new Error(`Oozaru was unable to create a WebGL frame buffer.`);
+
+		// in order to set up a new FBO we need to change the current framebuffer binding, so make sure
+		// it gets changed back afterwards.
+		const previousFBO = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.glTexture, 0);
+		gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+		gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.width, this.height);
+		gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, previousFBO);
+
+		this.clipping = { x: 0, y: 0, w: this.width, h: this.height };
+		this.frameBuffer = frameBuffer;
+		this.projection = new Transform()
+			.project2D(0, 0, this.width, this.height);
+	}
+
+	get blendOp()
+	{
+		return this.blendOp_;
+	}
+
+	get depthOp()
+	{
+		return this.depthOp_;
+	}
+
+	get transform()
+	{
+		return this.projection;
+	}
+
+	set blendOp(value)
+	{
+		this.blendOp_ = value;
+		if (activeSurface === this)
+			applyBlendOp(value);
+	}
+
+	set depthOp(value)
+	{
+		this.depthOp_ = value;
+		if (activeSurface === this)
+			applyDepthOp(value);
+	}
+
+	set transform(value)
+	{
+		this.projection = value;
+	}
+
+	activate()
+	{
+		if (activeSurface === this)
+			return;
+		gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
+		gl.viewport(0, 0, this.width, this.height);
+		gl.scissor(this.clipping.x, this.clipping.y, this.clipping.w, this.clipping.h);
+		applyBlendOp(this.blendOp_);
+		applyDepthOp(this.depthOp_);
+		activeSurface = this;
+	}
+
+	clipTo(x: number, y: number, width: number, height: number)
+	{
+		this.clipping.x = x;
+		this.clipping.y = y;
+		this.clipping.w = width;
+		this.clipping.h = height;
+		if (this === activeSurface)
+			gl.scissor(x, this.height - y - height, width, height);
+	}
+
+	unclip()
+	{
+		this.clipTo(0, 0, this.width, this.height);
+	}
 }
 
 export
@@ -1201,7 +1201,12 @@ class Transform
 
 	static get Identity()
 	{
-		return new this().identity();
+		return new this([
+			1.0, 0.0, 0.0, 0.0,
+			0.0, 1.0, 0.0, 0.0,
+			0.0, 0.0, 1.0, 0.0,
+			0.0, 0.0, 0.0, 1.0,
+		]);
 	}
 
 	static get Zero()
@@ -1283,7 +1288,6 @@ class Transform
 			0.0, 0.0, 1.0, 0.0,
 			0.0, 0.0, 0.0, 1.0,
 		]);
-
 		return this;
 	}
 

@@ -35,7 +35,7 @@ import { DataStream } from './data-stream.js';
 import Fido from './fido.js';
 import Game from './game.js';
 import * as Galileo from './galileo.js';
-import { BlendOp, Color, DepthOp, IndexList, ShapeType, Texture, Transform, Vertex, VertexList } from './galileo.js';
+import { BlendOp, Color, DepthOp, IndexList, ShapeType, Surface, Texture, Transform, Vertex, VertexList } from './galileo.js';
 import InputEngine, { Key, Keyboard, Mouse, MouseKey } from './input-engine.js';
 import { JobQueue, JobType } from './job-queue.js';
 import { fetchScript } from './utilities.js';
@@ -439,8 +439,8 @@ class Font
 
 	drawText(surface: Surface, x: number, y: number, text: any, color = Color.White, wrapWidth?: number)
 	{
-		const matrix = Galileo.Transform.Identity.translate(Math.trunc(x), Math.trunc(y));
-		surface.drawTarget.activate();
+		const matrix = new Transform().translate(Math.trunc(x), Math.trunc(y));
+		surface.activate();
 		Shader.Default.program.activate(false);
 		Shader.Default.program.project(surface.projection);
 		if (wrapWidth !== undefined) {
@@ -556,9 +556,9 @@ class Joystick
 
 class Model
 {
-	private shapes: Shape[];
-	private shader_: Shader;
-	private transform_: Transform;
+	shapes: Shape[];
+	shader_: Shader;
+	transform_: Transform;
 
 	constructor(shapes: Iterable<Shape>, shader = Shader.Default)
 	{
@@ -587,13 +587,12 @@ class Model
 
 	draw(surface = Surface.Screen)
 	{
-		surface.drawTarget.activate();
+		surface.activate();
 		this.shader_.program.project(surface.projection);
 		this.shader_.program.transform(this.transform_);
 		for (const shape of this.shapes) {
 			this.shader_.program.activate(shape.texture !== null);
-			if (shape.texture !== null)
-				shape.texture.activate(0);
+			shape.texture?.useTexture(0);
 			shape.shape.draw();
 		}
 	}
@@ -754,19 +753,18 @@ class Shape
 	static drawImmediate(surface: Surface, type: ShapeType, vertices: ArrayLike<Vertex>): void
 	static drawImmediate(surface: Surface, type: ShapeType, arg1: Texture | ArrayLike<Vertex> | null, arg2?: ArrayLike<Vertex>)
 	{
-		surface.drawTarget.activate();
+		surface.activate();
 		if (arg1 instanceof Texture || arg1 === null) {
 			Shader.Default.program.activate(arg1 !== null);
 			Shader.Default.program.project(surface.projection);
-			Shader.Default.program.transform(Galileo.Transform.Identity);
-			if (arg1 !== null)
-				arg1.activate(0);
+			Shader.Default.program.transform(Transform.Identity);
+			arg1?.useTexture(0);
 			Galileo.default.draw(type, new VertexList(arg2!));
 		}
 		else {
 			Shader.Default.program.activate(false);
 			Shader.Default.program.project(surface.projection);
-			Shader.Default.program.transform(Galileo.Transform.Identity);
+			Shader.Default.program.transform(Transform.Identity);
 			Galileo.default.draw(type, new VertexList(arg1));
 		}
 	}
@@ -791,82 +789,12 @@ class Shape
 
 	draw(surface = Surface.Screen, transform = Transform.Identity, shader = Shader.Default)
 	{
-		surface.drawTarget.activate();
+		surface.activate();
 		shader.program.activate(this.texture !== null);
 		shader.program.project(surface.projection);
 		shader.program.transform(transform);
-		if (this.texture !== null)
-			this.texture.activate(0);
+		this.texture?.useTexture(0);
 		this.shape.draw();
-	}
-}
-
-class Surface extends Texture
-{
-	drawTarget: Galileo.DrawTarget;
-	projection: Transform;
-
-	static get Screen()
-	{
-		const drawTarget = Galileo.DrawTarget.Screen;
-		const surface = Object.create(Surface.prototype) as Surface;
-		surface.drawTarget = drawTarget;
-		surface.projection = new Transform()
-			.project2D(0, 0, drawTarget.width, drawTarget.height);
-		surface.size = drawTarget;
-		Object.defineProperty(this, 'Screen', {
-			writable: false,
-			enumerable: false,
-			configurable: true,
-			value: surface,
-		});
-		return surface;
-	}
-
-	constructor(width: number, height: number, content?: BufferSource | Color);
-	constructor(image: HTMLImageElement);
-	constructor(...args: [ any, any?, any? ])
-	{
-		super(...args);
-
-		this.drawTarget = new Galileo.DrawTarget(this);
-		this.projection = new Transform()
-			.project2D(0, 0, this.drawTarget.width, this.drawTarget.height);
-	}
-
-	get blendOp()
-	{
-		return this.drawTarget.blendOp;
-	}
-
-	get depthOp()
-	{
-		return this.drawTarget.depthOp;
-	}
-
-	get transform()
-	{
-		return this.projection;
-	}
-
-	set blendOp(value)
-	{
-		this.drawTarget.blendOp = value;
-	}
-
-	set depthOp(value)
-	{
-		this.drawTarget.depthOp = value;
-	}
-
-	set transform(value)
-	{
-		this.projection = value;
-	}
-
-	clipTo(x: number, y: number, width: number, height: number)
-	{
-		this.drawTarget.clipTo(x, y, width, height);
 	}
 }
 
