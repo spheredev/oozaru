@@ -319,6 +319,60 @@ class InputEngine
 }
 
 export
+class Joystick
+{
+	static get P1()
+	{
+		return memoize(this, 'P1', new Joystick());
+	}
+
+	static get P2()
+	{
+		return memoize(this, 'P2', new Joystick());
+	}
+
+	static get P3()
+	{
+		return memoize(this, 'P3', new Joystick());
+	}
+
+	static get P4()
+	{
+		return memoize(this, 'P4', new Joystick());
+	}
+
+	static getDevices()
+	{
+		return [];
+	}
+
+	get name()
+	{
+		return "null joystick";
+	}
+
+	get numAxes()
+	{
+		return 0;
+	}
+
+	get numButtons()
+	{
+		return 0;
+	}
+
+	getPosition()
+	{
+		return 0.0;
+	}
+
+	isPressed()
+	{
+		return false;
+	}
+}
+
+export
 class Keyboard
 {
 	static get Default()
@@ -496,4 +550,15 @@ class Mouse
 	{
 		return !!buttonDown[key];
 	}
+}
+
+function memoize(object: object, key: PropertyKey, value: unknown)
+{
+	Object.defineProperty(object, key, {
+		writable: false,
+		enumerable: false,
+		configurable: true,
+		value,
+	});
+	return value;
 }

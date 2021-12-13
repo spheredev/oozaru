@@ -80,6 +80,13 @@ interface Rectangle
 }
 
 export
+interface ShaderOptions
+{
+	vertexFile: string;
+	fragmentFile: string;
+}
+
+export
 enum ShapeType
 {
 	Fan,
@@ -111,12 +118,14 @@ interface Vertex
 
 var activeShader: Shader | null = null;
 var activeSurface: Surface | null = null;
+var defaultFont: Font;
+var defaultShader: Shader;
 var gl: WebGLRenderingContext;
 
 export default
 class Galileo
 {
-	static initialize(canvas: HTMLCanvasElement)
+	static async initialize(canvas: HTMLCanvasElement)
 	{
 		const glContext = canvas.getContext('webgl', { alpha: false });
 		if (glContext === null)
@@ -132,16 +141,13 @@ class Galileo
 		gl.enable(glContext.DEPTH_TEST);
 		gl.enable(glContext.SCISSOR_TEST);
 
-		Galileo.flip();
-	}
+		defaultFont = await Font.fromFile('#/default.rfn');
+		defaultShader = await Shader.fromFiles({
+			vertexFile: '#/default.vert.glsl',
+			fragmentFile: '#/default.frag.glsl',
+		});
 
-	static flip()
-	{
-		Surface.Screen.activate();
-		Surface.Screen.unclip();
-		gl.disable(gl.SCISSOR_TEST);
-		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-		gl.enable(gl.SCISSOR_TEST);
+		Galileo.flip();
 	}
 
 	static draw(type: ShapeType, vertices: VertexList, indices?: IndexList | null, offset = 0, numVertices?: number)
@@ -165,6 +171,15 @@ class Galileo
 				numVertices = vertices.length - offset;
 			gl.drawArrays(drawMode, offset, numVertices);
 		}
+	}
+
+	static flip()
+	{
+		Surface.Screen.activate();
+		Surface.Screen.unclip();
+		gl.disable(gl.SCISSOR_TEST);
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+		gl.enable(gl.SCISSOR_TEST);
 	}
 
 	static rerez(width: number, height: number)
@@ -426,11 +441,28 @@ class Color
 		return new Color(this.r, this.g, this.b,
 			this.a * alphaFactor);
 	}
+
+	toVector()
+	{
+		return [ this.r, this.g, this.b, this.a ];
+	}
 }
 
 export
 class Font
 {
+	static get Default()
+	{
+		return defaultFont;
+	}
+
+	static async fromFile(fileName: string)
+	{
+		fileName = Game.urlOf(fileName);
+		const data = await Fido.fetchData(fileName);
+		return new Font(data);
+	}
+
 	atlas: Texture;
 	glyphs: Glyph[] = [];
 	lineHeight = 0;
@@ -438,15 +470,11 @@ class Font
 	numGlyphs = 0;
 	stride: number;
 
-	static async fromFile(url: string)
+	constructor(source: BufferSource | string)
 	{
-		const data = await Fido.fetchData(url);
-		return new this(data);
-	}
-
-	constructor(rfnData: BufferSource)
-	{
-		let stream = new DataStream(rfnData);
+		if (typeof source === 'string')
+			throw RangeError("new Font() from file is not supported under Oozaru.");
+		let stream = new DataStream(source);
 		let rfn = stream.readStruct({
 			signature: 'string/4',
 			version:   'uint16-le',
@@ -493,7 +521,47 @@ class Font
 		return this.lineHeight;
 	}
 
-	drawText(text: string, color: Color, matrix: Transform)
+	drawText(surface: Surface, x: number, y: number, text: string, color = Color.White, wrapWidth?: number)
+	{
+		const matrix = new Transform().translate(Math.trunc(x), Math.trunc(y));
+		surface.activate();
+		defaultShader.activate(false);
+		defaultShader.project(surface.projection);
+		if (wrapWidth !== undefined) {
+			const lines = this.wordWrap(text, wrapWidth);
+			for (let i = 0, len = lines.length; i < len; ++i) {
+				this.renderString(lines[i], color, matrix);
+				matrix.translate(0, this.lineHeight);
+			}
+		}
+		else {
+			this.renderString(text, color, matrix);
+		}
+	}
+
+	getTextSize(text: string, wrapWidth?: number): Size
+	{
+		if (wrapWidth !== undefined) {
+			const lines = this.wordWrap(text, wrapWidth);
+			return {
+				width: wrapWidth,
+				height: lines.length * this.lineHeight,
+			};
+		}
+		else {
+			return {
+				width: this.widthOf(text),
+				height: this.lineHeight,
+			};
+		}
+	}
+
+	heightOf(text: string, wrapWidth?: number)
+	{
+		return this.getTextSize(text, wrapWidth).height;
+	}
+
+	renderString(text: string, color: Color, matrix: Transform)
 	{
 		if (text === "")
 			return;  // empty string, nothing to render
@@ -557,28 +625,6 @@ class Font
 		}
 		this.atlas.useTexture(0);
 		Galileo.draw(ShapeType.Triangles, new VertexList(vertices));
-	}
-
-	getTextSize(text: string, wrapWidth?: number): Size
-	{
-		if (wrapWidth !== undefined) {
-			const lines = this.wordWrap(text, wrapWidth);
-			return {
-				width: wrapWidth,
-				height: lines.length * this.lineHeight,
-			};
-		}
-		else {
-			return {
-				width: this.widthOf(text),
-				height: this.lineHeight,
-			};
-		}
-	}
-
-	heightOf(text: string, wrapWidth?: number)
-	{
-		return this.getTextSize(text, wrapWidth).height;
 	}
 
 	widthOf(text: string)
@@ -741,13 +787,72 @@ class IndexList
 }
 
 export
+class Model
+{
+	shapes: Shape[];
+	shader_: Shader;
+	transform_: Transform;
+
+	constructor(shapes: Iterable<Shape>, shader = Shader.Default)
+	{
+		this.shapes = [ ...shapes ];
+		this.shader_ = shader;
+		this.transform_ = new Transform();
+	}
+
+	get shader()
+	{
+		return this.shader_;
+	}
+
+	get transform()
+	{
+		return this.transform_;
+	}
+
+	set shader(value)
+	{
+		this.shader_ = value;
+	}
+
+	set transform(value)
+	{
+		this.transform_ = value;
+	}
+
+	draw(surface = Surface.Screen)
+	{
+		for (const shape of this.shapes)
+			shape.draw(surface, this.transform_, this.shader_);
+	}
+}
+
+export
 class Shader
 {
-	deferred: { [x: string]: { type: string, value: any } } = {};
+	static get Default()
+	{
+		return defaultShader;
+	}
+	
+	static async fromFiles(options: ShaderOptions)
+	{
+		const vertexURL = Game.urlOf(options.vertexFile);
+		const fragmentURL = Game.urlOf(options.fragmentFile);
+		const [ vertexSource, fragmentSource ] = await Promise.all([
+			Fido.fetchText(vertexURL),
+			Fido.fetchText(fragmentURL),
+		]);
+		return new Shader(vertexSource, fragmentSource);
+	}
+	
+	fragmentSource: string;
 	glProgram: WebGLProgram;
 	modelView: Transform;
 	projection: Transform;
 	uniformIDs: { [x: string]: WebGLUniformLocation | null } = {};
+	vertexSource: string;
+	valuesToSet: { [x: string]: { type: string, value: any } } = {};
 
 	constructor(vertexSource: string, fragmentSource: string)
 	{
@@ -783,22 +888,24 @@ class Shader
 			throw new Error(`Couldn't link shader program...\n${message}`);
 		}
 
+		this.fragmentSource = fragmentSource;
 		this.glProgram = program;
 		this.projection = Transform.Identity;
 		this.modelView = Transform.Identity;
+		this.vertexSource = vertexSource;
 
 		let transformation = this.modelView.clone()
 			.compose(this.projection);
-		this.setMatrixValue('al_projview_matrix', transformation);
-		this.setIntValue('al_tex', 0);
+		this.setMatrix('al_projview_matrix', transformation);
+		this.setInt('al_tex', 0);
 	}
 
 	activate(useTexture: boolean)
 	{
 		if (activeShader !== this) {
 			gl.useProgram(this.glProgram);
-			for (const name of Object.keys(this.deferred)) {
-				const entry = this.deferred[name];
+			for (const name of Object.keys(this.valuesToSet)) {
+				const entry = this.valuesToSet[name];
 				const slot = this.uniformIDs[name];
 				let size: number;
 				switch (entry.type) {
@@ -836,10 +943,15 @@ class Shader
 						break;
 				}
 			}
-			this.deferred = {};
+			this.valuesToSet = {};
 			activeShader = this;
 		}
-		this.setBoolValue('al_use_tex', useTexture);
+		this.setBoolean('al_use_tex', useTexture);
+	}
+
+	clone()
+	{
+		return new Shader(this.vertexSource, this.fragmentSource);
 	}
 
 	project(matrix: Transform)
@@ -847,10 +959,10 @@ class Shader
 		this.projection = matrix.clone();
 		let transformation = this.modelView.clone()
 			.compose(this.projection);
-		this.setMatrixValue('al_projview_matrix', transformation);
+		this.setMatrix('al_projview_matrix', transformation);
 	}
 
-	setBoolValue(name: string, value: boolean)
+	setBoolean(name: string, value: boolean)
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
@@ -860,7 +972,25 @@ class Shader
 		if (activeShader === this)
 			gl.uniform1i(location, value ? 1 : 0);
 		else
-			this.deferred[name] = { type: 'bool', value };
+			this.valuesToSet[name] = { type: 'bool', value };
+	}
+
+	setColorVector(name: string, color: Color)
+	{
+		this.setFloatVector(name, color.toVector());
+	}
+
+	setFloat(name: string, value: number)
+	{
+		let location = this.uniformIDs[name];
+		if (location === undefined) {
+			location = gl.getUniformLocation(this.glProgram, name);
+			this.uniformIDs[name] = location;
+		}
+		if (activeShader === this)
+			gl.uniform1f(location, value);
+		else
+			this.valuesToSet[name] = { type: 'float', value };
 	}
 
 	setFloatArray(name: string, values: number[])
@@ -873,23 +1003,10 @@ class Shader
 		if (activeShader === this)
 			gl.uniform1fv(location, values);
 		else
-			this.deferred[name] = { type: 'floatArray', value: values };
+			this.valuesToSet[name] = { type: 'floatArray', value: values };
 	}
 
-	setFloatValue(name: string, value: number)
-	{
-		let location = this.uniformIDs[name];
-		if (location === undefined) {
-			location = gl.getUniformLocation(this.glProgram, name);
-			this.uniformIDs[name] = location;
-		}
-		if (activeShader === this)
-			gl.uniform1f(location, value);
-		else
-			this.deferred[name] = { type: 'float', value };
-	}
-
-	setFloatVec(name: string, values: number[])
+	setFloatVector(name: string, values: number[])
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
@@ -904,8 +1021,21 @@ class Shader
 				: gl.uniform1fv(location, values);
 		}
 		else {
-			this.deferred[name] = { type: 'floatVec', value: values };
+			this.valuesToSet[name] = { type: 'floatVec', value: values };
 		}
+	}
+
+	setInt(name: string, value: number)
+	{
+		let location = this.uniformIDs[name];
+		if (location === undefined) {
+			location = gl.getUniformLocation(this.glProgram, name);
+			this.uniformIDs[name] = location;
+		}
+		if (activeShader === this)
+			gl.uniform1i(location, value);
+		else
+			this.valuesToSet[name] = { type: 'int', value };
 	}
 
 	setIntArray(name: string, values: number[])
@@ -918,23 +1048,10 @@ class Shader
 		if (activeShader === this)
 			gl.uniform1iv(location, values);
 		else
-			this.deferred[name] = { type: 'intArray', value: values };
+			this.valuesToSet[name] = { type: 'intArray', value: values };
 	}
 
-	setIntValue(name: string, value: number)
-	{
-		let location = this.uniformIDs[name];
-		if (location === undefined) {
-			location = gl.getUniformLocation(this.glProgram, name);
-			this.uniformIDs[name] = location;
-		}
-		if (activeShader === this)
-			gl.uniform1i(location, value);
-		else
-			this.deferred[name] = { type: 'int', value };
-	}
-
-	setIntVec(name: string, values: number[])
+	setIntVector(name: string, values: number[])
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
@@ -949,11 +1066,11 @@ class Shader
 				: gl.uniform1iv(location, values);
 		}
 		else {
-			this.deferred[name] = { type: 'intVec', value: values };
+			this.valuesToSet[name] = { type: 'intVec', value: values };
 		}
 	}
 
-	setMatrixValue(name: string, value: Transform)
+	setMatrix(name: string, value: Transform)
 	{
 		let location = this.uniformIDs[name];
 		if (location === undefined) {
@@ -963,7 +1080,7 @@ class Shader
 		if (activeShader === this)
 			gl.uniformMatrix4fv(location, false, value.values);
 		else
-			this.deferred[name] = { type: 'matrix', value };
+			this.valuesToSet[name] = { type: 'matrix', value };
 	}
 
 	transform(matrix: Transform)
@@ -971,26 +1088,66 @@ class Shader
 		this.modelView = matrix.clone();
 		let transformation = this.modelView.clone()
 			.compose(this.projection);
-		this.setMatrixValue('al_projview_matrix', transformation);
+		this.setMatrix('al_projview_matrix', transformation);
 	}
 }
 
 export
 class Shape
 {
-	type: ShapeType;
-	vertices: VertexList;
-	indices: IndexList | null;
-
-	constructor(type: ShapeType, vertices: VertexList, indices: IndexList | null)
+	static drawImmediate(surface: Surface, type: ShapeType, texture: Texture | null, vertices: ArrayLike<Vertex>): void
+	static drawImmediate(surface: Surface, type: ShapeType, vertices: ArrayLike<Vertex>): void
+	static drawImmediate(surface: Surface, type: ShapeType, arg1: Texture | ArrayLike<Vertex> | null, arg2?: ArrayLike<Vertex>)
 	{
-		this.type = type;
-		this.vertices = vertices;
-		this.indices = indices;
+		surface.activate();
+		if (arg1 instanceof Texture || arg1 === null) {
+			defaultShader.activate(arg1 !== null);
+			defaultShader.project(surface.projection);
+			defaultShader.transform(Transform.Identity);
+			arg1?.useTexture(0);
+			Galileo.draw(type, new VertexList(arg2!));
+		}
+		else {
+			defaultShader.activate(false);
+			defaultShader.project(surface.projection);
+			defaultShader.transform(Transform.Identity);
+			Galileo.draw(type, new VertexList(arg1));
+		}
 	}
 
-	draw()
+	indices: IndexList | null;
+	texture: Texture | null;
+	type: ShapeType;
+	vertices: VertexList;
+
+	constructor(type: ShapeType, texture: Texture | null, vertices: VertexList, indices?: IndexList | null)
+	constructor(type: ShapeType, vertices: VertexList, indices?: IndexList | null)
+	constructor(type: ShapeType, arg1: Texture | VertexList | null, arg2: VertexList | IndexList | null = null, arg3: IndexList | null = null)
 	{
+		this.type = type;
+		if (arg2 instanceof VertexList) {
+			if (!(arg1 instanceof Texture) && arg1 != undefined)
+				throw new Error("Expected a Texture or 'null' as second argument to Shape constructor");
+			this.vertices = arg2;
+			this.indices = arg3;
+			this.texture = arg1;
+		}
+		else {
+			if (!(arg1 instanceof VertexList))
+				throw new Error("Expected a VertexList or Texture as second argument to Shape constructor");
+			this.vertices = arg1;
+			this.indices = arg2;
+			this.texture = null;
+		}
+	}
+
+	draw(surface = Surface.Screen, transform = Transform.Identity, shader = Shader.Default)
+	{
+		surface.activate();
+		shader.activate(this.texture !== null);
+		shader.project(surface.projection);
+		shader.transform(transform);
+		this.texture?.useTexture(0);
 		Galileo.draw(this.type, this.vertices, this.indices);
 	}
 }

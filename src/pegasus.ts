@@ -35,8 +35,8 @@ import { DataStream } from './data-stream.js';
 import Fido from './fido.js';
 import Game from './game.js';
 import * as Galileo from './galileo.js';
-import { BlendOp, Color, DepthOp, IndexList, ShapeType, Surface, Texture, Transform, Vertex, VertexList } from './galileo.js';
-import InputEngine, { Key, Keyboard, Mouse, MouseKey } from './input-engine.js';
+import { BlendOp, Color, DepthOp, Font, IndexList, Model, Shader, Shape, ShapeType, Surface, Texture, Transform, VertexList } from './galileo.js';
+import InputEngine, { Joystick, Key, Keyboard, Mouse, MouseKey } from './input-engine.js';
 import { JobQueue, JobType } from './job-queue.js';
 import { fetchScript } from './utilities.js';
 import { Version } from './version.js';
@@ -72,17 +72,9 @@ interface ReadFileReturn
 	[DataType.Text]: string;
 }
 
-interface ShaderOptions
-{
-	vertexFile: string;
-	fragmentFile: string;
-}
-
 const console = globalThis.console;
 const jobQueue = new JobQueue();
 
-var defaultFont: Font;
-var defaultShader: Shader;
 var mainObject: { [x: string]: any } | undefined;
 
 export default
@@ -150,21 +142,15 @@ class Pegasus
 		// load the game's JSON manifest
 		await Game.initialize(rootPath);
 
-		defaultFont = await Font.fromFile('#/default.rfn');
-		defaultShader = await Shader.fromFiles({
-			vertexFile: '#/default.vert.glsl',
-			fragmentFile: '#/default.frag.glsl',
-		});
-
 		jobQueue.add(JobType.Render, () => {
 			if (Fido.progress >= 1.0)
 				return;
 			const status = `fido: ${Math.floor(100.0 * Fido.progress)}% (${Fido.numJobs} files)`;
-			const textSize = defaultFont.getTextSize(status);
+			const textSize = Font.Default.getTextSize(status);
 			const x = Surface.Screen.width - textSize.width - 5;
 			const y = Surface.Screen.height - textSize.height - 5;
-			defaultFont.drawText(Surface.Screen, x + 1, y + 1, status, Color.Black);
-			defaultFont.drawText(Surface.Screen, x, y, status, Color.Silver);
+			Font.Default.drawText(Surface.Screen, x + 1, y + 1, status, Color.Black);
+			Font.Default.drawText(Surface.Screen, x, y, status, Color.Silver);
 		}, true, Infinity);
 
 		// start the Sphere v2 event loop
@@ -403,79 +389,6 @@ class FileStream
 	}
 }
 
-class Font
-{
-	static get Default()
-	{
-		Object.defineProperty(Font, 'Default', {
-			writable: false,
-			enumerable: false,
-			configurable: true,
-			value: defaultFont,
-		});
-		return defaultFont;
-	}
-
-	font: Galileo.Font;
-
-	static async fromFile(fileName: string)
-	{
-		const url = Game.urlOf(fileName);
-		const font = await Galileo.Font.fromFile(url);
-		const object = Object.create(this.prototype) as Font;
-		object.font = font;
-		return object;
-	}
-
-	constructor(fileName: string)
-	{
-		throw new Error("'new Font()' from filename is not supported under Oozaru.");
-	}
-
-	get height()
-	{
-		return this.font.height;
-	}
-
-	drawText(surface: Surface, x: number, y: number, text: any, color = Color.White, wrapWidth?: number)
-	{
-		const matrix = new Transform().translate(Math.trunc(x), Math.trunc(y));
-		surface.activate();
-		Shader.Default.program.activate(false);
-		Shader.Default.program.project(surface.projection);
-		if (wrapWidth !== undefined) {
-			const lines = this.wordWrap(String(text), wrapWidth);
-			for (let i = 0, len = lines.length; i < len; ++i) {
-				this.font.drawText(lines[i], color, matrix);
-				matrix.translate(0, this.font.height);
-			}
-		}
-		else {
-			this.font.drawText(String(text), color, matrix);
-		}
-	}
-
-	getTextSize(text: any, wrapWidth?: number)
-	{
-		return this.font.getTextSize(String(text), wrapWidth);
-	}
-
-	heightOf(text: any, wrapWidth?: number)
-	{
-		return this.font.heightOf(String(text), wrapWidth);
-	}
-
-	widthOf(text: any)
-	{
-		return this.font.widthOf(String(text));
-	}
-
-	wordWrap(text: any, wrapWidth: number)
-	{
-		return this.font.wordWrap(String(text), wrapWidth);
-	}
-}
-
 class JobToken
 {
 	jobID: number;
@@ -498,103 +411,6 @@ class JobToken
 	resume()
 	{
 		jobQueue.pause(this.jobID, false);
-	}
-}
-
-class Joystick
-{
-	static get P1()
-	{
-		return memoize(this, 'P1', new Joystick());
-	}
-
-	static get P2()
-	{
-		return memoize(this, 'P2', new Joystick());
-	}
-
-	static get P3()
-	{
-		return memoize(this, 'P3', new Joystick());
-	}
-
-	static get P4()
-	{
-		return memoize(this, 'P4', new Joystick());
-	}
-
-	static getDevices()
-	{
-		return [];
-	}
-
-	get name()
-	{
-		return "null joystick";
-	}
-
-	get numAxes()
-	{
-		return 0;
-	}
-
-	get numButtons()
-	{
-		return 0;
-	}
-
-	getPosition()
-	{
-		return 0.0;
-	}
-
-	isPressed()
-	{
-		return false;
-	}
-}
-
-class Model
-{
-	shapes: Shape[];
-	shader_: Shader;
-	transform_: Transform;
-
-	constructor(shapes: Iterable<Shape>, shader = Shader.Default)
-	{
-		this.shapes = [ ...shapes ];
-		this.shader_ = shader;
-		this.transform_ = new Transform();
-	}
-
-	get shader()
-	{
-		return this.shader_;
-	}
-	set shader(value)
-	{
-		this.shader_ = value;
-	}
-
-	get transform()
-	{
-		return this.transform_;
-	}
-	set transform(value)
-	{
-		this.transform_ = value;
-	}
-
-	draw(surface = Surface.Screen)
-	{
-		surface.activate();
-		this.shader_.program.project(surface.projection);
-		this.shader_.program.transform(this.transform_);
-		for (const shape of this.shapes) {
-			this.shader_.program.activate(shape.texture !== null);
-			shape.texture?.useTexture(0);
-			shape.shape.draw();
-		}
 	}
 }
 
@@ -645,166 +461,4 @@ class SSj
 	{
 		return performance.now() / 1000.0;
 	}
-}
-
-class Shader
-{
-	fragmentSource: string;
-	program: Galileo.Shader;
-	vertexSource: string;
-
-	static get Default()
-	{
-		Object.defineProperty(Shader, 'Default', {
-			writable: false,
-			enumerable: false,
-			configurable: true,
-			value: defaultShader,
-		});
-		return defaultShader;
-	}
-
-	static async fromFiles(options: ShaderOptions)
-	{
-		const vertexURL = Game.urlOf(options.vertexFile);
-		const fragmentURL = Game.urlOf(options.fragmentFile);
-		const shader = Object.create(this.prototype) as Shader;
-		const [ vertexSource, fragmentSource ] = await Promise.all([
-			Fido.fetchText(vertexURL),
-			Fido.fetchText(fragmentURL)
-		]);
-		shader.program = new Galileo.Shader(vertexSource, fragmentSource);
-		shader.vertexSource = vertexSource;
-		shader.fragmentSource = fragmentSource;
-		return shader;
-	}
-
-	constructor(options: ShaderOptions)
-	{
-		throw new RangeError("new Shader() with filename is not supported");
-	}
-
-	clone()
-	{
-		const dolly = Object.create(Object.getPrototypeOf(this)) as Shader;
-		dolly.vertexSource = this.vertexSource;
-		dolly.fragmentSource = this.fragmentSource;
-		dolly.program = new Galileo.Shader(dolly.vertexSource, dolly.fragmentSource);
-		return dolly;
-	}
-
-	setBoolean(name: string, value: boolean)
-	{
-		this.program.setBoolValue(name, value);
-	}
-
-	setColorVector(name: string, value: Color)
-	{
-		this.program.setFloatVec(name, [
-			value.r,
-			value.g,
-			value.b,
-			value.a
-		]);
-	}
-
-	setFloat(name: string, value: number)
-	{
-		this.program.setFloatValue(name, value);
-	}
-
-	setFloatArray(name: string, values: number[])
-	{
-		this.program.setFloatArray(name, values);
-	}
-
-	setFloatVector(name: string, values: number[])
-	{
-		this.program.setFloatVec(name, values);
-	}
-
-	setInt(name: string, value: number)
-	{
-		this.program.setIntValue(name, value);
-	}
-
-	setIntArray(name: string, values: number[])
-	{
-		this.program.setIntArray(name, values);
-	}
-
-	setIntVector(name: string, values: number[])
-	{
-		this.program.setIntVec(name, values);
-	}
-
-	setMatrix(name: string, value: Transform)
-	{
-		this.program.setMatrixValue(name, value);
-	}
-}
-
-class Shape
-{
-	shape: Galileo.Shape;
-	texture: Texture | null;
-
-	static drawImmediate(surface: Surface, type: ShapeType, texture: Texture | null, vertices: ArrayLike<Vertex>): void
-	static drawImmediate(surface: Surface, type: ShapeType, vertices: ArrayLike<Vertex>): void
-	static drawImmediate(surface: Surface, type: ShapeType, arg1: Texture | ArrayLike<Vertex> | null, arg2?: ArrayLike<Vertex>)
-	{
-		surface.activate();
-		if (arg1 instanceof Texture || arg1 === null) {
-			Shader.Default.program.activate(arg1 !== null);
-			Shader.Default.program.project(surface.projection);
-			Shader.Default.program.transform(Transform.Identity);
-			arg1?.useTexture(0);
-			Galileo.default.draw(type, new VertexList(arg2!));
-		}
-		else {
-			Shader.Default.program.activate(false);
-			Shader.Default.program.project(surface.projection);
-			Shader.Default.program.transform(Transform.Identity);
-			Galileo.default.draw(type, new VertexList(arg1));
-		}
-	}
-
-	constructor(type: ShapeType, texture: Texture | null, vertices: VertexList, indices?: IndexList | null)
-	constructor(type: ShapeType, vertices: VertexList, indices?: IndexList | null)
-	constructor(arg0: ShapeType, arg1: Texture | VertexList | null, arg2: VertexList | IndexList | null = null, arg3: IndexList | null = null)
-	{
-		if (arg2 instanceof VertexList) {
-			if (!(arg1 instanceof Texture) && arg1 != undefined)
-				throw new Error("Expected a Texture or 'null' as second argument to Shape constructor");
-			this.shape = new Galileo.Shape(arg0, arg2, arg3);
-			this.texture = arg1;
-		}
-		else {
-			if (!(arg1 instanceof VertexList))
-				throw new Error("Expected a VertexList or Texture as second argument to Shape constructor");
-			this.shape = new Galileo.Shape(arg0, arg1, arg2);
-			this.texture = null;
-		}
-	}
-
-	draw(surface = Surface.Screen, transform = Transform.Identity, shader = Shader.Default)
-	{
-		surface.activate();
-		shader.program.activate(this.texture !== null);
-		shader.program.project(surface.projection);
-		shader.program.transform(transform);
-		this.texture?.useTexture(0);
-		this.shape.draw();
-	}
-}
-
-function memoize(object: object, key: PropertyKey, value: unknown)
-{
-	Object.defineProperty(object, key, {
-		writable: false,
-		enumerable: false,
-		configurable: true,
-		value,
-	});
-	return value;
 }
