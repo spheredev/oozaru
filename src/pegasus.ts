@@ -37,7 +37,7 @@ import { Font } from './fontso.js';
 import Game from './game.js';
 import Galileo, { BlendOp, Color, DepthOp, IndexList, Model, Shader, Shape, ShapeType, Surface, Texture, Transform, VertexList } from './galileo.js';
 import InputEngine, { Joystick, Key, Keyboard, Mouse, MouseKey } from './input-engine.js';
-import { JobQueue, JobType } from './job-queue.js';
+import JobQueue, { JobType } from './job-queue.js';
 import { fetchScript } from './utilities.js';
 import { Version } from './version.js';
 
@@ -73,7 +73,6 @@ interface ReadFileReturn
 }
 
 const console = globalThis.console;
-const jobQueue = new JobQueue();
 
 var mainObject: { [x: string]: any } | undefined;
 
@@ -108,6 +107,7 @@ class Pegasus
 			FileStream,
 			Font,
 			IndexList,
+			JobToken,
 			Joystick,
 			Keyboard,
 			Mixer,
@@ -142,7 +142,7 @@ class Pegasus
 		// load the game's JSON manifest
 		await Game.initialize(rootPath);
 
-		jobQueue.add(JobType.Render, () => {
+		JobQueue.add(JobType.Render, () => {
 			if (Fido.progress >= 1.0)
 				return;
 			const status = `fido: ${Math.floor(100.0 * Fido.progress)}% (${Fido.numJobs} files)`;
@@ -154,7 +154,7 @@ class Pegasus
 		}, true, Infinity);
 
 		// start the Sphere v2 event loop
-		jobQueue.start();
+		JobQueue.start();
 
 		await Game.launch();
 	}
@@ -225,13 +225,13 @@ class Sphere
 
 	static now()
 	{
-		return jobQueue.now();
+		return JobQueue.now();
 	}
 
 	static sleep(numFrames: number)
 	{
 		return new Promise<void>(resolve => {
-			jobQueue.add(JobType.Update, resolve, false, numFrames);
+			JobQueue.add(JobType.Update, resolve, false, numFrames);
 		});
 	}
 
@@ -250,25 +250,25 @@ class Dispatch
 
 	static later(numFrames: number, callback: () => void)
 	{
-		const jobID = jobQueue.add(JobType.Update, callback, false, numFrames);
+		const jobID = JobQueue.add(JobType.Update, callback, false, numFrames);
 		return new JobToken(jobID);
 	}
 
 	static now(callback: () => void)
 	{
-		const jobID = jobQueue.add(JobType.Immediate, callback);
+		const jobID = JobQueue.add(JobType.Immediate, callback);
 		return new JobToken(jobID);
 	}
 
 	static onRender(callback: () => void, options: JobOptions = {})
 	{
-		const jobID = jobQueue.add(JobType.Render, callback, true, options.priority);
+		const jobID = JobQueue.add(JobType.Render, callback, true, options.priority);
 		return new JobToken(jobID);
 	}
 
 	static onUpdate(callback: () => void, options: JobOptions = {})
 	{
-		const jobID = jobQueue.add(JobType.Update, callback, true, options.priority);
+		const jobID = JobQueue.add(JobType.Update, callback, true, options.priority);
 		return new JobToken(jobID);
 	}
 }
@@ -400,17 +400,17 @@ class JobToken
 
 	cancel()
 	{
-		jobQueue.cancel(this.jobID);
+		JobQueue.cancel(this.jobID);
 	}
 
 	pause()
 	{
-		jobQueue.pause(this.jobID, true);
+		JobQueue.pause(this.jobID, true);
 	}
 
 	resume()
 	{
-		jobQueue.pause(this.jobID, false);
+		JobQueue.pause(this.jobID, false);
 	}
 }
 

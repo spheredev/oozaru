@@ -416,7 +416,7 @@ class Color
 
 	get name(): string
 	{
-		throw new Error(`'Color#name' API is not implemented`);
+		throw new Error(`The Color#name API is not implemented.`);
 	}
 
 	clone()
