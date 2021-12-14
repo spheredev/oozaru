@@ -32,7 +32,7 @@
 
 import Audialis from './audialis.js';
 import Fido from './fido.js';
-import FontSystem from './font-system.js';
+import Fontso from './fontso.js';
 import Galileo from './galileo.js';
 import InputEngine from './input-engine.js';
 import Pegasus from './pegasus.js';
@@ -57,7 +57,7 @@ async function main()
 	const canvas = document.getElementById('screen') as HTMLCanvasElement;
 	await Galileo.initialize(canvas);
 	await Audialis.initialize();
-	await FontSystem.initialize();
+	await Fontso.initialize();
 
 	const menu = document.getElementById('menu')!;
 	let useDistDir = true;

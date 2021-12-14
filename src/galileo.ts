@@ -340,11 +340,6 @@ class Color
 	static get RebeccaPurple ()        { return new Color(102 / 255, 51  / 255, 153 / 255, 255 / 255); }
 	static get StankyBean ()           { return new Color(197 / 255, 162 / 255, 171 / 255, 255 / 255); }
 
-	r: number;
-	g: number;
-	b: number;
-	a: number;
-
 	static is(x: Color, y: Color)
 	{
 		return x.r === y.r && x.g === y.g && x.b === y.b;
@@ -361,7 +356,7 @@ class Color
 			x.b * wx + y.b * wy,
 			x.a * wx + y.a * wy);
 	}
-	
+
 	static of(name: string)
 	{
 		// parse 6-digit format (#rrggbb)
@@ -405,7 +400,12 @@ class Color
 		// if we got here, none of the parsing attempts succeeded, so throw an error.
 		throw new RangeError(`Invalid color designation '${name}'`);
 	}
-	
+
+	r: number;
+	g: number;
+	b: number;
+	a: number;
+
 	constructor(r: number, g: number, b: number, a = 1.0)
 	{
 		this.r = r;
@@ -788,7 +788,7 @@ class Shape
 	}
 
 	indices: IndexList | null;
-	texture: Texture | null;
+	texture_: Texture | null;
 	type: ShapeType;
 	vertices: VertexList;
 
@@ -802,20 +802,56 @@ class Shape
 				throw new Error("Expected a Texture or 'null' as second argument to Shape constructor");
 			this.vertices = arg2;
 			this.indices = arg3;
-			this.texture = arg1;
+			this.texture_ = arg1;
 		}
 		else {
 			if (!(arg1 instanceof VertexList))
 				throw new Error("Expected a VertexList or Texture as second argument to Shape constructor");
 			this.vertices = arg1;
 			this.indices = arg2;
-			this.texture = null;
+			this.texture_ = null;
 		}
+	}
+
+	get indexList()
+	{
+		return this.indices;
+	}
+
+	get texture()
+	{
+		return this.texture_;
+	}
+
+	get vertexList()
+	{
+		return this.vertices;
+	}
+
+	set indexList(value)
+	{
+		if (value !== null && !(value instanceof IndexList))
+			throw TypeError("Shape#indexList must be set to an IndexList object or 'null'.");
+		this.indices = value;
+	}
+
+	set texture(value)
+	{
+		if (value !== null && !(value instanceof Texture))
+			throw TypeError("Shape#texture must be set to a Texture object or 'null'.");
+		this.texture_ = value;
+	}
+
+	set vertexList(value)
+	{
+		if (!(value instanceof VertexList))
+			throw TypeError("Shape#vertexList must be set to a VertexList object.");
+		this.vertices = value;
 	}
 
 	draw(surface = Surface.Screen, transform = Transform.Identity, shader = Shader.Default)
 	{
-		surface.activate(shader, this.texture, transform);
+		surface.activate(shader, this.texture_, transform);
 		Galileo.draw(this.type, this.vertices, this.indices);
 	}
 }

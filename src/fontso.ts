@@ -47,7 +47,7 @@ interface Glyph
 var defaultFont: Font;
 
 export default
-class FontSystem
+class Fontso
 {
     static async initialize()
     {
@@ -175,7 +175,7 @@ class Font
 		while ((cp = text.codePointAt(ptr++)) !== undefined) {
 			if (cp > 0xFFFF)  // surrogate pair?
 				++ptr;
-			cp = unicodeToASCII(cp);
+			cp = toCP1252(cp);
 			if (cp >= this.numGlyphs)
 				cp = 0x1A;
 			const glyph = this.glyphs[cp];
@@ -206,11 +206,10 @@ class Font
 		while ((cp = text.codePointAt(ptr++)) !== undefined) {
 			if (cp > 0xFFFF)  // surrogate pair?
 				++ptr;
-			cp = unicodeToASCII(cp);
+			cp = toCP1252(cp);
 			if (cp >= this.numGlyphs)
 				cp = 0x1A;
-			const glyph = this.glyphs[cp];
-			width += glyph.width;
+			width += this.glyphs[cp].width;
 		}
 		return width;
 	}
@@ -229,7 +228,7 @@ class Font
 		while ((cp = text.codePointAt(ptr++)) !== undefined) {
 			if (cp > 0xFFFF)  // surrogate pair?
 				++ptr;
-			cp = unicodeToASCII(cp);
+			cp = toCP1252(cp);
 			if (cp >= this.numGlyphs)
 				cp = 0x1A;
 			const glyph = this.glyphs[cp];
@@ -275,7 +274,7 @@ class Font
 	}
 }
 
-function unicodeToASCII(codepoint: number)
+function toCP1252(codepoint: number)
 {
 	return codepoint == 0x20AC ? 128
 		: codepoint == 0x201A ? 130

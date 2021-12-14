@@ -33,7 +33,7 @@
 import { Mixer, Sound, SoundStream } from './audialis.js';
 import { DataStream } from './data-stream.js';
 import Fido from './fido.js';
-import { Font } from './font-system.js';
+import { Font } from './fontso.js';
 import Game from './game.js';
 import Galileo, { BlendOp, Color, DepthOp, IndexList, Model, Shader, Shape, ShapeType, Surface, Texture, Transform, VertexList } from './galileo.js';
 import InputEngine, { Joystick, Key, Keyboard, Mouse, MouseKey } from './input-engine.js';
