@@ -107,6 +107,7 @@ body.darkened {
 }
 
 #tv canvas {
+	background-color: #000;
 	border: 1px solid #000;
 	flex: none;
 	image-rendering: pixelated;

@@ -54,11 +54,6 @@ async function main()
 		reportException(e.reason);
 	});
 
-	const canvas = document.getElementById('screen') as HTMLCanvasElement;
-	await Galileo.initialize(canvas);
-	await Audialis.initialize();
-	await Fontso.initialize();
-
 	const menu = document.getElementById('menu')!;
 	let useDistDir = true;
 	try {
@@ -99,9 +94,14 @@ async function main()
 			document.body.classList.add('darkened');
 			powerButton.classList.toggle('on');
 			powerText.classList.remove('visible');
+			const canvas = document.getElementById('screen') as HTMLCanvasElement;
 			canvas.focus();
+			await Galileo.initialize(canvas);
+			await Audialis.initialize();
+			await Fontso.initialize();
 			InputEngine.initialize(canvas);
 			Pegasus.initialize();
+			throw Error("The world's most devouring-est eaty pig that eats everything is behind you. *MUNCH*");
 			await Pegasus.launchGame(gameID !== null ? `games/${gameID}` : 'dist');
 		}
 		else {
