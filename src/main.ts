@@ -1,6 +1,6 @@
 /**
  *  Oozaru: Sphere for the Web
- *  Copyright (c) 2015-2021, Fat Cerberus
+ *  Copyright (c) 2015-2022, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -101,7 +101,6 @@ async function main()
 			await Fontso.initialize();
 			InputEngine.initialize(canvas);
 			Pegasus.initialize();
-			throw Error("The world's most devouring-est eaty pig that eats everything is behind you. *MUNCH*");
 			await Pegasus.launchGame(gameID !== null ? `games/${gameID}` : 'dist');
 		}
 		else {

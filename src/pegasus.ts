@@ -1,6 +1,6 @@
 /**
  *  Oozaru: Sphere for the Web
- *  Copyright (c) 2015-2021, Fat Cerberus
+ *  Copyright (c) 2015-2022, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@ import { Font } from './fontso.js';
 import Game from './game.js';
 import Galileo, { BlendOp, Color, DepthOp, IndexList, Model, Shader, Shape, ShapeType, Surface, Texture, Transform, VertexList } from './galileo.js';
 import InputEngine, { Joystick, Key, Keyboard, Mouse, MouseKey } from './input-engine.js';
-import JobQueue, { JobType } from './job-queue.js';
+import JobQueue, { Dispatch, JobToken, JobType } from './job-queue.js';
 import { fetchScript } from './utilities.js';
 import { Version } from './version.js';
 
@@ -55,12 +55,6 @@ enum FileOp
 	Read,
 	Update,
 	Write,
-}
-
-interface JobOptions
-{
-	inBackground?: boolean;
-	priority?: number;
 }
 
 interface ReadFileReturn
@@ -142,7 +136,7 @@ class Pegasus
 		// load the game's JSON manifest
 		await Game.initialize(rootPath);
 
-		JobQueue.add(JobType.Render, () => {
+		Dispatch.onRender(() => {
 			if (Fido.progress >= 1.0)
 				return;
 			const status = `fido: ${Math.floor(100.0 * Fido.progress)}% (${Fido.numJobs} files)`;
@@ -151,7 +145,10 @@ class Pegasus
 			const y = Surface.Screen.height - textSize.height - 5;
 			Font.Default.drawText(Surface.Screen, x + 1, y + 1, status, Color.Black);
 			Font.Default.drawText(Surface.Screen, x, y, status, Color.Silver);
-		}, true, Infinity);
+		}, {
+			inBackground: true,
+			priority: Infinity,
+		});
 
 		// start the Sphere v2 event loop
 		JobQueue.start();
@@ -231,45 +228,13 @@ class Sphere
 	static sleep(numFrames: number)
 	{
 		return new Promise<void>(resolve => {
-			JobQueue.add(JobType.Update, resolve, false, numFrames);
+			Dispatch.later(numFrames, resolve);
 		});
 	}
 
 	static setResolution(width: number, height: number)
 	{
 		Galileo.rerez(width, height);
-	}
-}
-
-class Dispatch
-{
-	static cancelAll()
-	{
-		throw new Error(`'Dispatch#cancelAll()' API is not implemented`);
-	}
-
-	static later(numFrames: number, callback: () => void)
-	{
-		const jobID = JobQueue.add(JobType.Update, callback, false, numFrames);
-		return new JobToken(jobID);
-	}
-
-	static now(callback: () => void)
-	{
-		const jobID = JobQueue.add(JobType.Immediate, callback);
-		return new JobToken(jobID);
-	}
-
-	static onRender(callback: () => void, options: JobOptions = {})
-	{
-		const jobID = JobQueue.add(JobType.Render, callback, true, options.priority);
-		return new JobToken(jobID);
-	}
-
-	static onUpdate(callback: () => void, options: JobOptions = {})
-	{
-		const jobID = JobQueue.add(JobType.Update, callback, true, options.priority);
-		return new JobToken(jobID);
 	}
 }
 
@@ -386,31 +351,6 @@ class FileStream
 		if (this.stream === null)
 			throw Error(`The FileStream has already been disposed`);
 		throw Error(`Oozaru doesn't yet support FileStream#write()`);
-	}
-}
-
-class JobToken
-{
-	jobID: number;
-
-	constructor(jobID: number)
-	{
-		this.jobID = jobID;
-	}
-
-	cancel()
-	{
-		JobQueue.cancel(this.jobID);
-	}
-
-	pause()
-	{
-		JobQueue.pause(this.jobID, true);
-	}
-
-	resume()
-	{
-		JobQueue.pause(this.jobID, false);
 	}
 }
 
