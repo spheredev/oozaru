@@ -89,6 +89,7 @@ class Pegasus
 			DataType,
 			DepthOp,
 			FileOp,
+			JobType,
 			Key,
 			MouseKey,
 			ShapeType,

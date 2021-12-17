@@ -46,19 +46,19 @@ interface Job
 }
 
 export
-interface JobOptions
-{
-	inBackground?: boolean;
-	priority?: number;
-}
-
-export
 enum JobType
 {
 	// in order of execution
 	Render,
 	Update,
 	Immediate,
+}
+
+export
+interface JobOptions
+{
+	inBackground?: boolean;
+	priority?: number;
 }
 
 var frameCount = -1;
@@ -112,15 +112,15 @@ class Dispatch
 		return new JobToken(job);
 	}
 
-	static onRender(callback: () => void, options: JobOptions = {})
+	static onRender(callback: () => void, options?: JobOptions)
 	{
-		const job = addJob(JobType.Render, callback, true, options.priority);
+		const job = addJob(JobType.Render, callback, true, 0, options);
 		return new JobToken(job);
 	}
 
-	static onUpdate(callback: () => void, options: JobOptions = {})
+	static onUpdate(callback: () => void, options?: JobOptions)
 	{
-		const job = addJob(JobType.Update, callback, true, options.priority);
+		const job = addJob(JobType.Update, callback, true, 0, options);
 		return new JobToken(job);
 	}
 }
@@ -151,15 +151,10 @@ class JobToken
 	}
 }
 
-function addJob(type: JobType, callback: () => void | PromiseLike<void>, recurring?: false, delay?: number): Job;
-function addJob(type: JobType, callback: () => void | PromiseLike<void>, recurring: true, priority?: number): Job;
-function addJob(type: JobType, callback: () => void | PromiseLike<void>, recurring = false, delayOrPriority = 0)
+function addJob(type: JobType, callback: () => void | PromiseLike<void>, recurring = false, delay: number = 0, options?: JobOptions)
 {
-	const timer = !recurring ? delayOrPriority : 0;
-	let priority = recurring ? delayOrPriority : 0.0;
-
-	// invert priority of render jobs so that the highest-priority render is done last
-	// (painter's algorithm).
+	// for render jobs, invert priority so the highest-priority render is done last
+	let priority = options?.priority ?? 0.0;
 	if (type === JobType.Render)
 		priority = -(priority);
 
@@ -172,7 +167,7 @@ function addJob(type: JobType, callback: () => void | PromiseLike<void>, recurri
 		recurring,
 		busy: false,
 		paused: false,
-		timer,
+		timer: delay,
 	};
 	jobs.push(job);
 	jobSortNeeded = true;
