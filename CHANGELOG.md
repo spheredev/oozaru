@@ -1,6 +1,17 @@
 Oozaru Changelog
 ================
 
+v0.4.0 - TBD
+------------
+
+* Adds support for loading Sphere v2 games with only an SGM manifest.
+* Adds support for launching games targeting API level 3 or under, albeit with
+  a warning message printed to the console.
+* Improves the file loader to show loading progress for more asset types.
+* Renames `BufferStream` to `DataStream` and updates the implementation to
+  match the one currently used in neoSphere.
+
+
 v0.3.3 - July 6, 2021
 ---------------------
 
