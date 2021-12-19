@@ -1,12 +1,14 @@
 Oozaru Changelog
 ================
 
-v0.4.0 - TBD
-------------
+v0.4.0 - December 18, 2021
+--------------------------
 
 * Adds support for loading Sphere v2 games with only an SGM manifest.
 * Adds support for launching games targeting API level 3 or under, albeit with
   a warning message printed to the console.
+* Adds a metadata file, `oozaru.json`, that external tools can use to identify
+  the engine.
 * Improves the file loader to show loading progress for more asset types.
 * Renames `BufferStream` to `DataStream` and updates the implementation to
   match the one currently used in neoSphere.
@@ -18,7 +20,6 @@ v0.3.3 - July 6, 2021
 * Adds support for `FS.readFile()` to the Core API implementation.
 * Adds `BufferStream` to the Sphere Runtime implementation.
 * Removes `DataStream` from the Sphere Runtime implementation.
-
 
 v0.3.2 - November 28, 2020
 --------------------------
