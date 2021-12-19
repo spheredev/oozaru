@@ -97,7 +97,7 @@ class Game
 
 	static async launch()
 	{
-		document.title = `${Game.manifest.name} - ${Version.name}`;
+		document.title = `${Game.manifest.name} - ${Version.engine}`;
 		document.getElementById('gameTitle')!.innerHTML = Game.manifest.name;
 		document.getElementById('copyright')!.innerHTML = `game by ${Game.manifest.author}`;
 

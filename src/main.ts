@@ -36,11 +36,14 @@ import Fontso from './fontso.js';
 import Galileo from './galileo.js';
 import InputEngine from './input-engine.js';
 import Pegasus from './pegasus.js';
+import { Version } from './version.js';
 
 main();
 
 async function main()
 {
+	await Version.initialize();
+	
 	const urlQuery = new URL(location.href).searchParams;
 	const gameID = urlQuery.get('game');
 

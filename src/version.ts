@@ -30,11 +30,29 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
+import Fido from './fido.js';
+
 export
-namespace Version
+class Version
 {
-    export const name = "Oozaru";
-    export const version = "0.4.0";
-    export const apiVersion = 2;
-    export const apiLevel = 4;
+    static apiVersion = 2;
+    static apiLevel = 4;
+    static json: any;
+
+    static async initialize()
+    {
+        this.json = await Fido.fetchJSON('oozaru.json');
+    }
+
+    static get engine()
+    {
+        return typeof this.json.name === 'string'
+            ? this.json.name : "Oozaru";
+    }
+
+    static get version()
+    {
+        return typeof this.json.version === 'string'
+            ? this.json.version : "WiP";
+    }
 }

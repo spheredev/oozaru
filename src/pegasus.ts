@@ -172,7 +172,7 @@ class Sphere
 
 	static get Engine()
 	{
-		return `${Version.name} ${Version.version}`;
+		return `${Version.engine} ${Version.version}`;
 	}
 
 	static get Game()
