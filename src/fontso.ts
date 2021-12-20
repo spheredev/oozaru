@@ -128,8 +128,9 @@ class Font
 		return this.lineHeight;
 	}
 
-	drawText(surface: Surface, x: number, y: number, text: string, color = Color.White, wrapWidth?: number)
+	drawText(surface: Surface, x: number, y: number, text: string | number | boolean, color = Color.White, wrapWidth?: number)
 	{
+		text = text.toString();
 		if (wrapWidth !== undefined) {
 			const lines = this.wordWrap(text, wrapWidth);
 			for (let i = 0, len = lines.length; i < len; ++i)
@@ -140,8 +141,9 @@ class Font
 		}
 	}
 
-	getTextSize(text: string, wrapWidth?: number): Size
+	getTextSize(text: string | number | boolean, wrapWidth?: number): Size
 	{
+		text = text.toString();
 		if (wrapWidth !== undefined) {
 			const lines = this.wordWrap(text, wrapWidth);
 			return {
@@ -157,7 +159,7 @@ class Font
 		}
 	}
 
-	heightOf(text: string, wrapWidth?: number)
+	heightOf(text: string | number | boolean, wrapWidth?: number)
 	{
 		return this.getTextSize(text, wrapWidth).height;
 	}
@@ -198,8 +200,10 @@ class Font
         Shape.drawImmediate(surface, ShapeType.Triangles, this.atlas, vertices);
 	}
 
-	widthOf(text: string)
+	widthOf(text: string | number | boolean)
 	{
+		text = text.toString();
+
 		let cp: number | undefined;
 		let ptr = 0;
 		let width = 0;
@@ -214,8 +218,10 @@ class Font
 		return width;
 	}
 
-	wordWrap(text: string, wrapWidth: number)
+	wordWrap(text: string | number | boolean, wrapWidth: number)
 	{
+		text = text.toString();
+
 		const lines: string[] = [];
 		let codepoints: number[] = [];
 		let currentLine = "";

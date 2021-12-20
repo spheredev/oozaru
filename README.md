@@ -13,7 +13,7 @@ into the official Sphere development toolchain.
 ## Download
 
 **Oozaru 0.4.0**, released on Saturday, December 18, 2021, is available for
-download from the Releases page here:
+download here:
 
 * https://github.com/spheredev/oozaru/releases/tag/v0.4.0
 
