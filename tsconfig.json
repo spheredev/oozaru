@@ -10,7 +10,6 @@
         "isolatedModules": true,
         "noEmitOnError": true,
         "removeComments": true,
-        "sourceMap": true,
         "strict": true,
         "useDefineForClassFields": true,
     },

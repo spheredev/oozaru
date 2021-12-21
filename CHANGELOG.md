@@ -1,8 +1,8 @@
 Oozaru Changelog
 ================
 
-v0.4.1 - TBD
-------------
+v0.4.1 - December 21, 2021
+--------------------------
 
 * Fixes a bug where `Font` methods would throw errors when passed non-string
   values for `text`.
