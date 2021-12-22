@@ -85,19 +85,13 @@ async function main()
 		menu.appendChild(iconImage);
 	}
 
-	const powerButton = document.getElementById('power')!;
-	const powerText = document.getElementById('power-text')!;
-	if (gameID !== null || useDistDir)
-		powerText.classList.add('visible');
-	powerButton.onclick = async () => {
-		if (powerButton.classList.contains('on')) {
-			location.reload();
-		}
-		else if (gameID !== null || useDistDir) {
+	const canvas = document.getElementById('screen') as HTMLCanvasElement;
+	canvas.focus();
+	canvas.onkeydown = canvas.onclick = async (e: KeyboardEvent | MouseEvent) => {
+		if (gameID !== null || useDistDir) {
 			document.body.classList.add('darkened');
-			powerButton.classList.toggle('on');
-			powerText.classList.remove('visible');
-			const canvas = document.getElementById('screen') as HTMLCanvasElement;
+			canvas.onclick = null;
+			canvas.onkeydown = null;
 			canvas.focus();
 			await Galileo.initialize(canvas);
 			await Audialis.initialize();

@@ -41,6 +41,7 @@ class Audialis
 {
 	static async initialize()
 	{
+		defaultMixer = new Mixer(44100, 16, 2);
 	}
 }
 

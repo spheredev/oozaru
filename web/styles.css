@@ -14,28 +14,6 @@ body.darkened {
 	background-color: #111;
 }
 
-.tv-button {
-	position: relative;
-}
-
-.tv-button .placard {
-	border: 1px solid #000;
-	background: #112;
-	bottom: 20px;
-	color: #CCF;
-	left: -32px;
-	opacity: 0%;
-	padding: 0.25em;
-	pointer-events: none;
-	position: absolute;
-	text-shadow: 1px 1px #000;
-	transition: opacity 0.5s ease;
-}
-
-.tv-button .placard.visible {
-	opacity: 100%;
-}
-
 #menu {
 	align-items: center;
 	background-color: #CCC;
@@ -145,31 +123,6 @@ body.darkened {
 
 #tv #panel > * {
 	padding: 0;
-}
-
-#tv #power {
-	filter: brightness(33%);
-	transition: filter 0.25s ease;
-}
-
-#tv #power:hover {
-	filter: brightness(75%);
-}
-
-#tv #power:active {
-	filter: brightness(125%);
-}
-
-#tv #power.on {
-	filter: unset;
-}
-
-#tv #power.on:hover {
-	filter: brightness(125%);
-}
-
-#tv #power.on:active {
-	filter: brightness(150%);
 }
 
 #tv #readout {
