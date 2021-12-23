@@ -1,6 +1,14 @@
 Oozaru Changelog
 ================
 
+v0.4.2 - TBD
+------------
+
+* Improves the user experience by allowing clicks or keypresses anywhere in the
+  rendering area to launch a game.
+* Fixes an issue that prevented games using `sphere-runtime` from running in
+  non-Chromium browsers.
+
 v0.4.1 - December 21, 2021
 --------------------------
 

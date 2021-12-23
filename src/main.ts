@@ -87,7 +87,7 @@ async function main()
 
 	const canvas = document.getElementById('screen') as HTMLCanvasElement;
 	canvas.focus();
-	canvas.onkeydown = canvas.onclick = async (e: KeyboardEvent | MouseEvent) => {
+	canvas.onkeypress = canvas.onclick = async (e: KeyboardEvent | MouseEvent) => {
 		if (gameID !== null || useDistDir) {
 			document.body.classList.add('darkened');
 			canvas.onclick = null;
