@@ -71,7 +71,7 @@ body.darkened {
 	background: #224;
 	border-radius: 1rem;
 	box-shadow: 4pt 4pt 8pt #000, -4pt -4pt 8pt #000;
-	color: #FFF;
+	color: #CCC;
 	display: flex;
 	flex-direction: column;
 	font-family: monospace;

@@ -1,8 +1,8 @@
 Oozaru Changelog
 ================
 
-v0.4.2 - TBD
-------------
+v0.4.2 - December 23, 2021
+--------------------------
 
 * Adds an overlay notifying the user they have to click to start the engine.
 * Adds the ability to click in the rendering area or press a key to start the

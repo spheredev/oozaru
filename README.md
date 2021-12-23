@@ -12,10 +12,10 @@ into the official Sphere development toolchain.
 
 ## Download
 
-**Oozaru 0.4.1**, released on Tuesday, December 21, 2021, is available for
+**Oozaru 0.4.2**, released on Thursday, December 23, 2021, is available for
 download here:
 
-* https://github.com/spheredev/oozaru/releases/tag/v0.4.1
+* https://github.com/spheredev/oozaru/releases/tag/v0.4.2
 
 Note that because Oozaru is still in beta and doesn't yet the full Sphere v2
 API, it won't run all Sphere v2 games yet and there may be glitches.  Overall
