@@ -43,6 +43,24 @@ var jobs: FetchJob[] = [];
 export default
 class Fido
 {
+	static get numJobs()
+	{
+		return jobs.length;
+	}
+
+	static get progress()
+	{
+		let bytesTotal = 0;
+		let bytesDone = 0;
+		for (const job of jobs) {
+			if (job.totalSize === null)
+				continue;
+			bytesTotal += job.totalSize;
+			bytesDone += job.bytesDone;
+		}
+		return bytesTotal > 0 ? bytesDone / bytesTotal : 1.0;
+	}
+
 	static async fetch(url: string)
 	{
 		const job: FetchJob = {
@@ -109,23 +127,5 @@ class Fido
 	{
 		const blob = await this.fetch(url);
 		return blob.text();
-	}
-
-	static get numJobs()
-	{
-		return jobs.length;
-	}
-
-	static get progress()
-	{
-		let bytesTotal = 0;
-		let bytesDone = 0;
-		for (const job of jobs) {
-			if (job.totalSize === null)
-				continue;
-			bytesTotal += job.totalSize;
-			bytesDone += job.bytesDone;
-		}
-		return bytesTotal > 0 ? bytesDone / bytesTotal : 1.0;
 	}
 }

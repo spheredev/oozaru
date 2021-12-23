@@ -138,9 +138,11 @@ class Pegasus
 		await Game.initialize(rootPath);
 
 		Dispatch.onRender(() => {
-			if (Fido.progress >= 1.0)
+			if (Fido.numJobs === 0)
 				return;
-			const status = `fido: ${Math.floor(100.0 * Fido.progress)}% (${Fido.numJobs} files)`;
+			const status = Fido.progress < 1.0
+				? `${Math.floor(100.0 * Fido.progress)}% - ${Fido.numJobs} files`
+				: `loading ${Fido.numJobs} files`;
 			const textSize = Font.Default.getTextSize(status);
 			const x = Surface.Screen.width - textSize.width - 5;
 			const y = Surface.Screen.height - textSize.height - 5;

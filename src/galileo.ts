@@ -866,63 +866,93 @@ class Texture
 		return new this(image);
 	}
 
-	glTexture: WebGLTexture;
-	size: Size;
+	fileName = "";
+	glTexture: WebGLTexture | null = null;
+	size: Size = { width: 0, height: 0 };
 
 	constructor(image: HTMLImageElement);
 	constructor(width: number, height: number, content?: BufferSource | Color);
 	constructor(image: string);
 	constructor(arg1: HTMLImageElement | number | string, arg2?: number, arg3?: BufferSource | Color)
 	{
-		if (typeof arg1 === 'string')
-			throw RangeError("new Texture() from filename is unsupported under Oozaru.");
-
-		const glTexture = gl.createTexture();
-		if (glTexture === null)
-			throw new Error(`Unable to create WebGL texture object`);
-		this.glTexture = glTexture;
-		const oldBinding = gl.getParameter(gl.TEXTURE_BINDING_2D);
-		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
-		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-		if (arg1 instanceof HTMLImageElement) {
-			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, arg1);
-			this.size = { width: arg1.width, height: arg1.height };
+		if (typeof arg1 === 'string') {
+			this.fileName = Game.urlOf(arg1);
+			Fido.fetchImage(this.fileName).then((image) => {
+				const glTexture = gl.createTexture();
+				if (glTexture === null)
+					throw new Error(`Unable to create WebGL texture object`);
+				const oldBinding = gl.getParameter(gl.TEXTURE_BINDING_2D);
+				gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
+				gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+				gl.bindTexture(gl.TEXTURE_2D, oldBinding);
+				this.glTexture = glTexture;
+				this.size = { width: image.width, height: image.height };
+			})
+			return;
 		}
 		else {
-			const width = arg1;
-			const height = arg2!;
-			if (arg3 instanceof ArrayBuffer || ArrayBuffer.isView(arg3)) {
-				const buffer = arg3 instanceof ArrayBuffer ? arg3 : arg3.buffer;
-				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
-					new Uint8Array(buffer));
+			const glTexture = gl.createTexture();
+			if (glTexture === null)
+				throw new Error(`Unable to create WebGL texture object`);
+			this.glTexture = glTexture;
+			const oldBinding = gl.getParameter(gl.TEXTURE_BINDING_2D);
+			gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
+			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+			if (arg1 instanceof HTMLImageElement) {
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, arg1);
+				this.size = { width: arg1.width, height: arg1.height };
 			}
 			else {
-				let pixels = new Uint32Array(width * height);
-				if (arg3 !== undefined)
-					pixels.fill((arg3.a * 255 << 24) + (arg3.b * 255 << 16) + (arg3.g * 255 << 8) + (arg3.r * 255));
-				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
-					new Uint8Array(pixels.buffer));
+				const width = arg1;
+				const height = arg2!;
+				if (arg3 instanceof ArrayBuffer || ArrayBuffer.isView(arg3)) {
+					const buffer = arg3 instanceof ArrayBuffer ? arg3 : arg3.buffer;
+					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+						new Uint8Array(buffer));
+				}
+				else {
+					let pixels = new Uint32Array(width * height);
+					if (arg3 !== undefined)
+						pixels.fill((arg3.a * 255 << 24) + (arg3.b * 255 << 16) + (arg3.g * 255 << 8) + (arg3.r * 255));
+					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+						new Uint8Array(pixels.buffer));
+				}
+				this.size = { width, height };
 			}
-			this.size = { width, height };
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+			gl.bindTexture(gl.TEXTURE_2D, oldBinding);
 		}
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-		gl.bindTexture(gl.TEXTURE_2D, oldBinding);
 	}
 
 	get height()
 	{
+		if (!this.ready)
+			throw Error(`Tried to use image '${this.fileName}' before it's ready`);
 		return this.size.height;
+	}
+
+	get ready()
+	{
+		return this.glTexture !== null;
 	}
 
 	get width()
 	{
+		if (!this.ready)
+			throw Error(`Tried to use image '${this.fileName}' before it's ready`);
 		return this.size.width;
 	}
 
 	upload(content: BufferSource, x = 0, y = 0, width = this.size.width, height = this.size.height)
 	{
+		if (!this.ready)
+			throw Error(`Tried to use image '${this.fileName}' before it's ready`);
 		const pixelData = ArrayBuffer.isView(content)
 			? new Uint8Array(content.buffer)
 			: new Uint8Array(content);
@@ -932,6 +962,8 @@ class Texture
 
 	useTexture(textureUnit = 0)
 	{
+		if (!this.ready)
+			throw Error(`Tried to use image '${this.fileName}' before it's ready`);
 		gl.activeTexture(gl.TEXTURE0 + textureUnit);
 		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
 	}

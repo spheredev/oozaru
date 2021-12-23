@@ -1,6 +1,6 @@
 {
   "name": "oozaru",
-  "version": "0.4.2",
+  "version": "0.4.2+",
   "description": "JavaScript game engine for the Web",
   "main": "index.js",
   "scripts": {

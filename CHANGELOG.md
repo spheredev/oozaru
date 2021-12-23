@@ -1,6 +1,13 @@
 Oozaru Changelog
 ================
 
+v0.5.0 - TBD
+------------
+
+* Adds back support for `new Texture()`, along with APIs for checking if the
+  texture is ready to use.
+
+
 v0.4.2 - December 23, 2021
 --------------------------
 
