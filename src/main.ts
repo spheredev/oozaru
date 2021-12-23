@@ -86,10 +86,13 @@ async function main()
 	}
 
 	const canvas = document.getElementById('screen') as HTMLCanvasElement;
+	const overlay = document.getElementById('overlay');
 	canvas.focus();
 	canvas.onkeypress = canvas.onclick = async (e: KeyboardEvent | MouseEvent) => {
 		if (gameID !== null || useDistDir) {
 			document.body.classList.add('darkened');
+			if (overlay !== null)
+				overlay.style.opacity = '0';
 			canvas.onclick = null;
 			canvas.onkeydown = null;
 			canvas.focus();

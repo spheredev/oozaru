@@ -4,8 +4,9 @@ Oozaru Changelog
 v0.4.2 - TBD
 ------------
 
-* Improves the user experience by allowing clicks or keypresses anywhere in the
-  rendering area to launch a game.
+* Adds an overlay notifying the user they have to click to start the engine.
+* Adds the ability to click in the rendering area or press a key to start the
+  engine.
 * Fixes an issue that prevented games using `sphere-runtime` from running in
   non-Chromium browsers.
 

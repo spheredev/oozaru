@@ -71,7 +71,7 @@ body.darkened {
 	background: #224;
 	border-radius: 1rem;
 	box-shadow: 4pt 4pt 8pt #000, -4pt -4pt 8pt #000;
-	color: #CCF;
+	color: #FFF;
 	display: flex;
 	flex-direction: column;
 	font-family: monospace;
@@ -111,6 +111,20 @@ body.darkened {
 #tv ul {
 	list-style-position: inside;
 	padding: 0;
+}
+
+#tv #screen-container {
+	position: relative;
+}
+
+#tv #overlay {
+	position: absolute;
+	pointer-events: none;
+	transition: opacity 0.25s ease;
+	left: 195px;
+	top: 150px;
+	width: 250px;
+	height: 150px;
 }
 
 #tv #panel {

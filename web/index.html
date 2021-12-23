@@ -13,14 +13,23 @@
 	</head>
 	<body>
 		<nav id="menu">
-			<a href="/"><img alt="Sphere logo" src="logoDark.svg" width=48 height=48></a>
+			<a href="."><img alt="Sphere logo" src="logo-dark.svg" width=48 height=48></a>
 			<div id="title">
 				<span id="name">Oozaru</span> <span id="gameTitle">Sphere for the Web</span><br>
 				<span id="copyright">&copy; 2016-2021 Fat Cerberus</span>
 			</div>
 		</nav>
 		<div id="tv">
-			<canvas id="screen" width=640 height=480 tabindex=0></canvas>
+			<div id="screen-container">
+				<canvas id="screen" width=640 height=480 tabindex=0></canvas>
+				<div id="overlay">
+					<p><img src="logo-light.svg"></p>
+					<p id="engine-name">
+						<b>Oozaru: Sphere for the Web</b><br>
+						- click to run -
+					</p>
+				</div>
+			</div>
 			<div id="panel">
 				<pre id="readout"></pre>
 			</div>
