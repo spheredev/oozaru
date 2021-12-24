@@ -866,41 +866,40 @@ class Texture
 		return new this(image);
 	}
 
-	fileName = "";
-	glTexture: WebGLTexture | null = null;
-	size: Size = { width: 0, height: 0 };
+	exception: unknown;
+	fileName: string | undefined;
+	glTexture: WebGLTexture;
+	promise: Promise<void> | undefined;
+	size: Size | undefined;
 
 	constructor(image: HTMLImageElement);
 	constructor(width: number, height: number, content?: BufferSource | Color);
 	constructor(image: string);
 	constructor(arg1: HTMLImageElement | number | string, arg2?: number, arg3?: BufferSource | Color)
 	{
+		const glTexture = gl.createTexture();
+		if (glTexture === null)
+			throw new Error(`Unable to create WebGL texture object`);
+		this.glTexture = glTexture;
 		if (typeof arg1 === 'string') {
 			this.fileName = Game.urlOf(arg1);
-			Fido.fetchImage(this.fileName).then((image) => {
-				const glTexture = gl.createTexture();
-				if (glTexture === null)
-					throw new Error(`Unable to create WebGL texture object`);
+			this.promise = Fido.fetchImage(this.fileName).then((image) => {
 				const oldBinding = gl.getParameter(gl.TEXTURE_BINDING_2D);
-				gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
+				gl.bindTexture(gl.TEXTURE_2D, glTexture);
 				gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 				gl.bindTexture(gl.TEXTURE_2D, oldBinding);
-				this.glTexture = glTexture;
 				this.size = { width: image.width, height: image.height };
-			})
-			return;
+			}).catch((error) => {
+				this.exception = error;
+			});
 		}
 		else {
-			const glTexture = gl.createTexture();
-			if (glTexture === null)
-				throw new Error(`Unable to create WebGL texture object`);
-			this.glTexture = glTexture;
 			const oldBinding = gl.getParameter(gl.TEXTURE_BINDING_2D);
-			gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
+			gl.bindTexture(gl.TEXTURE_2D, glTexture);
 			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 			if (arg1 instanceof HTMLImageElement) {
 				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, arg1);
@@ -932,26 +931,33 @@ class Texture
 
 	get height()
 	{
-		if (!this.ready)
+		if (this.size === undefined)
 			throw Error(`Tried to use image '${this.fileName}' before it's ready`);
 		return this.size.height;
 	}
 
 	get ready()
 	{
-		return this.glTexture !== null;
+		return this.size !== undefined;
+	}
+
+	get whenReady()
+	{
+		return this.exception !== undefined ? Promise.reject(this.exception)
+			: this.promise !== undefined ? this.promise
+			: Promise.resolve();
 	}
 
 	get width()
 	{
-		if (!this.ready)
+		if (this.size === undefined)
 			throw Error(`Tried to use image '${this.fileName}' before it's ready`);
 		return this.size.width;
 	}
 
-	upload(content: BufferSource, x = 0, y = 0, width = this.size.width, height = this.size.height)
+	upload(content: BufferSource, x = 0, y = 0, width = this.width, height = this.height)
 	{
-		if (!this.ready)
+		if (this.size === undefined)
 			throw Error(`Tried to use image '${this.fileName}' before it's ready`);
 		const pixelData = ArrayBuffer.isView(content)
 			? new Uint8Array(content.buffer)
@@ -962,7 +968,7 @@ class Texture
 
 	useTexture(textureUnit = 0)
 	{
-		if (!this.ready)
+		if (this.size === undefined)
 			throw Error(`Tried to use image '${this.fileName}' before it's ready`);
 		gl.activeTexture(gl.TEXTURE0 + textureUnit);
 		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
