@@ -38,7 +38,6 @@ import Game from './game.js';
 import Galileo, { BlendOp, Color, DepthOp, IndexList, Model, Shader, Shape, ShapeType, Surface, Texture, Transform, VertexList } from './galileo.js';
 import InputEngine, { Joystick, Key, Keyboard, Mouse, MouseKey } from './input-engine.js';
 import JobQueue, { Dispatch, JobToken, JobType } from './job-queue.js';
-import { fetchScript } from './utilities.js';
 import { Version } from './version.js';
 
 enum DataType
@@ -246,7 +245,19 @@ class FS
 	static async evaluateScript(fileName: string)
 	{
 		const url = Game.urlOf(fileName);
-		return fetchScript(url);
+		return new Promise<void>((resolve, reject) => {
+			const script = document.createElement('script');
+			script.onload = () => {
+				resolve();
+				script.remove();
+			}
+			script.onerror = () => {
+				reject(Error(`Oozaru was unable to load '${url}' as a script`));
+				script.remove();
+			}
+			script.src = url;
+			document.head.appendChild(script);
+		});
 	}
 
 	static async fileExists(pathName: string)

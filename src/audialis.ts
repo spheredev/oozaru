@@ -32,7 +32,6 @@
 
 import { Deque } from './deque.js';
 import Game from './game.js';
-import { fetchAudioFile } from './utilities.js';
 
 var defaultMixer: Mixer | null = null;
 
@@ -82,7 +81,13 @@ class Sound
 	static async fromFile(fileName: string)
 	{
 		const url = Game.urlOf(fileName);
-		const element = await fetchAudioFile(url);
+		const element = await new Promise<HTMLAudioElement>((resolve, reject) => {
+			const audio = new Audio();
+			audio.onloadedmetadata = () => resolve(audio);
+			audio.onerror = () =>
+				reject(Error(`Oozaru was unable to load '${url}' as audio.`));
+			audio.src = url;
+		});
 		element.loop = true;
 		return new this(element);
 	}
