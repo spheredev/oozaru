@@ -941,13 +941,6 @@ class Texture
 		return this.size !== undefined;
 	}
 
-	get whenReady()
-	{
-		return this.exception !== undefined ? Promise.reject(this.exception)
-			: this.promise !== undefined ? this.promise
-			: Promise.resolve();
-	}
-
 	get width()
 	{
 		if (this.size === undefined)
@@ -972,6 +965,13 @@ class Texture
 			throw Error(`Tried to use image '${this.fileName}' before it's ready`);
 		gl.activeTexture(gl.TEXTURE0 + textureUnit);
 		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
+	}
+
+	whenReady()
+	{
+		return this.exception !== undefined ? Promise.reject(this.exception)
+			: this.promise !== undefined ? this.promise
+			: Promise.resolve();
 	}
 }
 
