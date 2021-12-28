@@ -118,7 +118,7 @@ class Galileo
 	{
 		const glContext = canvas.getContext('webgl', { alpha: false });
 		if (glContext === null)
-			throw new Error(`Oozaru was unable to create a WebGL context.`);
+			throw new Error(`Couldn't acquire a WebGL rendering context.`);
 		gl = glContext;
 
 		gl.clearColor(0.0, 0.0, 0.0, 1.0);
@@ -879,7 +879,7 @@ class Texture
 	{
 		const glTexture = gl.createTexture();
 		if (glTexture === null)
-			throw new Error(`Unable to create WebGL texture object`);
+			throw new Error(`The engine couldn't create a WebGL texture object.`);
 		this.glTexture = glTexture;
 		if (typeof arg1 === 'string') {
 			this.fileName = Game.urlOf(arg1);
@@ -958,7 +958,7 @@ class Texture
 	doReadyCheck()
 	{
 		if (this.promise !== null)
-			throw Error(`Image from file '${this.fileName}' was used without a ready check.`);
+			throw Error(`Texture from file '${this.fileName}' was used without a ready check.`);
 	}	
 
 	upload(content: BufferSource, x = 0, y = 0, width = this.width, height = this.height)

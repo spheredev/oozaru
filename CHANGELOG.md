@@ -6,6 +6,8 @@ v0.5.0 - TBD
 
 * Adds back support for `new Texture()`, along with APIs for checking when a
   texture is ready for use.
+* Fixes a bug where HTTP error codes are ignored when fetching files, causing
+  requests for nonexistent files to succeed instead of throwing an exception.
 
 
 v0.4.2 - December 23, 2021

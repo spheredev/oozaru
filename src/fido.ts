@@ -71,8 +71,8 @@ class Fido
 		};
 		jobs.push(job);
 		const response = await fetch(url);
-		if (response.body === null)
-			throw Error(`Fido was unable to fetch '${url}' (${response.status}).`);
+		if (!response.ok || response.body === null)
+			throw Error(`The engine couldn't fetch the file '${url}'. (HTTP ${response.status})`);
 		const reader = response.body.getReader();
 		const length = response.headers.get('Content-Length');
 		if (length !== null)
