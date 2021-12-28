@@ -938,6 +938,8 @@ class Texture
 
 	get ready()
 	{
+		if (this.exception !== undefined)
+			throw this.exception;
 		return this.size !== undefined;
 	}
 
