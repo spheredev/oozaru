@@ -869,8 +869,8 @@ class Texture
 	exception: unknown;
 	fileName: string | undefined;
 	glTexture: WebGLTexture;
-	promise: Promise<void> | undefined;
-	size: Size | undefined;
+	promise: Promise<void> | null = null;
+	size: Size = { width: 0, height: 0 };
 
 	constructor(image: HTMLImageElement);
 	constructor(width: number, height: number, content?: BufferSource | Color);
@@ -893,7 +893,7 @@ class Texture
 				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 				gl.bindTexture(gl.TEXTURE_2D, oldBinding);
 				this.size = { width: image.width, height: image.height };
-			}).catch((error) => {
+			}, (error) => {
 				this.exception = error;
 			});
 		}
@@ -908,8 +908,12 @@ class Texture
 			else {
 				const width = arg1;
 				const height = arg2!;
+				if (width < 1 || height < 1)
+					throw RangeError("A texture cannot be less than one pixel in size.");
 				if (arg3 instanceof ArrayBuffer || ArrayBuffer.isView(arg3)) {
 					const buffer = arg3 instanceof ArrayBuffer ? arg3 : arg3.buffer;
+					if (buffer.byteLength < width * height * 4)
+						throw RangeError(`The provided buffer is too small to initialize a ${width}x${height} texture.`);
 					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
 						new Uint8Array(buffer));
 				}
@@ -931,8 +935,7 @@ class Texture
 
 	get height()
 	{
-		if (this.size === undefined)
-			throw Error(`Tried to use image '${this.fileName}' before it's ready`);
+		this.doReadyCheck();
 		return this.size.height;
 	}
 
@@ -940,20 +943,27 @@ class Texture
 	{
 		if (this.exception !== undefined)
 			throw this.exception;
-		return this.size !== undefined;
+		const isReady = this.size.width > 0;
+		if (isReady)
+			this.promise = null;
+		return isReady;
 	}
 
 	get width()
 	{
-		if (this.size === undefined)
-			throw Error(`Tried to use image '${this.fileName}' before it's ready`);
+		this.doReadyCheck();
 		return this.size.width;
 	}
 
+	doReadyCheck()
+	{
+		if (this.promise !== null)
+			throw Error(`Image from file '${this.fileName}' was used without a ready check.`);
+	}	
+
 	upload(content: BufferSource, x = 0, y = 0, width = this.width, height = this.height)
 	{
-		if (this.size === undefined)
-			throw Error(`Tried to use image '${this.fileName}' before it's ready`);
+		this.doReadyCheck();
 		const pixelData = ArrayBuffer.isView(content)
 			? new Uint8Array(content.buffer)
 			: new Uint8Array(content);
@@ -963,17 +973,25 @@ class Texture
 
 	useTexture(textureUnit = 0)
 	{
-		if (this.size === undefined)
-			throw Error(`Tried to use image '${this.fileName}' before it's ready`);
+		this.doReadyCheck();
 		gl.activeTexture(gl.TEXTURE0 + textureUnit);
 		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
 	}
 
 	whenReady()
 	{
-		return this.exception !== undefined ? Promise.reject(this.exception)
-			: this.promise !== undefined ? this.promise
-			: Promise.resolve();
+		if (this.exception !== undefined)
+			return Promise.reject(this.exception);
+		if (this.promise !== null) {
+			return this.promise.then(() => {
+				if (this.exception !== undefined)
+					throw this.exception;
+				this.promise = null;
+			});
+		}
+		else {
+			return Promise.resolve();
+		}
 	}
 }
 
@@ -996,6 +1014,7 @@ class Surface extends Texture
 		screenSurface.frameBuffer = null;
 		screenSurface.projection = new Transform()
 			.project2D(0, 0, gl.canvas.width, gl.canvas.height);
+		screenSurface.promise = null;
 		Object.defineProperty(Surface, 'Screen', {
 			value: screenSurface,
 			writable: false,
