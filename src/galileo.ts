@@ -70,10 +70,17 @@ interface Rectangle
 }
 
 export
-interface ShaderOptions
+interface ShaderFileOptions
 {
 	vertexFile: string;
 	fragmentFile: string;
+}
+
+export
+interface ShaderSourceOptions
+{
+	vertexSource: string;
+	fragmentSource: string;
 }
 
 export
@@ -446,7 +453,7 @@ class IndexList
 	{
 		this.glBuffer = gl.createBuffer();
 		if (this.glBuffer === null)
-			throw new Error(`Oozaru was unable to create a WebGL buffer object.`);
+			throw new Error(`Engine couldn't create a WebGL buffer object.`);
 		this.upload(indices);
 	}
 
@@ -512,112 +519,112 @@ class Shader
 	{
 		return defaultShader;
 	}
-	
-	static async fromFiles(options: ShaderOptions)
+
+	static async fromFiles(options: ShaderFileOptions)
 	{
-		const vertexURL = Game.urlOf(options.vertexFile);
-		const fragmentURL = Game.urlOf(options.fragmentFile);
-		const [ vertexSource, fragmentSource ] = await Promise.all([
-			Fido.fetchText(vertexURL),
-			Fido.fetchText(fragmentURL),
-		]);
-		return new Shader(vertexSource, fragmentSource);
+		const shader = new Shader(options);
+		await shader.whenReady();
+		return shader;
 	}
-	
-	fragmentSource: string;
+
+	complete = false;
+	exception: unknown;
+	fragmentShaderSource = "";
+	glFragmentShader: WebGLShader;
 	glProgram: WebGLProgram;
-	modelView: Transform;
-	projection: Transform;
+	glVertexShader: WebGLShader;
+	modelViewMatrix = Transform.Identity;
+	projection = Transform.Identity;
+	promise: Promise<void> | null = null;
 	uniformIDs: { [x: string]: WebGLUniformLocation | null } = {};
-	vertexSource: string;
+	vertexShaderSource = "";
 	valuesToSet: { [x: string]: { type: string, value: any } } = {};
 
-	constructor(vertexSource: string, fragmentSource: string)
+	constructor(options: ShaderFileOptions | ShaderSourceOptions)
 	{
 		const program = gl.createProgram();
-		const vertShader = gl.createShader(gl.VERTEX_SHADER);
-		const fragShader = gl.createShader(gl.FRAGMENT_SHADER);
-		if (program === null || vertShader === null || fragShader === null)
-			throw new Error(`Oozaru was unable to create a WebGL shader object`);
-
-		// compile vertex and fragment shaders and check for errors
-		gl.shaderSource(vertShader, vertexSource);
-		gl.shaderSource(fragShader, fragmentSource);
-		gl.compileShader(vertShader);
-		if (!gl.getShaderParameter(vertShader, gl.COMPILE_STATUS)) {
-			const message = gl.getShaderInfoLog(vertShader);
-			throw new Error(`Unable to compile vertex shader...\n${message}`);
-		}
-		gl.compileShader(fragShader);
-		if (!gl.getShaderParameter(fragShader, gl.COMPILE_STATUS)) {
-			const message = gl.getShaderInfoLog(fragShader);
-			throw new Error(`Unable to compile fragment shader...\n${message}`);
-		}
-
-		// link the individual shaders into a program, check for errors
-		gl.attachShader(program, vertShader);
-		gl.attachShader(program, fragShader);
-		gl.bindAttribLocation(program, 0, 'al_pos');
-		gl.bindAttribLocation(program, 1, 'al_color');
-		gl.bindAttribLocation(program, 2, 'al_texcoord');
-		gl.linkProgram(program);
-		if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-			const message = gl.getProgramInfoLog(program);
-			throw new Error(`Couldn't link shader program...\n${message}`);
-		}
-
-		this.fragmentSource = fragmentSource;
+		const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+		const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+		if (program === null || vertexShader === null || fragmentShader === null)
+			throw new Error(`Engine couldn't create a WebGL shader object.`);
 		this.glProgram = program;
-		this.projection = Transform.Identity;
-		this.modelView = Transform.Identity;
-		this.vertexSource = vertexSource;
+		this.glVertexShader = vertexShader;
+		this.glFragmentShader = fragmentShader;
 
-		let transformation = this.modelView.clone()
-			.compose(this.projection);
-		this.setMatrix('al_projview_matrix', transformation);
-		this.setInt('al_tex', 0);
+		if ('vertexFile' in options && options.vertexFile !== undefined) {
+			const vertexURL = Game.urlOf(options.vertexFile);
+			const fragmentURL = Game.urlOf(options.fragmentFile);
+			this.promise = Promise.all([
+				Fido.fetchText(vertexURL),
+				Fido.fetchText(fragmentURL),
+			]).then((responses) => {
+				this.compile(responses[0], responses[1]);
+			}, (error) => {
+				this.exception = error;
+			});
+		}
+		else if ('vertexSource' in options && options.vertexSource !== undefined) {
+			this.compile(options.vertexSource, options.fragmentSource);
+		}
+		else {
+			throw RangeError("'new Shader()' was called without either filenames or shader sources.");
+		}
+	}
+
+	get ready()
+	{
+		if (this.exception !== undefined)
+			throw this.exception;
+		if (this.complete)
+			this.promise = null;
+		return this.complete;
 	}
 
 	activate(useTexture: boolean)
 	{
+		this.doReadyCheck();
 		if (activeShader !== this) {
 			gl.useProgram(this.glProgram);
 			for (const name of Object.keys(this.valuesToSet)) {
 				const entry = this.valuesToSet[name];
-				const slot = this.uniformIDs[name];
+				let location = this.uniformIDs[name];
+				if (location === undefined) {
+					location = gl.getUniformLocation(this.glProgram, name);
+					this.uniformIDs[name] = location;
+				}
 				let size: number;
 				switch (entry.type) {
-					case 'bool':
-						gl.uniform1i(slot, entry.value ? 1 : 0);
+					case 'boolean':
+						gl.uniform1i(location, entry.value ? 1 : 0);
 						break;
 					case 'float':
-						gl.uniform1f(slot, entry.value);
+						gl.uniform1f(location, entry.value);
 						break;
 					case 'floatArray':
-						gl.uniform1fv(slot, entry.value);
+						gl.uniform1fv(location, entry.value);
 						break;
-					case 'floatVec':
+					case 'floatVector':
 						size = entry.value.length;
-						size === 4 ? gl.uniform4fv(slot, entry.value)
-							: size === 3 ? gl.uniform3fv(slot, entry.value)
-							: size === 2 ? gl.uniform2fv(slot, entry.value)
-							: gl.uniform1fv(slot, entry.value);
+						size === 4 ? gl.uniform4fv(location, entry.value)
+							: size === 3 ? gl.uniform3fv(location, entry.value)
+							: size === 2 ? gl.uniform2fv(location, entry.value)
+							: gl.uniform1fv(location, entry.value);
 						break;
 					case 'int':
-						gl.uniform1i(slot, entry.value);
+						gl.uniform1i(location, entry.value);
 						break;
 					case 'intArray':
-						gl.uniform1iv(slot, entry.value);
+						gl.uniform1iv(location, entry.value);
 						break;
-					case 'intVec':
+					case 'intVector':
 						size = entry.value.length;
-						size === 4 ? gl.uniform4iv(slot, entry.value)
-							: size === 3 ? gl.uniform3iv(slot, entry.value)
-							: size === 2 ? gl.uniform2iv(slot, entry.value)
-							: gl.uniform1iv(slot, entry.value);
+						size === 4 ? gl.uniform4iv(location, entry.value)
+							: size === 3 ? gl.uniform3iv(location, entry.value)
+							: size === 2 ? gl.uniform2iv(location, entry.value)
+							: gl.uniform1iv(location, entry.value);
 						break;
 					case 'matrix':
-						gl.uniformMatrix4fv(slot, false, entry.value.values);
+						gl.uniformMatrix4fv(location, false, entry.value.values);
 						break;
 				}
 			}
@@ -629,28 +636,79 @@ class Shader
 
 	clone()
 	{
-		return new Shader(this.vertexSource, this.fragmentSource);
+		this.doReadyCheck();
+		return new Shader({
+			vertexSource: this.vertexShaderSource,
+			fragmentSource: this.fragmentShaderSource,
+		});
 	}
+
+	compile(vertexShaderSource: string, fragmentShaderSource: string)
+	{
+		// compile vertex and fragment shaders and check for errors
+		gl.shaderSource(this.glVertexShader, vertexShaderSource);
+		gl.shaderSource(this.glFragmentShader, fragmentShaderSource);
+		gl.compileShader(this.glVertexShader);
+		if (!gl.getShaderParameter(this.glVertexShader, gl.COMPILE_STATUS)) {
+			const message = gl.getShaderInfoLog(this.glVertexShader);
+			throw Error(`Couldn't compile WebGL vertex shader.\n${message}`);
+		}
+		gl.compileShader(this.glFragmentShader);
+		if (!gl.getShaderParameter(this.glFragmentShader, gl.COMPILE_STATUS)) {
+			const message = gl.getShaderInfoLog(this.glFragmentShader);
+			throw Error(`Couldn't compile WebGL fragment shader.\n${message}`);
+		}
+
+		// link the individual shaders into a program, check for errors
+		gl.attachShader(this.glProgram, this.glVertexShader);
+		gl.attachShader(this.glProgram, this.glFragmentShader);
+		gl.bindAttribLocation(this.glProgram, 0, 'al_pos');
+		gl.bindAttribLocation(this.glProgram, 1, 'al_color');
+		gl.bindAttribLocation(this.glProgram, 2, 'al_texcoord');
+		gl.linkProgram(this.glProgram);
+		if (!gl.getProgramParameter(this.glProgram, gl.LINK_STATUS)) {
+			const message = gl.getProgramInfoLog(this.glProgram);
+			throw Error(`Couldn't link WebGL shader program.\n${message}`);
+		}
+
+		this.vertexShaderSource = vertexShaderSource;
+		this.fragmentShaderSource = fragmentShaderSource;
+		this.uniformIDs = {};
+		this.complete = true;
+
+		const transformation = this.modelViewMatrix.clone()
+			.compose(this.projection);
+		this.setMatrix('al_projview_matrix', transformation);
+		this.setInt('al_tex', 0);
+	}
+	
+	doReadyCheck()
+	{
+		if (this.promise !== null)
+			throw Error(`Shader was used without a ready check.`);
+	}	
 
 	project(matrix: Transform)
 	{
 		this.projection = matrix.clone();
-		let transformation = this.modelView.clone()
+		let transformation = this.modelViewMatrix.clone()
 			.compose(this.projection);
 		this.setMatrix('al_projview_matrix', transformation);
 	}
 
 	setBoolean(name: string, value: boolean)
 	{
-		let location = this.uniformIDs[name];
-		if (location === undefined) {
-			location = gl.getUniformLocation(this.glProgram, name);
-			this.uniformIDs[name] = location;
-		}
-		if (activeShader === this)
+		if (activeShader === this) {
+			let location = this.uniformIDs[name];
+			if (location === undefined) {
+				location = gl.getUniformLocation(this.glProgram, name);
+				this.uniformIDs[name] = location;
+			}
 			gl.uniform1i(location, value ? 1 : 0);
-		else
-			this.valuesToSet[name] = { type: 'bool', value };
+		}
+		else {
+			this.valuesToSet[name] = { type: 'boolean', value };
+		}
 	}
 
 	setColorVector(name: string, color: Color)
@@ -660,38 +718,42 @@ class Shader
 
 	setFloat(name: string, value: number)
 	{
-		let location = this.uniformIDs[name];
-		if (location === undefined) {
-			location = gl.getUniformLocation(this.glProgram, name);
-			this.uniformIDs[name] = location;
-		}
-		if (activeShader === this)
+		if (activeShader === this) {
+			let location = this.uniformIDs[name];
+			if (location === undefined) {
+				location = gl.getUniformLocation(this.glProgram, name);
+				this.uniformIDs[name] = location;
+			}
 			gl.uniform1f(location, value);
-		else
+		}
+		else {
 			this.valuesToSet[name] = { type: 'float', value };
+		}
 	}
 
 	setFloatArray(name: string, values: number[])
 	{
-		let location = this.uniformIDs[name];
-		if (location === undefined) {
-			location = gl.getUniformLocation(this.glProgram, name);
-			this.uniformIDs[name] = location;
-		}
-		if (activeShader === this)
+		if (activeShader === this) {
+			let location = this.uniformIDs[name];
+			if (location === undefined) {
+				location = gl.getUniformLocation(this.glProgram, name);
+				this.uniformIDs[name] = location;
+			}
 			gl.uniform1fv(location, values);
-		else
+		}
+		else {
 			this.valuesToSet[name] = { type: 'floatArray', value: values };
+		}
 	}
 
 	setFloatVector(name: string, values: number[])
 	{
-		let location = this.uniformIDs[name];
-		if (location === undefined) {
-			location = gl.getUniformLocation(this.glProgram, name);
-			this.uniformIDs[name] = location;
-		}
 		if (activeShader === this) {
+			let location = this.uniformIDs[name];
+			if (location === undefined) {
+				location = gl.getUniformLocation(this.glProgram, name);
+				this.uniformIDs[name] = location;
+			}
 			const size = values.length;
 			size === 4 ? gl.uniform4fv(location, values)
 				: size === 3 ? gl.uniform3fv(location, values)
@@ -699,44 +761,48 @@ class Shader
 				: gl.uniform1fv(location, values);
 		}
 		else {
-			this.valuesToSet[name] = { type: 'floatVec', value: values };
+			this.valuesToSet[name] = { type: 'floatVector', value: values };
 		}
 	}
 
 	setInt(name: string, value: number)
 	{
-		let location = this.uniformIDs[name];
-		if (location === undefined) {
-			location = gl.getUniformLocation(this.glProgram, name);
-			this.uniformIDs[name] = location;
-		}
-		if (activeShader === this)
+		if (activeShader === this) {
+			let location = this.uniformIDs[name];
+			if (location === undefined) {
+				location = gl.getUniformLocation(this.glProgram, name);
+				this.uniformIDs[name] = location;
+			}
 			gl.uniform1i(location, value);
-		else
+		}
+		else {
 			this.valuesToSet[name] = { type: 'int', value };
+		}
 	}
 
 	setIntArray(name: string, values: number[])
 	{
-		let location = this.uniformIDs[name];
-		if (location === undefined) {
-			location = gl.getUniformLocation(this.glProgram, name);
-			this.uniformIDs[name] = location;
-		}
-		if (activeShader === this)
+		if (activeShader === this) {
+			let location = this.uniformIDs[name];
+			if (location === undefined) {
+				location = gl.getUniformLocation(this.glProgram, name);
+				this.uniformIDs[name] = location;
+			}
 			gl.uniform1iv(location, values);
-		else
+		}
+		else {
 			this.valuesToSet[name] = { type: 'intArray', value: values };
+		}
 	}
 
 	setIntVector(name: string, values: number[])
 	{
-		let location = this.uniformIDs[name];
-		if (location === undefined) {
-			location = gl.getUniformLocation(this.glProgram, name);
-			this.uniformIDs[name] = location;
-		}
 		if (activeShader === this) {
+			let location = this.uniformIDs[name];
+			if (location === undefined) {
+				location = gl.getUniformLocation(this.glProgram, name);
+				this.uniformIDs[name] = location;
+			}
 			const size = values.length;
 			size === 4 ? gl.uniform4iv(location, values)
 				: size === 3 ? gl.uniform3iv(location, values)
@@ -744,29 +810,47 @@ class Shader
 				: gl.uniform1iv(location, values);
 		}
 		else {
-			this.valuesToSet[name] = { type: 'intVec', value: values };
+			this.valuesToSet[name] = { type: 'intVector', value: values };
 		}
 	}
 
 	setMatrix(name: string, value: Transform)
 	{
-		let location = this.uniformIDs[name];
-		if (location === undefined) {
-			location = gl.getUniformLocation(this.glProgram, name);
-			this.uniformIDs[name] = location;
-		}
-		if (activeShader === this)
+		if (activeShader === this) {
+			let location = this.uniformIDs[name];
+			if (location === undefined) {
+				location = gl.getUniformLocation(this.glProgram, name);
+				this.uniformIDs[name] = location;
+			}
 			gl.uniformMatrix4fv(location, false, value.values);
-		else
+		}
+		else {
 			this.valuesToSet[name] = { type: 'matrix', value };
+		}
 	}
 
 	transform(matrix: Transform)
 	{
-		this.modelView = matrix.clone();
-		let transformation = this.modelView.clone()
+		this.modelViewMatrix = matrix.clone();
+		let transformation = this.modelViewMatrix.clone()
 			.compose(this.projection);
 		this.setMatrix('al_projview_matrix', transformation);
+	}
+
+	whenReady()
+	{
+		if (this.exception !== undefined)
+			return Promise.reject(this.exception);
+		if (this.promise !== null) {
+			return this.promise.then(() => {
+				if (this.exception !== undefined)
+					throw this.exception;
+				this.promise = null;
+			});
+		}
+		else {
+			return Promise.resolve();
+		}
 	}
 }
 
@@ -879,7 +963,7 @@ class Texture
 	{
 		const glTexture = gl.createTexture();
 		if (glTexture === null)
-			throw new Error(`The engine couldn't create a WebGL texture object.`);
+			throw new Error(`Engine couldn't create a WebGL texture object.`);
 		this.glTexture = glTexture;
 		if (typeof arg1 === 'string') {
 			this.fileName = Game.urlOf(arg1);
@@ -1034,7 +1118,7 @@ class Surface extends Texture
 		const frameBuffer = gl.createFramebuffer();
 		const depthBuffer = gl.createRenderbuffer();
 		if (frameBuffer === null || depthBuffer === null)
-			throw new Error(`Oozaru was unable to create a WebGL frame buffer.`);
+			throw new Error(`Engine couldn't create a WebGL framebuffer object.`);
 
 		// in order to set up a new FBO we need to change the current framebuffer binding, so make sure
 		// it gets changed back afterwards.
@@ -1329,7 +1413,7 @@ class VertexList
 	{
 		this.glBuffer = gl.createBuffer();
 		if (this.glBuffer === null)
-			throw new Error(`Oozaru was unable to create a WebGL buffer object.`);
+			throw new Error(`Engine couldn't create a WebGL buffer object.`);
 		this.upload(vertices);
 	}
 
