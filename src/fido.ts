@@ -63,6 +63,9 @@ class Fido
 
 	static async fetch(url: string)
 	{
+		const response = await fetch(url);
+		if (!response.ok || response.body === null)
+			throw Error(`Couldn't fetch the file '${url}'. (HTTP ${response.status})`);
 		const job: FetchJob = {
 			url,
 			bytesDone: 0,
@@ -70,13 +73,10 @@ class Fido
 			finished: false,
 		};
 		jobs.push(job);
-		const response = await fetch(url);
-		if (!response.ok || response.body === null)
-			throw Error(`The engine couldn't fetch the file '${url}'. (HTTP ${response.status})`);
 		const reader = response.body.getReader();
 		const length = response.headers.get('Content-Length');
 		if (length !== null)
-			job.totalSize = parseInt(length);
+			job.totalSize = parseInt(length, 10);
 		const chunks = [];
 		while (!job.finished) {
 			const result = await reader.read();
