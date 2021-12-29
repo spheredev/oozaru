@@ -520,11 +520,10 @@ class Shader
 		return defaultShader;
 	}
 
-	static async fromFiles(options: ShaderFileOptions)
+	static fromFiles(options: ShaderFileOptions)
 	{
 		const shader = new Shader(options);
-		await shader.whenReady();
-		return shader;
+		return shader.whenReady();
 	}
 
 	complete = false;
@@ -582,7 +581,7 @@ class Shader
 
 	activate(useTexture: boolean)
 	{
-		this.doReadyCheck();
+		this.checkIfReady();
 		if (activeShader !== this) {
 			gl.useProgram(this.glProgram);
 			for (const name of Object.keys(this.valuesToSet)) {
@@ -634,9 +633,15 @@ class Shader
 		this.setBoolean('al_use_tex', useTexture);
 	}
 
+	checkIfReady()
+	{
+		if (this.promise !== null)
+			throw Error(`Shader was used before checking if it was ready.`);
+	}	
+
 	clone()
 	{
-		this.doReadyCheck();
+		this.checkIfReady();
 		return new Shader({
 			vertexSource: this.vertexShaderSource,
 			fragmentSource: this.fragmentShaderSource,
@@ -682,12 +687,6 @@ class Shader
 		this.setInt('al_tex', 0);
 	}
 	
-	doReadyCheck()
-	{
-		if (this.promise !== null)
-			throw Error(`Shader was used without a ready check.`);
-	}	
-
 	project(matrix: Transform)
 	{
 		this.projection = matrix.clone();
@@ -837,20 +836,17 @@ class Shader
 		this.setMatrix('al_projview_matrix', transformation);
 	}
 
-	whenReady()
+	async whenReady()
 	{
 		if (this.exception !== undefined)
-			return Promise.reject(this.exception);
+			throw this.exception;
 		if (this.promise !== null) {
-			return this.promise.then(() => {
-				if (this.exception !== undefined)
-					throw this.exception;
-				this.promise = null;
-			});
+			await this.promise;
+			if (this.exception !== undefined)
+				throw this.exception;
+			this.promise = null;
 		}
-		else {
-			return Promise.resolve();
-		}
+		return this;
 	}
 }
 
@@ -1019,7 +1015,7 @@ class Texture
 
 	get height()
 	{
-		this.doReadyCheck();
+		this.checkIfReady();
 		return this.size.height;
 	}
 
@@ -1035,11 +1031,11 @@ class Texture
 
 	get width()
 	{
-		this.doReadyCheck();
+		this.checkIfReady();
 		return this.size.width;
 	}
 
-	doReadyCheck()
+	checkIfReady()
 	{
 		if (this.promise !== null)
 			throw Error(`Texture from file '${this.fileName}' was used without a ready check.`);
@@ -1047,7 +1043,7 @@ class Texture
 
 	upload(content: BufferSource, x = 0, y = 0, width = this.width, height = this.height)
 	{
-		this.doReadyCheck();
+		this.checkIfReady();
 		const pixelData = ArrayBuffer.isView(content)
 			? new Uint8Array(content.buffer)
 			: new Uint8Array(content);
@@ -1057,25 +1053,22 @@ class Texture
 
 	useTexture(textureUnit = 0)
 	{
-		this.doReadyCheck();
+		this.checkIfReady();
 		gl.activeTexture(gl.TEXTURE0 + textureUnit);
 		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
 	}
 
-	whenReady()
+	async whenReady()
 	{
 		if (this.exception !== undefined)
-			return Promise.reject(this.exception);
+			throw this.exception;
 		if (this.promise !== null) {
-			return this.promise.then(() => {
-				if (this.exception !== undefined)
-					throw this.exception;
-				this.promise = null;
-			});
+			await this.promise;
+			if (this.exception !== undefined)
+				throw this.exception;
+			this.promise = null;
 		}
-		else {
-			return Promise.resolve();
-		}
+		return this;
 	}
 }
 

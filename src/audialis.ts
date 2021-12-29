@@ -78,53 +78,126 @@ class Mixer
 export
 class Sound
 {
-	static async fromFile(fileName: string)
+	static fromFile(fileName: string)
 	{
-		const url = Game.urlOf(fileName);
-		const element = await new Promise<HTMLAudioElement>((resolve, reject) => {
-			const audio = new Audio();
-			audio.onloadedmetadata = () => resolve(audio);
-			audio.onerror = () =>
-				reject(Error(`Oozaru was unable to load '${url}' as audio.`));
-			audio.src = url;
-		});
-		element.loop = true;
-		return new this(element);
+		const sound = new Sound(fileName);
+		return sound.whenReady();
 	}
 
 	audioNode: MediaElementAudioSourceNode | null = null;
+	complete = false;
 	currentMixer: Mixer | null = null;
 	element: HTMLAudioElement;
+	exception: unknown;
+	fileName: string | undefined;
+	promise: Promise<void> | null = null;
 
 	constructor(source: HTMLAudioElement | string)
 	{
-		if (source instanceof HTMLAudioElement)
+		if (source instanceof HTMLAudioElement) {
 			this.element = source;
-		else if (typeof source === 'string')
-			throw TypeError("'new Sound()' with filename is unsupported under Oozaru.");
-		else
+			this.element.loop = true;
+		}
+		else if (typeof source === 'string') {
+			const url = Game.urlOf(source);
+			this.fileName = source;
+			this.element = new Audio();
+			this.element.loop = true;
+			this.promise = new Promise<void>((resolve) => {
+				this.element.onloadedmetadata = () => {
+					resolve();
+					this.complete = true;
+				}
+				this.element.onerror = () => {
+					this.exception = Error(`Couldn't load audio file '${url}'.`);
+					resolve();
+				};
+				this.element.src = url;
+			});
+		}
+		else {
 			throw TypeError(`Invalid value '${source}' passed for 'Sound' source`);
+		}
 	}
 
-	get length() { return this.element.duration; }
-	get playing() { return !this.element.paused; }
-	get position() { return this.element.currentTime; }
-	get repeat() { return this.element.loop; }
-	get speed() { return this.element.playbackRate; }
-	get volume() { return this.element.volume; }
+	get length()
+	{
+		this.checkIfReady();
+		return this.element.duration;
+	}
 
-	set position(value) { this.element.currentTime = value; }
-	set repeat(value) { this.element.loop = value; }
-	set speed(value) { this.element.playbackRate = value; }
-	set volume(value) { this.element.volume = value; }
+	get playing()
+	{
+		this.checkIfReady();
+		return !this.element.paused;
+	}
+
+	get position()
+	{
+		this.checkIfReady();
+		return this.element.currentTime;
+	}
+
+	get ready()
+	{
+		if (this.exception !== undefined)
+			throw this.exception;
+		if (this.complete)
+			this.promise = null;
+		return this.complete;
+	}
+
+	get repeat()
+	{
+		return this.element.loop;
+	}
+
+	get speed()
+	{
+		return this.element.playbackRate;
+	}
+
+	get volume()
+	{
+		return this.element.volume;
+	}
+
+	set position(value)
+	{
+		this.checkIfReady();
+		this.element.currentTime = value;
+	}
+
+	set repeat(value)
+	{
+		this.element.loop = value;
+	}
+
+	set speed(value)
+	{
+		this.element.playbackRate = value;
+	}
+
+	set volume(value)
+	{
+		this.element.volume = value;
+	}
+
+	checkIfReady()
+	{
+		if (this.promise !== null)
+			throw Error(`Sound loaded from file '${this.fileName}' was used without a ready check.`);
+	}	
 
 	pause()
 	{
+		this.checkIfReady();
 		this.element.pause();
 	}
 
 	play(mixer = Mixer.Default)
 	{
+		this.checkIfReady();
 		if (mixer !== this.currentMixer) {
 			this.currentMixer = mixer;
 			if (this.audioNode !== null)
@@ -138,8 +211,22 @@ class Sound
 
 	stop()
 	{
+		this.checkIfReady();
 		this.element.pause();
 		this.element.currentTime = 0.0;
+	}
+
+	async whenReady()
+	{
+		if (this.exception !== undefined)
+			throw this.exception;
+		if (this.promise !== null) {
+			await this.promise;
+			if (this.exception !== undefined)
+				throw this.exception;
+			this.promise = null;
+		}
+		return this;
 	}
 }
 
