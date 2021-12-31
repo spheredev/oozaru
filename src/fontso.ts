@@ -63,73 +63,96 @@ class Font
 		return defaultFont;
 	}
 
-	static async fromFile(fileName: string)
+	static fromFile(fileName: string)
 	{
-		fileName = Game.urlOf(fileName);
-		const data = await Fido.fetchData(fileName);
-		return new Font(data);
+		return new Font(fileName).whenReady();
 	}
 
-	atlas: Texture;
+	atlas!: Texture;
+	complete = false;
+	exception: unknown;
+	fileName: string;
 	glyphs: Glyph[] = [];
 	lineHeight = 0;
 	maxWidth = 0;
 	numGlyphs = 0;
-	stride: number;
+	promise: Promise<void> | null = null;
+	stride!: number;
 
-	constructor(source: BufferSource | string)
+	constructor(fileName: string)
 	{
-		if (typeof source === 'string')
-			throw RangeError("new Font() from file is not supported under Oozaru.");
-		let stream = new DataStream(source);
-		let rfn = stream.readStruct({
-			signature: 'string/4',
-			version:   'uint16-le',
-			numGlyphs: 'uint16-le',
-			reserved:  'reserve/248',
-		});
-		if (rfn.signature !== '.rfn')
-			throw new Error(`Unable to load RFN font file`);
-		if (rfn.version < 2 || rfn.version > 2)
-			throw new Error(`Unsupported RFN version '${rfn.version}'`)
-		if (rfn.numGlyphs <= 0)
-			throw new Error(`Malformed RFN font (no glyphs)`);
-		const numAcross = Math.ceil(Math.sqrt(rfn.numGlyphs));
-		this.stride = 1.0 / numAcross;
-		for (let i = 0; i < rfn.numGlyphs; ++i) {
-			let charInfo = stream.readStruct({
-				width:    'uint16-le',
-				height:   'uint16-le',
-				reserved: 'reserve/28',
+		this.fileName = Game.urlOf(fileName);
+		this.promise = Fido.fetchData(this.fileName).then((data) => {
+			let stream = new DataStream(data);
+			let rfn = stream.readStruct({
+				signature: 'string/4',
+				version:   'uint16-le',
+				numGlyphs: 'uint16-le',
+				reserved:  'reserve/248',
 			});
-			this.lineHeight = Math.max(this.lineHeight, charInfo.height);
-			this.maxWidth = Math.max(this.maxWidth, charInfo.width);
-			const pixelData = stream.readBytes(charInfo.width * charInfo.height * 4);
-			this.glyphs.push({
-				width: charInfo.width,
-				height: charInfo.height,
-				u: i % numAcross / numAcross,
-				v: 1.0 - Math.floor(i / numAcross) / numAcross,
-				pixelData,
-			});
-		}
-		this.atlas = new Texture(numAcross * this.maxWidth, numAcross * this.lineHeight);
-		this.numGlyphs = rfn.numGlyphs;
-		for (let i = 0; i < this.numGlyphs; ++i) {
-			const glyph = this.glyphs[i];
-			const x = i % numAcross * this.maxWidth;
-			const y = Math.floor(i / numAcross) * this.lineHeight;
-			this.atlas.upload(glyph.pixelData, x, y, glyph.width, glyph.height);
-		}
+			if (rfn.signature !== '.rfn')
+				throw new Error(`Unable to load RFN font file`);
+			if (rfn.version < 2 || rfn.version > 2)
+				throw new Error(`Unsupported RFN version '${rfn.version}'`)
+			if (rfn.numGlyphs <= 0)
+				throw new Error(`Malformed RFN font (no glyphs)`);
+			const numAcross = Math.ceil(Math.sqrt(rfn.numGlyphs));
+			this.stride = 1.0 / numAcross;
+			for (let i = 0; i < rfn.numGlyphs; ++i) {
+				let charInfo = stream.readStruct({
+					width:    'uint16-le',
+					height:   'uint16-le',
+					reserved: 'reserve/28',
+				});
+				this.lineHeight = Math.max(this.lineHeight, charInfo.height);
+				this.maxWidth = Math.max(this.maxWidth, charInfo.width);
+				const pixelData = stream.readBytes(charInfo.width * charInfo.height * 4);
+				this.glyphs.push({
+					width: charInfo.width,
+					height: charInfo.height,
+					u: i % numAcross / numAcross,
+					v: 1.0 - Math.floor(i / numAcross) / numAcross,
+					pixelData,
+				});
+			}
+			this.atlas = new Texture(numAcross * this.maxWidth, numAcross * this.lineHeight);
+			this.numGlyphs = rfn.numGlyphs;
+			for (let i = 0; i < this.numGlyphs; ++i) {
+				const glyph = this.glyphs[i];
+				const x = i % numAcross * this.maxWidth;
+				const y = Math.floor(i / numAcross) * this.lineHeight;
+				this.atlas.upload(glyph.pixelData, x, y, glyph.width, glyph.height);
+			}
+			this.complete = true;
+		}, (error) => {
+			this.exception = error;
+		})
 	}
 
 	get height()
 	{
+		this.checkIfReady();
 		return this.lineHeight;
 	}
 
+	get ready()
+	{
+		if (this.exception !== undefined)
+			throw this.exception;
+		if (this.complete)
+			this.promise = null;
+		return this.complete;
+	}
+
+	checkIfReady()
+	{
+		if (this.promise !== null)
+			throw Error(`Font from file ${this.fileName} was used without a ready check.`);
+	}	
+
 	drawText(surface: Surface, x: number, y: number, text: string | number | boolean, color = Color.White, wrapWidth?: number)
 	{
+		this.checkIfReady();
 		text = text.toString();
 		if (wrapWidth !== undefined) {
 			const lines = this.wordWrap(text, wrapWidth);
@@ -143,6 +166,7 @@ class Font
 
 	getTextSize(text: string | number | boolean, wrapWidth?: number): Size
 	{
+		this.checkIfReady();
 		text = text.toString();
 		if (wrapWidth !== undefined) {
 			const lines = this.wordWrap(text, wrapWidth);
@@ -161,6 +185,7 @@ class Font
 
 	heightOf(text: string | number | boolean, wrapWidth?: number)
 	{
+		this.checkIfReady();
 		return this.getTextSize(text, wrapWidth).height;
 	}
 
@@ -200,10 +225,23 @@ class Font
         Shape.drawImmediate(surface, ShapeType.Triangles, this.atlas, vertices);
 	}
 
+	async whenReady()
+	{
+		if (this.exception !== undefined)
+			throw this.exception;
+		if (this.promise !== null) {
+			await this.promise;
+			if (this.exception !== undefined)
+				throw this.exception;
+			this.promise = null;
+		}
+		return this;
+	}
+
 	widthOf(text: string | number | boolean)
 	{
+		this.checkIfReady();
 		text = text.toString();
-
 		let cp: number | undefined;
 		let ptr = 0;
 		let width = 0;
@@ -220,8 +258,8 @@ class Font
 
 	wordWrap(text: string | number | boolean, wrapWidth: number)
 	{
+		this.checkIfReady();
 		text = text.toString();
-
 		const lines: string[] = [];
 		let codepoints: number[] = [];
 		let currentLine = "";
