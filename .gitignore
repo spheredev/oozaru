@@ -2,5 +2,5 @@ node_modules/
 .DS_STORE
 
 web/dist/
+web/engine/
 web/games/
-web/oozaru/
