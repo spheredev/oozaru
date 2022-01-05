@@ -36,7 +36,7 @@ export { default as Music } from './music.js';
 export { default as Pact } from './pact.js';
 export { default as Prim } from './prim.js';
 export { default as Scene } from './scene.js';
-export { default as Thread } from './thread.js';
+export { default as Task } from './task.js';
 export { default as Tween, Easing } from './tween.js';
 
 // Sphere Runtime shared modules
