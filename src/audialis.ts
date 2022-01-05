@@ -80,8 +80,7 @@ class Sound
 {
 	static fromFile(fileName: string)
 	{
-		const sound = new Sound(fileName);
-		return sound.whenReady();
+		return new Sound(fileName).whenReady();
 	}
 
 	audioNode: MediaElementAudioSourceNode | null = null;
@@ -105,8 +104,8 @@ class Sound
 			this.element.loop = true;
 			this.promise = new Promise<void>((resolve) => {
 				this.element.onloadedmetadata = () => {
-					resolve();
 					this.complete = true;
+					resolve();
 				}
 				this.element.onerror = () => {
 					this.exception = Error(`Couldn't load audio file '${url}'.`);

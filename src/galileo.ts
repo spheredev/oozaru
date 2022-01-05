@@ -522,8 +522,7 @@ class Shader
 
 	static fromFiles(options: ShaderFileOptions)
 	{
-		const shader = new Shader(options);
-		return shader.whenReady();
+		return new Shader(options).whenReady();
 	}
 
 	complete = false;
@@ -939,11 +938,9 @@ class Shape
 export
 class Texture
 {
-	static async fromFile(fileName: string)
+	static fromFile(fileName: string)
 	{
-		fileName = Game.urlOf(fileName);
-		const image = await Fido.fetchImage(fileName);
-		return new this(image);
+		return new Texture(fileName).whenReady();
 	}
 
 	exception: unknown;
@@ -952,17 +949,16 @@ class Texture
 	promise: Promise<void> | null = null;
 	size: Size = { width: 0, height: 0 };
 
-	constructor(image: HTMLImageElement);
-	constructor(width: number, height: number, content?: BufferSource | Color);
-	constructor(image: string);
-	constructor(arg1: HTMLImageElement | number | string, arg2?: number, arg3?: BufferSource | Color)
+	constructor(...args: | [ HTMLImageElement ]
+	                     | [ string ]
+	                     | [ number, number, (BufferSource | Color)? ])
 	{
 		const glTexture = gl.createTexture();
 		if (glTexture === null)
 			throw new Error(`Engine couldn't create a WebGL texture object.`);
 		this.glTexture = glTexture;
-		if (typeof arg1 === 'string') {
-			this.fileName = Game.urlOf(arg1);
+		if (typeof args[0] === 'string') {
+			this.fileName = Game.urlOf(args[0]);
 			this.promise = Fido.fetchImage(this.fileName).then((image) => {
 				const oldBinding = gl.getParameter(gl.TEXTURE_BINDING_2D);
 				gl.bindTexture(gl.TEXTURE_2D, glTexture);
@@ -981,26 +977,27 @@ class Texture
 			const oldBinding = gl.getParameter(gl.TEXTURE_BINDING_2D);
 			gl.bindTexture(gl.TEXTURE_2D, glTexture);
 			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-			if (arg1 instanceof HTMLImageElement) {
-				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, arg1);
-				this.size = { width: arg1.width, height: arg1.height };
+			if (args[0] instanceof HTMLImageElement) {
+				const image = args[0];
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+				this.size = { width: args[0].width, height: args[0].height };
 			}
-			else {
-				const width = arg1;
-				const height = arg2!;
+			else if (typeof args[0] === 'number' && typeof args[1] === 'number') {
+				const width = args[0];
+				const height = args[1];
 				if (width < 1 || height < 1)
 					throw RangeError("A texture cannot be less than one pixel in size.");
-				if (arg3 instanceof ArrayBuffer || ArrayBuffer.isView(arg3)) {
-					const buffer = arg3 instanceof ArrayBuffer ? arg3 : arg3.buffer;
+				if (args[2] instanceof ArrayBuffer || ArrayBuffer.isView(args[2])) {
+					const buffer = args[2] instanceof ArrayBuffer ? args[2] : args[2].buffer;
 					if (buffer.byteLength < width * height * 4)
 						throw RangeError(`The provided buffer is too small to initialize a ${width}x${height} texture.`);
 					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
 						new Uint8Array(buffer));
 				}
 				else {
-					let pixels = new Uint32Array(width * height);
-					if (arg3 !== undefined)
-						pixels.fill((arg3.a * 255 << 24) + (arg3.b * 255 << 16) + (arg3.g * 255 << 8) + (arg3.r * 255));
+					const pixels = new Uint32Array(width * height);
+					if (args[2] !== undefined)
+						pixels.fill((args[2].a * 255 << 24) + (args[2].b * 255 << 16) + (args[2].g * 255 << 8) + (args[2].r * 255));
 					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
 						new Uint8Array(pixels.buffer));
 				}
@@ -1101,11 +1098,19 @@ class Surface extends Texture
 		return screenSurface;
 	}
 
+	static async fromFile(fileName: string)
+	{
+		const url = Game.urlOf(fileName);
+		const image = await Fido.fetchImage(url);
+		return new Surface(image);
+	}
+
 	constructor(...args: | [ HTMLImageElement ]
-	                     | [ string ]
 	                     | [ number, number, (BufferSource | Color)? ])
 	{
-		// @ts-expect-error
+		if (typeof args[0] === 'string')
+			throw RangeError("new Surface() doesn't support background loading.");
+
 		super(...args);
 
 		const frameBuffer = gl.createFramebuffer();
