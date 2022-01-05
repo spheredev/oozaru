@@ -48,7 +48,6 @@ async function main() {
     canvas.focus();
     canvas.onkeypress = canvas.onclick = async (e) => {
         if (gameID !== null || useDistDir) {
-            document.body.classList.add('darkened');
             if (overlay !== null)
                 overlay.style.opacity = '0';
             canvas.onclick = null;

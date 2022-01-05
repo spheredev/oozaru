@@ -41,7 +41,7 @@ export default class Galileo {
     static async initialize(canvas) {
         const glContext = canvas.getContext('webgl', { alpha: false });
         if (glContext === null)
-            throw new Error(`Oozaru was unable to create a WebGL context.`);
+            throw new Error(`Couldn't acquire a WebGL rendering context.`);
         gl = glContext;
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clearDepth(1.0);
@@ -311,7 +311,7 @@ export class IndexList {
     constructor(indices) {
         this.glBuffer = gl.createBuffer();
         if (this.glBuffer === null)
-            throw new Error(`Oozaru was unable to create a WebGL buffer object.`);
+            throw new Error(`Engine couldn't create a WebGL buffer object.`);
         this.upload(indices);
     }
     activate() {
@@ -354,99 +354,100 @@ export class Shader {
     static get Default() {
         return defaultShader;
     }
-    static async fromFiles(options) {
-        const vertexURL = Game.urlOf(options.vertexFile);
-        const fragmentURL = Game.urlOf(options.fragmentFile);
-        const [vertexSource, fragmentSource] = await Promise.all([
-            Fido.fetchText(vertexURL),
-            Fido.fetchText(fragmentURL),
-        ]);
-        return new Shader(vertexSource, fragmentSource);
+    static fromFiles(options) {
+        return new Shader(options).whenReady();
     }
-    fragmentSource;
+    complete = false;
+    exception;
+    fragmentShaderSource = "";
+    glFragmentShader;
     glProgram;
-    modelView;
-    projection;
+    glVertexShader;
+    modelViewMatrix = Transform.Identity;
+    projection = Transform.Identity;
+    promise = null;
     uniformIDs = {};
-    vertexSource;
+    vertexShaderSource = "";
     valuesToSet = {};
-    constructor(vertexSource, fragmentSource) {
+    constructor(options) {
         const program = gl.createProgram();
-        const vertShader = gl.createShader(gl.VERTEX_SHADER);
-        const fragShader = gl.createShader(gl.FRAGMENT_SHADER);
-        if (program === null || vertShader === null || fragShader === null)
-            throw new Error(`Oozaru was unable to create a WebGL shader object`);
-        gl.shaderSource(vertShader, vertexSource);
-        gl.shaderSource(fragShader, fragmentSource);
-        gl.compileShader(vertShader);
-        if (!gl.getShaderParameter(vertShader, gl.COMPILE_STATUS)) {
-            const message = gl.getShaderInfoLog(vertShader);
-            throw new Error(`Unable to compile vertex shader...\n${message}`);
-        }
-        gl.compileShader(fragShader);
-        if (!gl.getShaderParameter(fragShader, gl.COMPILE_STATUS)) {
-            const message = gl.getShaderInfoLog(fragShader);
-            throw new Error(`Unable to compile fragment shader...\n${message}`);
-        }
-        gl.attachShader(program, vertShader);
-        gl.attachShader(program, fragShader);
-        gl.bindAttribLocation(program, 0, 'al_pos');
-        gl.bindAttribLocation(program, 1, 'al_color');
-        gl.bindAttribLocation(program, 2, 'al_texcoord');
-        gl.linkProgram(program);
-        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-            const message = gl.getProgramInfoLog(program);
-            throw new Error(`Couldn't link shader program...\n${message}`);
-        }
-        this.fragmentSource = fragmentSource;
+        const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+        const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+        if (program === null || vertexShader === null || fragmentShader === null)
+            throw new Error(`Engine couldn't create a WebGL shader object.`);
         this.glProgram = program;
-        this.projection = Transform.Identity;
-        this.modelView = Transform.Identity;
-        this.vertexSource = vertexSource;
-        let transformation = this.modelView.clone()
-            .compose(this.projection);
-        this.setMatrix('al_projview_matrix', transformation);
-        this.setInt('al_tex', 0);
+        this.glVertexShader = vertexShader;
+        this.glFragmentShader = fragmentShader;
+        if ('vertexFile' in options && options.vertexFile !== undefined) {
+            const vertexURL = Game.urlOf(options.vertexFile);
+            const fragmentURL = Game.urlOf(options.fragmentFile);
+            this.promise = Promise.all([
+                Fido.fetchText(vertexURL),
+                Fido.fetchText(fragmentURL),
+            ]).then((responses) => {
+                this.compile(responses[0], responses[1]);
+            }, (error) => {
+                this.exception = error;
+            });
+        }
+        else if ('vertexSource' in options && options.vertexSource !== undefined) {
+            this.compile(options.vertexSource, options.fragmentSource);
+        }
+        else {
+            throw RangeError("'new Shader()' was called without either filenames or shader sources.");
+        }
+    }
+    get ready() {
+        if (this.exception !== undefined)
+            throw this.exception;
+        if (this.complete)
+            this.promise = null;
+        return this.complete;
     }
     activate(useTexture) {
+        this.checkIfReady();
         if (activeShader !== this) {
             gl.useProgram(this.glProgram);
             for (const name of Object.keys(this.valuesToSet)) {
                 const entry = this.valuesToSet[name];
-                const slot = this.uniformIDs[name];
+                let location = this.uniformIDs[name];
+                if (location === undefined) {
+                    location = gl.getUniformLocation(this.glProgram, name);
+                    this.uniformIDs[name] = location;
+                }
                 let size;
                 switch (entry.type) {
-                    case 'bool':
-                        gl.uniform1i(slot, entry.value ? 1 : 0);
+                    case 'boolean':
+                        gl.uniform1i(location, entry.value ? 1 : 0);
                         break;
                     case 'float':
-                        gl.uniform1f(slot, entry.value);
+                        gl.uniform1f(location, entry.value);
                         break;
                     case 'floatArray':
-                        gl.uniform1fv(slot, entry.value);
+                        gl.uniform1fv(location, entry.value);
                         break;
-                    case 'floatVec':
+                    case 'floatVector':
                         size = entry.value.length;
-                        size === 4 ? gl.uniform4fv(slot, entry.value)
-                            : size === 3 ? gl.uniform3fv(slot, entry.value)
-                                : size === 2 ? gl.uniform2fv(slot, entry.value)
-                                    : gl.uniform1fv(slot, entry.value);
+                        size === 4 ? gl.uniform4fv(location, entry.value)
+                            : size === 3 ? gl.uniform3fv(location, entry.value)
+                                : size === 2 ? gl.uniform2fv(location, entry.value)
+                                    : gl.uniform1fv(location, entry.value);
                         break;
                     case 'int':
-                        gl.uniform1i(slot, entry.value);
+                        gl.uniform1i(location, entry.value);
                         break;
                     case 'intArray':
-                        gl.uniform1iv(slot, entry.value);
+                        gl.uniform1iv(location, entry.value);
                         break;
-                    case 'intVec':
+                    case 'intVector':
                         size = entry.value.length;
-                        size === 4 ? gl.uniform4iv(slot, entry.value)
-                            : size === 3 ? gl.uniform3iv(slot, entry.value)
-                                : size === 2 ? gl.uniform2iv(slot, entry.value)
-                                    : gl.uniform1iv(slot, entry.value);
+                        size === 4 ? gl.uniform4iv(location, entry.value)
+                            : size === 3 ? gl.uniform3iv(location, entry.value)
+                                : size === 2 ? gl.uniform2iv(location, entry.value)
+                                    : gl.uniform1iv(location, entry.value);
                         break;
                     case 'matrix':
-                        gl.uniformMatrix4fv(slot, false, entry.value.values);
+                        gl.uniformMatrix4fv(location, false, entry.value.values);
                         break;
                 }
             }
@@ -455,58 +456,104 @@ export class Shader {
         }
         this.setBoolean('al_use_tex', useTexture);
     }
+    checkIfReady() {
+        if (this.promise !== null)
+            throw Error(`Shader was used before checking if it was ready.`);
+    }
     clone() {
-        return new Shader(this.vertexSource, this.fragmentSource);
+        this.checkIfReady();
+        return new Shader({
+            vertexSource: this.vertexShaderSource,
+            fragmentSource: this.fragmentShaderSource,
+        });
+    }
+    compile(vertexShaderSource, fragmentShaderSource) {
+        gl.shaderSource(this.glVertexShader, vertexShaderSource);
+        gl.shaderSource(this.glFragmentShader, fragmentShaderSource);
+        gl.compileShader(this.glVertexShader);
+        if (!gl.getShaderParameter(this.glVertexShader, gl.COMPILE_STATUS)) {
+            const message = gl.getShaderInfoLog(this.glVertexShader);
+            throw Error(`Couldn't compile WebGL vertex shader.\n${message}`);
+        }
+        gl.compileShader(this.glFragmentShader);
+        if (!gl.getShaderParameter(this.glFragmentShader, gl.COMPILE_STATUS)) {
+            const message = gl.getShaderInfoLog(this.glFragmentShader);
+            throw Error(`Couldn't compile WebGL fragment shader.\n${message}`);
+        }
+        gl.attachShader(this.glProgram, this.glVertexShader);
+        gl.attachShader(this.glProgram, this.glFragmentShader);
+        gl.bindAttribLocation(this.glProgram, 0, 'al_pos');
+        gl.bindAttribLocation(this.glProgram, 1, 'al_color');
+        gl.bindAttribLocation(this.glProgram, 2, 'al_texcoord');
+        gl.linkProgram(this.glProgram);
+        if (!gl.getProgramParameter(this.glProgram, gl.LINK_STATUS)) {
+            const message = gl.getProgramInfoLog(this.glProgram);
+            throw Error(`Couldn't link WebGL shader program.\n${message}`);
+        }
+        this.vertexShaderSource = vertexShaderSource;
+        this.fragmentShaderSource = fragmentShaderSource;
+        this.uniformIDs = {};
+        this.complete = true;
+        const transformation = this.modelViewMatrix.clone()
+            .compose(this.projection);
+        this.setMatrix('al_projview_matrix', transformation);
+        this.setInt('al_tex', 0);
     }
     project(matrix) {
         this.projection = matrix.clone();
-        let transformation = this.modelView.clone()
+        let transformation = this.modelViewMatrix.clone()
             .compose(this.projection);
         this.setMatrix('al_projview_matrix', transformation);
     }
     setBoolean(name, value) {
-        let location = this.uniformIDs[name];
-        if (location === undefined) {
-            location = gl.getUniformLocation(this.glProgram, name);
-            this.uniformIDs[name] = location;
-        }
-        if (activeShader === this)
+        if (activeShader === this) {
+            let location = this.uniformIDs[name];
+            if (location === undefined) {
+                location = gl.getUniformLocation(this.glProgram, name);
+                this.uniformIDs[name] = location;
+            }
             gl.uniform1i(location, value ? 1 : 0);
-        else
-            this.valuesToSet[name] = { type: 'bool', value };
+        }
+        else {
+            this.valuesToSet[name] = { type: 'boolean', value };
+        }
     }
     setColorVector(name, color) {
         this.setFloatVector(name, color.toVector());
     }
     setFloat(name, value) {
-        let location = this.uniformIDs[name];
-        if (location === undefined) {
-            location = gl.getUniformLocation(this.glProgram, name);
-            this.uniformIDs[name] = location;
-        }
-        if (activeShader === this)
+        if (activeShader === this) {
+            let location = this.uniformIDs[name];
+            if (location === undefined) {
+                location = gl.getUniformLocation(this.glProgram, name);
+                this.uniformIDs[name] = location;
+            }
             gl.uniform1f(location, value);
-        else
+        }
+        else {
             this.valuesToSet[name] = { type: 'float', value };
+        }
     }
     setFloatArray(name, values) {
-        let location = this.uniformIDs[name];
-        if (location === undefined) {
-            location = gl.getUniformLocation(this.glProgram, name);
-            this.uniformIDs[name] = location;
-        }
-        if (activeShader === this)
+        if (activeShader === this) {
+            let location = this.uniformIDs[name];
+            if (location === undefined) {
+                location = gl.getUniformLocation(this.glProgram, name);
+                this.uniformIDs[name] = location;
+            }
             gl.uniform1fv(location, values);
-        else
+        }
+        else {
             this.valuesToSet[name] = { type: 'floatArray', value: values };
+        }
     }
     setFloatVector(name, values) {
-        let location = this.uniformIDs[name];
-        if (location === undefined) {
-            location = gl.getUniformLocation(this.glProgram, name);
-            this.uniformIDs[name] = location;
-        }
         if (activeShader === this) {
+            let location = this.uniformIDs[name];
+            if (location === undefined) {
+                location = gl.getUniformLocation(this.glProgram, name);
+                this.uniformIDs[name] = location;
+            }
             const size = values.length;
             size === 4 ? gl.uniform4fv(location, values)
                 : size === 3 ? gl.uniform3fv(location, values)
@@ -514,38 +561,42 @@ export class Shader {
                         : gl.uniform1fv(location, values);
         }
         else {
-            this.valuesToSet[name] = { type: 'floatVec', value: values };
+            this.valuesToSet[name] = { type: 'floatVector', value: values };
         }
     }
     setInt(name, value) {
-        let location = this.uniformIDs[name];
-        if (location === undefined) {
-            location = gl.getUniformLocation(this.glProgram, name);
-            this.uniformIDs[name] = location;
-        }
-        if (activeShader === this)
+        if (activeShader === this) {
+            let location = this.uniformIDs[name];
+            if (location === undefined) {
+                location = gl.getUniformLocation(this.glProgram, name);
+                this.uniformIDs[name] = location;
+            }
             gl.uniform1i(location, value);
-        else
+        }
+        else {
             this.valuesToSet[name] = { type: 'int', value };
+        }
     }
     setIntArray(name, values) {
-        let location = this.uniformIDs[name];
-        if (location === undefined) {
-            location = gl.getUniformLocation(this.glProgram, name);
-            this.uniformIDs[name] = location;
-        }
-        if (activeShader === this)
+        if (activeShader === this) {
+            let location = this.uniformIDs[name];
+            if (location === undefined) {
+                location = gl.getUniformLocation(this.glProgram, name);
+                this.uniformIDs[name] = location;
+            }
             gl.uniform1iv(location, values);
-        else
+        }
+        else {
             this.valuesToSet[name] = { type: 'intArray', value: values };
+        }
     }
     setIntVector(name, values) {
-        let location = this.uniformIDs[name];
-        if (location === undefined) {
-            location = gl.getUniformLocation(this.glProgram, name);
-            this.uniformIDs[name] = location;
-        }
         if (activeShader === this) {
+            let location = this.uniformIDs[name];
+            if (location === undefined) {
+                location = gl.getUniformLocation(this.glProgram, name);
+                this.uniformIDs[name] = location;
+            }
             const size = values.length;
             size === 4 ? gl.uniform4iv(location, values)
                 : size === 3 ? gl.uniform3iv(location, values)
@@ -553,25 +604,38 @@ export class Shader {
                         : gl.uniform1iv(location, values);
         }
         else {
-            this.valuesToSet[name] = { type: 'intVec', value: values };
+            this.valuesToSet[name] = { type: 'intVector', value: values };
         }
     }
     setMatrix(name, value) {
-        let location = this.uniformIDs[name];
-        if (location === undefined) {
-            location = gl.getUniformLocation(this.glProgram, name);
-            this.uniformIDs[name] = location;
-        }
-        if (activeShader === this)
+        if (activeShader === this) {
+            let location = this.uniformIDs[name];
+            if (location === undefined) {
+                location = gl.getUniformLocation(this.glProgram, name);
+                this.uniformIDs[name] = location;
+            }
             gl.uniformMatrix4fv(location, false, value.values);
-        else
+        }
+        else {
             this.valuesToSet[name] = { type: 'matrix', value };
+        }
     }
     transform(matrix) {
-        this.modelView = matrix.clone();
-        let transformation = this.modelView.clone()
+        this.modelViewMatrix = matrix.clone();
+        let transformation = this.modelViewMatrix.clone()
             .compose(this.projection);
         this.setMatrix('al_projview_matrix', transformation);
+    }
+    async whenReady() {
+        if (this.exception !== undefined)
+            throw this.exception;
+        if (this.promise !== null) {
+            await this.promise;
+            if (this.exception !== undefined)
+                throw this.exception;
+            this.promise = null;
+        }
+        return this;
     }
 }
 export class Shape {
@@ -636,54 +700,91 @@ export class Shape {
     }
 }
 export class Texture {
-    static async fromFile(fileName) {
-        fileName = Game.urlOf(fileName);
-        const image = await Fido.fetchImage(fileName);
-        return new this(image);
+    static fromFile(fileName) {
+        return new Texture(fileName).whenReady();
     }
+    exception;
+    fileName;
     glTexture;
-    size;
-    constructor(arg1, arg2, arg3) {
-        if (typeof arg1 === 'string')
-            throw RangeError("new Texture() from filename is unsupported under Oozaru.");
+    promise = null;
+    size = { width: 0, height: 0 };
+    constructor(...args) {
         const glTexture = gl.createTexture();
         if (glTexture === null)
-            throw new Error(`Unable to create WebGL texture object`);
+            throw new Error(`Engine couldn't create a WebGL texture object.`);
         this.glTexture = glTexture;
-        const oldBinding = gl.getParameter(gl.TEXTURE_BINDING_2D);
-        gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-        if (arg1 instanceof HTMLImageElement) {
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, arg1);
-            this.size = { width: arg1.width, height: arg1.height };
+        if (typeof args[0] === 'string') {
+            this.fileName = Game.urlOf(args[0]);
+            this.promise = Fido.fetchImage(this.fileName).then((image) => {
+                const oldBinding = gl.getParameter(gl.TEXTURE_BINDING_2D);
+                gl.bindTexture(gl.TEXTURE_2D, glTexture);
+                gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                gl.bindTexture(gl.TEXTURE_2D, oldBinding);
+                this.size = { width: image.width, height: image.height };
+            }, (error) => {
+                this.exception = error;
+            });
         }
         else {
-            const width = arg1;
-            const height = arg2;
-            if (arg3 instanceof ArrayBuffer || ArrayBuffer.isView(arg3)) {
-                const buffer = arg3 instanceof ArrayBuffer ? arg3 : arg3.buffer;
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(buffer));
+            const oldBinding = gl.getParameter(gl.TEXTURE_BINDING_2D);
+            gl.bindTexture(gl.TEXTURE_2D, glTexture);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+            if (args[0] instanceof HTMLImageElement) {
+                const image = args[0];
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+                this.size = { width: args[0].width, height: args[0].height };
             }
-            else {
-                let pixels = new Uint32Array(width * height);
-                if (arg3 !== undefined)
-                    pixels.fill((arg3.a * 255 << 24) + (arg3.b * 255 << 16) + (arg3.g * 255 << 8) + (arg3.r * 255));
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(pixels.buffer));
+            else if (typeof args[0] === 'number' && typeof args[1] === 'number') {
+                const width = args[0];
+                const height = args[1];
+                if (width < 1 || height < 1)
+                    throw RangeError("A texture cannot be less than one pixel in size.");
+                if (args[2] instanceof ArrayBuffer || ArrayBuffer.isView(args[2])) {
+                    const buffer = args[2] instanceof ArrayBuffer ? args[2] : args[2].buffer;
+                    if (buffer.byteLength < width * height * 4)
+                        throw RangeError(`The provided buffer is too small to initialize a ${width}x${height} texture.`);
+                    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(buffer));
+                }
+                else {
+                    const pixels = new Uint32Array(width * height);
+                    if (args[2] !== undefined)
+                        pixels.fill((args[2].a * 255 << 24) + (args[2].b * 255 << 16) + (args[2].g * 255 << 8) + (args[2].r * 255));
+                    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(pixels.buffer));
+                }
+                this.size = { width, height };
             }
-            this.size = { width, height };
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.bindTexture(gl.TEXTURE_2D, oldBinding);
         }
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.bindTexture(gl.TEXTURE_2D, oldBinding);
     }
     get height() {
+        this.checkIfReady();
         return this.size.height;
     }
+    get ready() {
+        if (this.exception !== undefined)
+            throw this.exception;
+        const isReady = this.size.width > 0;
+        if (isReady)
+            this.promise = null;
+        return isReady;
+    }
     get width() {
+        this.checkIfReady();
         return this.size.width;
     }
-    upload(content, x = 0, y = 0, width = this.size.width, height = this.size.height) {
+    checkIfReady() {
+        if (this.promise !== null)
+            throw Error(`Texture from file '${this.fileName}' was used without a ready check.`);
+    }
+    upload(content, x = 0, y = 0, width = this.width, height = this.height) {
+        this.checkIfReady();
         const pixelData = ArrayBuffer.isView(content)
             ? new Uint8Array(content.buffer)
             : new Uint8Array(content);
@@ -691,8 +792,20 @@ export class Texture {
         gl.texSubImage2D(gl.TEXTURE_2D, 0, x, this.size.height - y - height, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
     }
     useTexture(textureUnit = 0) {
+        this.checkIfReady();
         gl.activeTexture(gl.TEXTURE0 + textureUnit);
         gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
+    }
+    async whenReady() {
+        if (this.exception !== undefined)
+            throw this.exception;
+        if (this.promise !== null) {
+            await this.promise;
+            if (this.exception !== undefined)
+                throw this.exception;
+            this.promise = null;
+        }
+        return this;
     }
 }
 export class Surface extends Texture {
@@ -710,6 +823,7 @@ export class Surface extends Texture {
         screenSurface.frameBuffer = null;
         screenSurface.projection = new Transform()
             .project2D(0, 0, gl.canvas.width, gl.canvas.height);
+        screenSurface.promise = null;
         Object.defineProperty(Surface, 'Screen', {
             value: screenSurface,
             writable: false,
@@ -718,12 +832,19 @@ export class Surface extends Texture {
         });
         return screenSurface;
     }
+    static async fromFile(fileName) {
+        const url = Game.urlOf(fileName);
+        const image = await Fido.fetchImage(url);
+        return new Surface(image);
+    }
     constructor(...args) {
+        if (typeof args[0] === 'string')
+            throw RangeError("new Surface() doesn't support background loading.");
         super(...args);
         const frameBuffer = gl.createFramebuffer();
         const depthBuffer = gl.createRenderbuffer();
         if (frameBuffer === null || depthBuffer === null)
-            throw new Error(`Oozaru was unable to create a WebGL frame buffer.`);
+            throw new Error(`Engine couldn't create a WebGL framebuffer object.`);
         const previousFBO = gl.getParameter(gl.FRAMEBUFFER_BINDING);
         gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.glTexture, 0);
@@ -944,7 +1065,7 @@ export class VertexList {
     constructor(vertices) {
         this.glBuffer = gl.createBuffer();
         if (this.glBuffer === null)
-            throw new Error(`Oozaru was unable to create a WebGL buffer object.`);
+            throw new Error(`Engine couldn't create a WebGL buffer object.`);
         this.upload(vertices);
     }
     activate() {

@@ -6,7 +6,6 @@ import Game from './game.js';
 import Galileo, { BlendOp, Color, DepthOp, IndexList, Model, Shader, Shape, ShapeType, Surface, Texture, Transform, VertexList } from './galileo.js';
 import { Joystick, Key, Keyboard, Mouse, MouseKey } from './input-engine.js';
 import JobQueue, { Dispatch, JobToken, JobType } from './job-queue.js';
-import { fetchScript } from './utilities.js';
 import { Version } from './version.js';
 var DataType;
 (function (DataType) {
@@ -79,9 +78,11 @@ export default class Pegasus {
     static async launchGame(rootPath) {
         await Game.initialize(rootPath);
         Dispatch.onRender(() => {
-            if (Fido.progress >= 1.0)
+            if (Fido.numJobs === 0)
                 return;
-            const status = `fido: ${Math.floor(100.0 * Fido.progress)}% (${Fido.numJobs} files)`;
+            const status = Fido.progress < 1.0
+                ? `${Math.floor(100.0 * Fido.progress)}% - ${Fido.numJobs} files`
+                : `loading ${Fido.numJobs} files`;
             const textSize = Font.Default.getTextSize(status);
             const x = Surface.Screen.width - textSize.width - 5;
             const y = Surface.Screen.height - textSize.height - 5;
@@ -148,7 +149,19 @@ class Sphere {
 class FS {
     static async evaluateScript(fileName) {
         const url = Game.urlOf(fileName);
-        return fetchScript(url);
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.onload = () => {
+                resolve();
+                script.remove();
+            };
+            script.onerror = () => {
+                reject(Error(`Oozaru was unable to load '${url}' as a script`));
+                script.remove();
+            };
+            script.src = url;
+            document.head.appendChild(script);
+        });
     }
     static async fileExists(pathName) {
         const url = Game.urlOf(pathName);

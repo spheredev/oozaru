@@ -127,6 +127,6 @@ export class Manifest {
             };
         }
         if (this.mainPath === "")
-            throw Error("Game manifest doesn't specify a main script.");
+            throw Error("No main script is specified in the game manifest.");
     }
 }

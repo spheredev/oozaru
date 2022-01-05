@@ -7,11 +7,6 @@ body {
 	font-size: 11pt;
 	height: 100vh;
 	margin: 0;
-	transition: background-color 5.0s ease;
-}
-
-body.darkened {
-	background-color: #111;
 }
 
 #menu {
@@ -74,7 +69,7 @@ body.darkened {
 	color: #CCC;
 	display: flex;
 	flex-direction: column;
-	font-family: monospace;
+	font-family: system-ui;
 	margin: auto;
 	padding: 1rem;
 	text-align: center;

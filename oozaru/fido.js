@@ -1,6 +1,23 @@
 var jobs = [];
 export default class Fido {
+    static get numJobs() {
+        return jobs.length;
+    }
+    static get progress() {
+        let bytesTotal = 0;
+        let bytesDone = 0;
+        for (const job of jobs) {
+            if (job.totalSize === null)
+                continue;
+            bytesTotal += job.totalSize;
+            bytesDone += job.bytesDone;
+        }
+        return bytesTotal > 0 ? bytesDone / bytesTotal : 1.0;
+    }
     static async fetch(url) {
+        const response = await fetch(url);
+        if (!response.ok || response.body === null)
+            throw Error(`Couldn't fetch the file '${url}'. (HTTP ${response.status})`);
         const job = {
             url,
             bytesDone: 0,
@@ -8,13 +25,10 @@ export default class Fido {
             finished: false,
         };
         jobs.push(job);
-        const response = await fetch(url);
-        if (response.body === null)
-            throw Error(`Fido was unable to fetch '${url}' (${response.status}).`);
         const reader = response.body.getReader();
         const length = response.headers.get('Content-Length');
         if (length !== null)
-            job.totalSize = parseInt(length);
+            job.totalSize = parseInt(length, 10);
         const chunks = [];
         while (!job.finished) {
             const result = await reader.read();
@@ -57,19 +71,5 @@ export default class Fido {
     static async fetchText(url) {
         const blob = await this.fetch(url);
         return blob.text();
-    }
-    static get numJobs() {
-        return jobs.length;
-    }
-    static get progress() {
-        let bytesTotal = 0;
-        let bytesDone = 0;
-        for (const job of jobs) {
-            if (job.totalSize === null)
-                continue;
-            bytesTotal += job.totalSize;
-            bytesDone += job.bytesDone;
-        }
-        return bytesTotal > 0 ? bytesDone / bytesTotal : 1.0;
     }
 }
