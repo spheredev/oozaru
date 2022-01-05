@@ -1,8 +1,8 @@
 Oozaru Changelog
 ================
 
-v0.5.0 - TBD
-------------
+v0.5.0 - January 5, 2022
+------------------------
 
 * Adds support for background-loading `Font`, `Shader`, `Sound`, and `Texture`
   assets via `new`, along with APIs to check when a background-loaded asset is
