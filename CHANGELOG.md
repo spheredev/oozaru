@@ -1,6 +1,12 @@
 Oozaru Changelog
 ================
 
+Since Last Release
+------------------
+
+* Adds support for games that use `Task` instead of `Thread`.
+
+
 v0.5.0 - January 5, 2022
 ------------------------
 
