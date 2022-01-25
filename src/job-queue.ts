@@ -215,14 +215,13 @@ function animate()
 			&& !job.paused)
 		{
 			job.busy = true;
-			Promise.resolve(job.callback())
-				.then(() => {
-					job.busy = false;
-				})
-				.catch(exception => {
-					jobs.length = 0;
-					throw exception;
-				});
+			Promise.resolve(job.callback()).then(() => {
+				job.busy = false;
+			})
+			.catch((error) => {
+				jobs.length = 0;
+				throw error;
+			});
 		}
 		if (job.cancelled || (!job.recurring && job.timer < 0))
 			continue;  // delete it

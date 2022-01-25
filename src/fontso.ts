@@ -32,7 +32,7 @@
 
 import { DataStream } from './data-stream.js';
 import Fido from './fido.js';
-import { Color, Shape, ShapeType, Size, Surface, Texture, Vertex } from './galileo.js';
+import { Color, Shape, ShapeType, type Size, type Surface, Texture, type Vertex } from './galileo.js';
 import Game from './game.js';
 
 interface Glyph
@@ -63,28 +63,32 @@ class Font
 		return defaultFont;
 	}
 
-	static fromFile(fileName: string)
+	static async fromFile(fileName: string)
 	{
-		return new Font(fileName).whenReady();
+		const fontURL = Game.urlOf(fileName);
+		const fileData = await Fido.fetchData(fontURL);
+		const font = new Font(fileData);
+		font.fileName = Game.fullPath(fileName);
+		return font;
 	}
 
 	atlas!: Texture;
-	complete = false;
-	exception: unknown;
-	fileName: string;
+	fileName: string | undefined;
 	glyphs: Glyph[] = [];
 	lineHeight = 0;
 	maxWidth = 0;
 	numGlyphs = 0;
-	promise: Promise<void> | null = null;
 	stride!: number;
 
-	constructor(fileName: string)
+	constructor(...args: | [ ArrayBuffer ]
+	                     | [ string ])
 	{
-		this.fileName = Game.urlOf(fileName);
-		this.promise = Fido.fetchData(this.fileName).then((data) => {
-			let stream = new DataStream(data);
-			let rfn = stream.readStruct({
+		if (typeof args[0] === 'string') {
+			throw Error("'new Font' with filename is not supported in Oozaru.");
+		}
+		else if (args[0] instanceof ArrayBuffer) {
+			let dataStream = new DataStream(args[0]);
+			let rfn = dataStream.readStruct({
 				signature: 'string/4',
 				version:   'uint16-le',
 				numGlyphs: 'uint16-le',
@@ -99,14 +103,14 @@ class Font
 			const numAcross = Math.ceil(Math.sqrt(rfn.numGlyphs));
 			this.stride = 1.0 / numAcross;
 			for (let i = 0; i < rfn.numGlyphs; ++i) {
-				let charInfo = stream.readStruct({
+				let charInfo = dataStream.readStruct({
 					width:    'uint16-le',
 					height:   'uint16-le',
 					reserved: 'reserve/28',
 				});
 				this.lineHeight = Math.max(this.lineHeight, charInfo.height);
 				this.maxWidth = Math.max(this.maxWidth, charInfo.width);
-				const pixelData = stream.readBytes(charInfo.width * charInfo.height * 4);
+				const pixelData = dataStream.readBytes(charInfo.width * charInfo.height * 4);
 				this.glyphs.push({
 					width: charInfo.width,
 					height: charInfo.height,
@@ -123,36 +127,19 @@ class Font
 				const y = Math.floor(i / numAcross) * this.lineHeight;
 				this.atlas.upload(glyph.pixelData, x, y, glyph.width, glyph.height);
 			}
-			this.complete = true;
-		}, (error) => {
-			this.exception = error;
-		})
+		}
+		else {
+			throw RangeError("Invalid argument(s) passed to 'new Font'.");
+		}
 	}
 
 	get height()
 	{
-		this.checkIfReady();
 		return this.lineHeight;
 	}
 
-	get ready()
-	{
-		if (this.exception !== undefined)
-			throw this.exception;
-		if (this.complete)
-			this.promise = null;
-		return this.complete;
-	}
-
-	checkIfReady()
-	{
-		if (this.promise !== null)
-			throw Error(`Font from file ${this.fileName} was used without a ready check.`);
-	}	
-
 	drawText(surface: Surface, x: number, y: number, text: string | number | boolean, color = Color.White, wrapWidth?: number)
 	{
-		this.checkIfReady();
 		text = text.toString();
 		if (wrapWidth !== undefined) {
 			const lines = this.wordWrap(text, wrapWidth);
@@ -166,7 +153,6 @@ class Font
 
 	getTextSize(text: string | number | boolean, wrapWidth?: number): Size
 	{
-		this.checkIfReady();
 		text = text.toString();
 		if (wrapWidth !== undefined) {
 			const lines = this.wordWrap(text, wrapWidth);
@@ -185,7 +171,6 @@ class Font
 
 	heightOf(text: string | number | boolean, wrapWidth?: number)
 	{
-		this.checkIfReady();
 		return this.getTextSize(text, wrapWidth).height;
 	}
 
@@ -225,22 +210,8 @@ class Font
         Shape.drawImmediate(surface, ShapeType.Triangles, this.atlas, vertices);
 	}
 
-	async whenReady()
-	{
-		if (this.exception !== undefined)
-			throw this.exception;
-		if (this.promise !== null) {
-			await this.promise;
-			if (this.exception !== undefined)
-				throw this.exception;
-			this.promise = null;
-		}
-		return this;
-	}
-
 	widthOf(text: string | number | boolean)
 	{
-		this.checkIfReady();
 		text = text.toString();
 		let cp: number | undefined;
 		let ptr = 0;
@@ -258,7 +229,6 @@ class Font
 
 	wordWrap(text: string | number | boolean, wrapWidth: number)
 	{
-		this.checkIfReady();
 		text = text.toString();
 		const lines: string[] = [];
 		let codepoints: number[] = [];

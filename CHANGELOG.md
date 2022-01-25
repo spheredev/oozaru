@@ -5,6 +5,8 @@ Since Last Release
 ------------------
 
 * Adds support for games that use `Task` instead of `Thread`.
+* Removes the background-loading support for assets and the corresponding APIs
+  added in the previous release.
 
 
 v0.5.0 - January 5, 2022

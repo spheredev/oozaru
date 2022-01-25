@@ -520,20 +520,26 @@ class Shader
 		return defaultShader;
 	}
 
-	static fromFiles(options: ShaderFileOptions)
+	static async fromFiles(options: ShaderFileOptions)
 	{
-		return new Shader(options).whenReady();
-	}
+		const vertexShaderURL = Game.urlOf(options.vertexFile);
+		const fragmentShaderURL = Game.urlOf(options.fragmentFile);
+		const sources = await Promise.all([
+			Fido.fetchText(vertexShaderURL),
+			Fido.fetchText(fragmentShaderURL),
+		]);
+		return new Shader({
+			vertexSource: sources[0],
+			fragmentSource: sources[1],
+		})
+}
 
-	complete = false;
-	exception: unknown;
 	fragmentShaderSource = "";
 	glFragmentShader: WebGLShader;
 	glProgram: WebGLProgram;
 	glVertexShader: WebGLShader;
 	modelViewMatrix = Transform.Identity;
 	projection = Transform.Identity;
-	promise: Promise<void> | null = null;
 	uniformIDs: { [x: string]: WebGLUniformLocation | null } = {};
 	vertexShaderSource = "";
 	valuesToSet: { [x: string]: { type: string, value: any } } = {};
@@ -550,16 +556,7 @@ class Shader
 		this.glFragmentShader = fragmentShader;
 
 		if ('vertexFile' in options && options.vertexFile !== undefined) {
-			const vertexURL = Game.urlOf(options.vertexFile);
-			const fragmentURL = Game.urlOf(options.fragmentFile);
-			this.promise = Promise.all([
-				Fido.fetchText(vertexURL),
-				Fido.fetchText(fragmentURL),
-			]).then((responses) => {
-				this.compile(responses[0], responses[1]);
-			}, (error) => {
-				this.exception = error;
-			});
+			throw Error("'new Shader' with filenames is not supported in Oozaru.");
 		}
 		else if ('vertexSource' in options && options.vertexSource !== undefined) {
 			this.compile(options.vertexSource, options.fragmentSource);
@@ -569,18 +566,8 @@ class Shader
 		}
 	}
 
-	get ready()
-	{
-		if (this.exception !== undefined)
-			throw this.exception;
-		if (this.complete)
-			this.promise = null;
-		return this.complete;
-	}
-
 	activate(useTexture: boolean)
 	{
-		this.checkIfReady();
 		if (activeShader !== this) {
 			gl.useProgram(this.glProgram);
 			for (const name of Object.keys(this.valuesToSet)) {
@@ -632,15 +619,8 @@ class Shader
 		this.setBoolean('al_use_tex', useTexture);
 	}
 
-	checkIfReady()
-	{
-		if (this.promise !== null)
-			throw Error(`Shader was used before checking if it was ready.`);
-	}	
-
 	clone()
 	{
-		this.checkIfReady();
 		return new Shader({
 			vertexSource: this.vertexShaderSource,
 			fragmentSource: this.fragmentShaderSource,
@@ -678,7 +658,6 @@ class Shader
 		this.vertexShaderSource = vertexShaderSource;
 		this.fragmentShaderSource = fragmentShaderSource;
 		this.uniformIDs = {};
-		this.complete = true;
 
 		const transformation = this.modelViewMatrix.clone()
 			.compose(this.projection);
@@ -834,19 +813,6 @@ class Shader
 			.compose(this.projection);
 		this.setMatrix('al_projview_matrix', transformation);
 	}
-
-	async whenReady()
-	{
-		if (this.exception !== undefined)
-			throw this.exception;
-		if (this.promise !== null) {
-			await this.promise;
-			if (this.exception !== undefined)
-				throw this.exception;
-			this.promise = null;
-		}
-		return this;
-	}
 }
 
 export
@@ -938,15 +904,17 @@ class Shape
 export
 class Texture
 {
-	static fromFile(fileName: string)
+	static async fromFile(fileName: string)
 	{
-		return new Texture(fileName).whenReady();
+		const imageURL = Game.urlOf(fileName);
+		const image = await Fido.fetchImage(imageURL);
+		const texture = new Texture(image);
+		texture.fileName = Game.fullPath(fileName);
+		return texture;
 	}
 
-	exception: unknown;
 	fileName: string | undefined;
 	glTexture: WebGLTexture;
-	promise: Promise<void> | null = null;
 	size: Size = { width: 0, height: 0 };
 
 	constructor(...args: | [ HTMLImageElement ]
@@ -958,20 +926,7 @@ class Texture
 			throw new Error(`Engine couldn't create a WebGL texture object.`);
 		this.glTexture = glTexture;
 		if (typeof args[0] === 'string') {
-			this.fileName = Game.urlOf(args[0]);
-			this.promise = Fido.fetchImage(this.fileName).then((image) => {
-				const oldBinding = gl.getParameter(gl.TEXTURE_BINDING_2D);
-				gl.bindTexture(gl.TEXTURE_2D, glTexture);
-				gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-				gl.bindTexture(gl.TEXTURE_2D, oldBinding);
-				this.size = { width: image.width, height: image.height };
-			}, (error) => {
-				this.exception = error;
-			});
+			throw Error("'new Texture' with filename is not supported in Oozaru.");
 		}
 		else {
 			const oldBinding = gl.getParameter(gl.TEXTURE_BINDING_2D);
@@ -1012,35 +967,16 @@ class Texture
 
 	get height()
 	{
-		this.checkIfReady();
 		return this.size.height;
-	}
-
-	get ready()
-	{
-		if (this.exception !== undefined)
-			throw this.exception;
-		const isReady = this.size.width > 0;
-		if (isReady)
-			this.promise = null;
-		return isReady;
 	}
 
 	get width()
 	{
-		this.checkIfReady();
 		return this.size.width;
 	}
 
-	checkIfReady()
-	{
-		if (this.promise !== null)
-			throw Error(`Texture from file '${this.fileName}' was used without a ready check.`);
-	}	
-
 	upload(content: BufferSource, x = 0, y = 0, width = this.width, height = this.height)
 	{
-		this.checkIfReady();
 		const pixelData = ArrayBuffer.isView(content)
 			? new Uint8Array(content.buffer)
 			: new Uint8Array(content);
@@ -1050,22 +986,8 @@ class Texture
 
 	useTexture(textureUnit = 0)
 	{
-		this.checkIfReady();
 		gl.activeTexture(gl.TEXTURE0 + textureUnit);
 		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
-	}
-
-	async whenReady()
-	{
-		if (this.exception !== undefined)
-			throw this.exception;
-		if (this.promise !== null) {
-			await this.promise;
-			if (this.exception !== undefined)
-				throw this.exception;
-			this.promise = null;
-		}
-		return this;
 	}
 }
 
@@ -1088,7 +1010,6 @@ class Surface extends Texture
 		screenSurface.frameBuffer = null;
 		screenSurface.projection = new Transform()
 			.project2D(0, 0, gl.canvas.width, gl.canvas.height);
-		screenSurface.promise = null;
 		Object.defineProperty(Surface, 'Screen', {
 			value: screenSurface,
 			writable: false,

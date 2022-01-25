@@ -7,8 +7,10 @@
         "outDir": "web/engine",
 
         "exactOptionalPropertyTypes": true,
+        "importsNotUsedAsValues": "error",
         "isolatedModules": true,
         "noEmitOnError": true,
+        "preserveValueImports": true,
         "removeComments": true,
         "sourceMap": true,
         "strict": true,
