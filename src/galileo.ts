@@ -489,17 +489,15 @@ class Model
 	{
 		return this.shader_;
 	}
-
-	get transform()
-	{
-		return this.transform_;
-	}
-
 	set shader(value)
 	{
 		this.shader_ = value;
 	}
 
+	get transform()
+	{
+		return this.transform_;
+	}
 	set transform(value)
 	{
 		this.transform_ = value;
@@ -1019,18 +1017,17 @@ class Surface extends Texture
 		return screenSurface;
 	}
 
-	static async fromFile(fileName: string)
+	static fromFile(fileName: string): Promise<Surface>
 	{
-		const url = Game.urlOf(fileName);
-		const image = await Fido.fetchImage(url);
-		return new Surface(image);
+		throw Error("'Surface.fromFile' is not supported in Oozaru.");
 	}
 
 	constructor(...args: | [ HTMLImageElement ]
+	                     | [ string ]
 	                     | [ number, number, (BufferSource | Color)? ])
 	{
 		if (typeof args[0] === 'string')
-			throw RangeError("new Surface() doesn't support background loading.");
+			throw Error("'new Surface' with filename is not supported in Oozaru.");
 
 		super(...args);
 

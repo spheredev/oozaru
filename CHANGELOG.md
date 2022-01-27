@@ -1,13 +1,12 @@
 Oozaru Changelog
 ================
 
-Since Last Release
-------------------
+v0.5.1 - January 27, 2022
+-------------------------
 
 * Adds support for games that use `Task` instead of `Thread`.
-* Removes the background-loading support for assets and the corresponding APIs
-  added in the previous release.
-
+* Removes background-loading support for assets and the corresponding APIs
+  (e.g. `whenReady`) added in the previous release.
 
 v0.5.0 - January 5, 2022
 ------------------------
