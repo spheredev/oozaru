@@ -1,5 +1,7 @@
 # Oozaru: Sphere for the Web
 
+[![Release](https://img.shields.io/github/release/spheredev/oozaru.svg)](https://github.com/spheredev/oozaru/releases/latest)
+
 **Oozaru** is a lightweight implementation of the
 [Sphere](https://github.com/spheredev/neosphere) game engine API for the Web,
 written in TypeScript and based on standard HTML and JavaScript technologies;
@@ -12,12 +14,13 @@ into the official Sphere development toolchain.
 
 ## Download
 
-**Oozaru 0.5.0**, released on January 5, 2021, is available for download here:
+**Oozaru 0.5.1**, released on January 27, 2021, is available for download here,
+along with all previous releases:
 
 * https://github.com/spheredev/oozaru/releases
 
-Note that because Oozaru is still in beta and doesn't yet the full Sphere v2
-API, it won't run all Sphere v2 games yet and there may be glitches.  Overall
+Oozaru is still in beta and doesn't yet support the full Sphere v2 API; as a
+result, it won't run all Sphere v2 games yet and glitches may occur.  Overall
 support should be pretty high, though; if you find any bugs or missing
 features, please report them!
 
