@@ -90,7 +90,6 @@ class Pegasus
 			Mixer,
 			Model,
 			Mouse,
-			RNG,
 			SSj,
 			Shader,
 			Shape,
@@ -335,42 +334,6 @@ class FileStream
 		if (this.dataStream === null)
 			throw Error(`The FileStream has already been disposed`);
 		throw Error(`Oozaru doesn't yet support FileStream#write()`);
-	}
-}
-
-class RNG
-{
-	static fromSeed(seed)
-	{
-		return new RNG();
-	}
-	
-	static fromState(state)
-	{
-		return new RNG();
-	}
-
-	constructor()
-	{
-	}
-
-	[Symbol.iterator]()
-	{
-		return this;
-	}
-
-	get state()
-	{
-		return "";
-	}
-
-	set state(value)
-	{
-	}
-
-	next()
-	{
-		return { done: false, value: Math.random() };
 	}
 }
 

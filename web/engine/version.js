@@ -37,22 +37,22 @@ class Version
 {
     static apiVersion = 2;
     static apiLevel = 4;
-    static json;
+    static releaseData;
 
     static async initialize()
     {
-        this.json = await Fido.fetchJSON('oozaru.json');
+        this.releaseData = await Fido.fetchJSON('oozaru.json');
     }
 
     static get engine()
     {
-        return typeof this.json.name === 'string'
-            ? this.json.name : "Oozaru";
+        return typeof this.releaseData.name === 'string'
+            ? this.releaseData.name : "Oozaru";
     }
 
     static get version()
     {
-        return typeof this.json.version === 'string'
-            ? this.json.version : "WiP";
+        return typeof this.releaseData.version === 'string'
+            ? this.releaseData.version : "WiP";
     }
 }

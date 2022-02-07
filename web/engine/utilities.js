@@ -39,11 +39,13 @@ function fullURL(url)
 }
 
 export
-function isConstructible(func)
+function isConstructible(object)
 {
-	const funcProxy = new Proxy(func, { construct() { return {}; } });
+	const ctorProxy = new Proxy(object, {
+		construct() { return {}; }
+	});
 	try {
-		Reflect.construct(funcProxy, []);
+		Reflect.construct(ctorProxy, []);
 		return true;
 	}
 	catch {

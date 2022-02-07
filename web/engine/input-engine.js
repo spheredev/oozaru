@@ -146,7 +146,7 @@ const MouseKey =
 	WheelDown: 6,
 }
 
-var buttonsDown = {};
+var buttonStates = {};
 var keyQueue = [];
 var keyStates = { '': false };
 var lastMouseX = undefined;
@@ -279,7 +279,7 @@ class InputEngine
 				: e.button === 3 ? MouseKey.Back
 				: e.button === 4 ? MouseKey.Forward
 				: MouseKey.Left;
-			buttonsDown[key] = true;
+			buttonStates[key] = true;
 		});
 		canvas.addEventListener('mouseup', e => {
 			e.preventDefault();
@@ -288,7 +288,7 @@ class InputEngine
 				: e.button === 3 ? MouseKey.Back
 				: e.button === 4 ? MouseKey.Forward
 				: MouseKey.Left;
-			buttonsDown[key] = false;
+			buttonStates[key] = false;
 			mouseQueue.push({
 				key,
 				x: e.offsetX,
@@ -483,7 +483,7 @@ class Mouse
 
 	static isPressed(key)
 	{
-		return buttonsDown[key] ?? false;
+		return buttonStates[key] ?? false;
 	}
 }
 

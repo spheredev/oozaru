@@ -32,6 +32,12 @@
 
 import Galileo from './galileo.js';
 
+var frameCount = -1;
+var jobSortNeeded = false;
+var jobs = [];
+var nextJobID = 1;
+var rAFID = 0;
+
 export
 const JobType =
 {
@@ -40,12 +46,6 @@ const JobType =
 	Update: 1,
 	Immediate: 2,
 }
-
-var frameCount = -1;
-var jobSortNeeded = false;
-var jobs = [];
-var nextJobID = 1;
-var rAFID = 0;
 
 export default
 class JobQueue

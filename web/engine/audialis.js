@@ -47,9 +47,9 @@ class Audialis
 export
 class Mixer
 {
-	context;
-	gainer;
-	panner;
+	audioContext;
+	gainNode;
+	panningNode;
 
 	static get Default()
 	{
@@ -60,39 +60,41 @@ class Mixer
 
 	constructor(sampleRate, bits, numChannels = 2)
 	{
-		this.context = new AudioContext({ sampleRate });
-		this.gainer = this.context.createGain();
-		this.panner = this.context.createStereoPanner();
-		this.gainer.gain.value = 1.0;
-		this.gainer.connect(this.panner);
-		this.panner.connect(this.context.destination);
+		this.audioContext = new AudioContext({ sampleRate });
+		this.gainNode = this.audioContext.createGain();
+		this.panningNode = this.audioContext.createStereoPanner();
+		this.gainNode.gain.value = 1.0;
+		this.gainNode.connect(this.panningNode);
+		this.panningNode.connect(this.audioContext.destination);
 	}
 
 	get pan()
 	{
-		return this.panner.pan.value;
-	}
-	set pan(value)
-	{
-		this.panner.pan.value = value;
+		return this.panningNode.pan.value;
 	}
 
 	get volume()
 	{
-		return this.gainer.gain.value;
+		return this.gainNode.gain.value;
 	}
+
+	set pan(value)
+	{
+		this.panningNode.pan.value = value;
+	}
+
 	set volume(value)
 	{
-		this.gainer.gain.value = value;
+		this.gainNode.gain.value = value;
 	}
 }
 
 export
 class Sound
 {
+	audioElement;
 	audioNode = null;
 	currentMixer = null;
-	element;
 	fileName;
 
 	static async fromFile(fileName)
@@ -116,8 +118,8 @@ class Sound
 	constructor(source)
 	{
 		if (source instanceof HTMLAudioElement) {
-			this.element = source;
-			this.element.loop = true;
+			this.audioElement = source;
+			this.audioElement.loop = true;
 		}
 		else if (typeof source === 'string') {
 			throw Error("'new Sound' with filename is not supported under Oozaru.");
@@ -129,57 +131,57 @@ class Sound
 
 	get length()
 	{
-		return this.element.duration;
+		return this.audioElement.duration;
 	}
 
 	get playing()
 	{
-		return !this.element.paused;
+		return !this.audioElement.paused;
 	}
 
 	get position()
 	{
-		return this.element.currentTime;
+		return this.audioElement.currentTime;
 	}
 
 	get repeat()
 	{
-		return this.element.loop;
+		return this.audioElement.loop;
 	}
 
 	get speed()
 	{
-		return this.element.playbackRate;
+		return this.audioElement.playbackRate;
 	}
 
 	get volume()
 	{
-		return this.element.volume;
+		return this.audioElement.volume;
 	}
 
 	set position(value)
 	{
-		this.element.currentTime = value;
+		this.audioElement.currentTime = value;
 	}
 
 	set repeat(value)
 	{
-		this.element.loop = value;
+		this.audioElement.loop = value;
 	}
 
 	set speed(value)
 	{
-		this.element.playbackRate = value;
+		this.audioElement.playbackRate = value;
 	}
 
 	set volume(value)
 	{
-		this.element.volume = value;
+		this.audioElement.volume = value;
 	}
 
 	pause()
 	{
-		this.element.pause();
+		this.audioElement.pause();
 	}
 
 	play(mixer = Mixer.Default)
@@ -188,17 +190,17 @@ class Sound
 			this.currentMixer = mixer;
 			if (this.audioNode !== null)
 				this.audioNode.disconnect();
-			this.audioNode = mixer.context.createMediaElementSource(this.element);
-			this.audioNode.connect(mixer.gainer);
+			this.audioNode = mixer.audioContext.createMediaElementSource(this.audioElement);
+			this.audioNode.connect(mixer.gainNode);
 		}
 
-		this.element.play();
+		this.audioElement.play();
 	}
 
 	stop()
 	{
-		this.element.pause();
-		this.element.currentTime = 0.0;
+		this.audioElement.pause();
+		this.audioElement.currentTime = 0.0;
 	}
 }
 
@@ -240,7 +242,7 @@ class SoundStream
 				this.node.onaudioprocess = null;
 				this.node.disconnect();
 			}
-			this.node = mixer.context.createScriptProcessor(0, 0, this.numChannels);
+			this.node = mixer.audioContext.createScriptProcessor(0, 0, this.numChannels);
 			this.node.onaudioprocess = (e) => {
 				const outputs = [];
 				for (let i = 0; i < this.numChannels; ++i)
@@ -290,7 +292,7 @@ class SoundStream
 				}
 				this.inputPtr = inputPtr;
 			};
-			this.node.connect(mixer.gainer);
+			this.node.connect(mixer.gainNode);
 			this.currentMixer = mixer;
 		}
 	}

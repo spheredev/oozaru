@@ -159,6 +159,11 @@ class Galileo
 export
 class Color
 {
+	r;
+	g;
+	b;
+	a;
+
 	// note: predefined colors encoded in 8-bit RGBA (not float) because this whole table was
 	//       copied and pasted from neoSphere and I was too lazy to convert it.
 	static get AliceBlue ()            { return new Color(240 / 255, 248 / 255, 255 / 255, 255 / 255); }
@@ -367,11 +372,6 @@ class Color
 		throw new RangeError(`Invalid color designation '${name}'`);
 	}
 
-	r;
-	g;
-	b;
-	a;
-
 	constructor(r, g, b, a = 1.0)
 	{
 		this.r = r;
@@ -448,15 +448,17 @@ class Model
 	{
 		return this.shader_;
 	}
-	set shader(value)
-	{
-		this.shader_ = value;
-	}
 
 	get transform()
 	{
 		return this.transform_;
 	}
+
+	set shader(value)
+	{
+		this.shader_ = value;
+	}
+
 	set transform(value)
 	{
 		this.transform_ = value;
@@ -472,6 +474,16 @@ class Model
 export
 class Shader
 {
+	fragmentShaderSource = "";
+	glFragmentShader;
+	glProgram;
+	glVertexShader;
+	modelViewMatrix = Transform.Identity;
+	projection = Transform.Identity;
+	uniformIDs = {};
+	vertexShaderSource = "";
+	valuesToSet = {};
+
 	static get Default()
 	{
 		return defaultShader;
@@ -490,16 +502,6 @@ class Shader
 			fragmentSource: sources[1],
 		})
 }
-
-	fragmentShaderSource = "";
-	glFragmentShader;
-	glProgram;
-	glVertexShader;
-	modelViewMatrix = Transform.Identity;
-	projection = Transform.Identity;
-	uniformIDs = {};
-	vertexShaderSource = "";
-	valuesToSet = {};
 
 	constructor(options)
 	{
@@ -775,6 +777,11 @@ class Shader
 export
 class Shape
 {
+	indices;
+	texture_;
+	type;
+	vertexList;
+
 	static drawImmediate(surface, shapeType, arg1, arg2)
 	{
 		if (arg1 instanceof Texture || arg1 === null) {
@@ -789,11 +796,6 @@ class Shape
 			Galileo.draw(shapeType, new VertexList(vertices));
 		}
 	}
-
-	indices;
-	texture_;
-	type;
-	vertexList;
 
 	constructor(shapeType, arg1, arg2 = null, arg3 = null)
 	{
@@ -860,6 +862,10 @@ class Shape
 export
 class Texture
 {
+	fileName;
+	glTexture;
+	size = { width: 0, height: 0 };
+
 	static async fromFile(fileName)
 	{
 		const imageURL = Game.urlOf(fileName);
@@ -868,10 +874,6 @@ class Texture
 		texture.fileName = Game.fullPath(fileName);
 		return texture;
 	}
-
-	fileName;
-	glTexture;
-	size = { width: 0, height: 0 };
 
 	constructor(...args)
 	{
