@@ -31,15 +31,15 @@
 **/
 
 export
-function fullURL(url: string)
+function fullURL(url)
 {
 	const anchor = document.createElement('a');
 	anchor.setAttribute("href", url);
-	return (anchor.cloneNode(false) as HTMLAnchorElement).href;
+	return anchor.cloneNode(false).href;
 }
 
 export
-function isConstructor(func: Function)
+function isConstructible(func)
 {
 	const funcProxy = new Proxy(func, { construct() { return {}; } });
 	try {

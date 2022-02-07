@@ -34,108 +34,67 @@ import Fido from './fido.js';
 import Game from './game.js';
 
 export
-enum BlendOp
+const BlendOp =
 {
-	Default,
-	Add,
-	Average,
-	CopyAlpha,
-	CopyRGB,
-	Invert,
-	Multiply,
-	Replace,
-	Subtract,
+	Default: 0,
+	Add: 1,
+	Average: 2,
+	CopyAlpha: 3,
+	CopyRGB: 4,
+	Invert: 5,
+	Multiply: 6,
+	Replace: 7,
+	Subtract: 8,
+};
+
+export
+const DepthOp =
+{
+	AlwaysPass: 0,
+	Equal: 1,
+	Greater: 2,
+	GreaterOrEqual: 3,
+	Less: 4,
+	LessOrEqual: 5,
+	NeverPass: 6,
+	NotEqual: 7,
 }
 
 export
-enum DepthOp
+const ShapeType =
 {
-	AlwaysPass,
-	Equal,
-	Greater,
-	GreaterOrEqual,
-	Less,
-	LessOrEqual,
-	NeverPass,
-	NotEqual,
+	Fan: 0,
+	Lines: 1,
+	LineLoop: 2,
+	LineStrip: 3,
+	Points: 4,
+	Triangles: 5,
+	TriStrip: 6,
 }
 
-export
-interface Rectangle
-{
-	x: number;
-	y: number;
-	w: number;
-	h: number;
-}
-
-export
-interface ShaderFileOptions
-{
-	vertexFile: string;
-	fragmentFile: string;
-}
-
-export
-interface ShaderSourceOptions
-{
-	vertexSource: string;
-	fragmentSource: string;
-}
-
-export
-enum ShapeType
-{
-	Fan,
-	Lines,
-	LineLoop,
-	LineStrip,
-	Points,
-	Triangles,
-	TriStrip,
-}
-
-export
-interface Size
-{
-	width: number;
-	height: number;
-}
-
-export
-interface Vertex
-{
-	x: number;
-	y: number;
-	z?: number;
-	u?: number;
-	v?: number;
-	color?: Color;
-}
-
-var activeShader: Shader | null = null;
-var activeSurface: Surface | null = null;
-var defaultShader: Shader;
-var gl: WebGLRenderingContext;
+var activeShader = null;
+var activeSurface = null;
+var defaultShader;
+var webGL;
 
 export default
 class Galileo
 {
-	static async initialize(canvas: HTMLCanvasElement)
+	static async initialize(canvas)
 	{
-		const glContext = canvas.getContext('webgl', { alpha: false });
-		if (glContext === null)
+		const webGLContext = canvas.getContext('webgl', { alpha: false });
+		if (webGLContext === null)
 			throw new Error(`Couldn't acquire a WebGL rendering context.`);
-		gl = glContext;
+		webGL = webGLContext;
 
-		gl.clearColor(0.0, 0.0, 0.0, 1.0);
-		gl.clearDepth(1.0);
-		gl.blendEquation(glContext.FUNC_ADD);
-		gl.blendFunc(glContext.SRC_ALPHA, glContext.ONE_MINUS_SRC_ALPHA);
-		gl.depthFunc(glContext.ALWAYS);
-		gl.enable(glContext.BLEND);
-		gl.enable(glContext.DEPTH_TEST);
-		gl.enable(glContext.SCISSOR_TEST);
+		webGL.clearColor(0.0, 0.0, 0.0, 1.0);
+		webGL.clearDepth(1.0);
+		webGL.blendEquation(webGLContext.FUNC_ADD);
+		webGL.blendFunc(webGLContext.SRC_ALPHA, webGLContext.ONE_MINUS_SRC_ALPHA);
+		webGL.depthFunc(webGLContext.ALWAYS);
+		webGL.enable(webGLContext.BLEND);
+		webGL.enable(webGLContext.DEPTH_TEST);
+		webGL.enable(webGLContext.SCISSOR_TEST);
 
 		defaultShader = await Shader.fromFiles({
 			vertexFile: '#/default.vert.glsl',
@@ -145,26 +104,26 @@ class Galileo
 		Galileo.flip();
 	}
 
-	static draw(type: ShapeType, vertices: VertexList, indices?: IndexList | null, offset = 0, numVertices?: number)
+	static draw(shapeType, vertexList, indexList, offset = 0, numVertices)
 	{
-		const drawMode = type === ShapeType.Fan ? gl.TRIANGLE_FAN
-			: type === ShapeType.Lines ? gl.LINES
-			: type === ShapeType.LineLoop ? gl.LINE_LOOP
-			: type === ShapeType.LineStrip ? gl.LINE_STRIP
-			: type === ShapeType.Points ? gl.POINTS
-			: type === ShapeType.TriStrip ? gl.TRIANGLE_STRIP
-			: gl.TRIANGLES;
-		vertices.activate();
-		if (indices != null) {
+		const drawMode = shapeType === ShapeType.Fan ? webGL.TRIANGLE_FAN
+			: shapeType === ShapeType.Lines ? webGL.LINES
+			: shapeType === ShapeType.LineLoop ? webGL.LINE_LOOP
+			: shapeType === ShapeType.LineStrip ? webGL.LINE_STRIP
+			: shapeType === ShapeType.Points ? webGL.POINTS
+			: shapeType === ShapeType.TriStrip ? webGL.TRIANGLE_STRIP
+			: webGL.TRIANGLES;
+		vertexList.activate();
+		if (indexList != null) {
 			if (numVertices === undefined)
-				numVertices = indices.length - offset;
-			indices.activate();
-			gl.drawElements(drawMode, numVertices, gl.UNSIGNED_SHORT, offset);
+				numVertices = indexList.length - offset;
+			indexList.activate();
+			webGL.drawElements(drawMode, numVertices, webGL.UNSIGNED_SHORT, offset);
 		}
 		else {
 			if (numVertices === undefined)
-				numVertices = vertices.length - offset;
-			gl.drawArrays(drawMode, offset, numVertices);
+				numVertices = vertexList.length - offset;
+			webGL.drawArrays(drawMode, offset, numVertices);
 		}
 	}
 
@@ -172,28 +131,28 @@ class Galileo
 	{
 		Surface.Screen.activate(defaultShader);
 		Surface.Screen.unclip();
-		gl.disable(gl.SCISSOR_TEST);
-		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-		gl.enable(gl.SCISSOR_TEST);
+		webGL.disable(webGL.SCISSOR_TEST);
+		webGL.clear(webGL.COLOR_BUFFER_BIT | webGL.DEPTH_BUFFER_BIT);
+		webGL.enable(webGL.SCISSOR_TEST);
 	}
 
-	static rerez(width: number, height: number)
+	static rerez(width, height)
 	{
-		gl.canvas.width = width;
-		gl.canvas.height = height;
+		webGL.canvas.width = width;
+		webGL.canvas.height = height;
 		Surface.Screen.size = { width, height };
 		Surface.Screen.projection = new Transform()
 			.project2D(0, 0, width, height);
 		if (width <= 400 && height <= 300) {
-			gl.canvas.style.width = `${width * 2}px`;
-			gl.canvas.style.height = `${height * 2}px`;
+			webGL.canvas.style.width = `${width * 2}px`;
+			webGL.canvas.style.height = `${height * 2}px`;
 		}
 		else {
-			gl.canvas.style.width = `${width}px`;
-			gl.canvas.style.height = `${height}px`;
+			webGL.canvas.style.width = `${width}px`;
+			webGL.canvas.style.height = `${height}px`;
 		}
 		if (activeSurface === Surface.Screen)
-			gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+			webGL.viewport(0, 0, webGL.canvas.width, webGL.canvas.height);
 	}
 }
 
@@ -347,12 +306,12 @@ class Color
 	static get RebeccaPurple ()        { return new Color(102 / 255, 51  / 255, 153 / 255, 255 / 255); }
 	static get StankyBean ()           { return new Color(197 / 255, 162 / 255, 171 / 255, 255 / 255); }
 
-	static is(x: Color, y: Color)
+	static is(x, y)
 	{
 		return x.r === y.r && x.g === y.g && x.b === y.b;
 	}
 
-	static mix(x: Color, y: Color, wx = 1.0, wy = 1.0)
+	static mix(x, y, wx = 1.0, wy = 1.0)
 	{
 		const totalWeight = wx + wy;
 		wx /= totalWeight;
@@ -364,7 +323,7 @@ class Color
 			x.a * wx + y.a * wy);
 	}
 
-	static of(name: string)
+	static of(name)
 	{
 		// parse 6-digit format (#rrggbb)
 		let matched = name.match(/^#?([0-9a-f]{6})$/i);
@@ -395,7 +354,7 @@ class Color
 		for (const colorName in Color) {
 			if (colorName.toUpperCase() === toMatch) {
 				try {
-					let propValue = (Color as any)[colorName];
+					let propValue = Color[colorName];
 					if (propValue instanceof Color)
 						return propValue;
 				}
@@ -408,12 +367,12 @@ class Color
 		throw new RangeError(`Invalid color designation '${name}'`);
 	}
 
-	r: number;
-	g: number;
-	b: number;
-	a: number;
+	r;
+	g;
+	b;
+	a;
 
-	constructor(r: number, g: number, b: number, a = 1.0)
+	constructor(r, g, b, a = 1.0)
 	{
 		this.r = r;
 		this.g = g;
@@ -421,7 +380,7 @@ class Color
 		this.a = a;
 	}
 
-	get name(): string
+	get name()
 	{
 		throw new Error(`The Color#name API is not implemented.`);
 	}
@@ -431,7 +390,7 @@ class Color
 		return new Color(this.r, this.g, this.b, this.a);
 	}
 
-	fadeTo(alphaFactor: number)
+	fadeTo(alphaFactor)
 	{
 		return new Color(this.r, this.g, this.b,
 			this.a * alphaFactor);
@@ -446,12 +405,12 @@ class Color
 export
 class IndexList
 {
-	glBuffer: WebGLBuffer | null = null;
-	length: number = 0;
+	glBuffer = null;
+	length = 0;
 
-	constructor(indices: ArrayLike<number>)
+	constructor(indices)
 	{
-		this.glBuffer = gl.createBuffer();
+		this.glBuffer = webGL.createBuffer();
 		if (this.glBuffer === null)
 			throw new Error(`Engine couldn't create a WebGL buffer object.`);
 		this.upload(indices);
@@ -459,14 +418,14 @@ class IndexList
 
 	activate()
 	{
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.glBuffer);
+		webGL.bindBuffer(webGL.ELEMENT_ARRAY_BUFFER, this.glBuffer);
 	}
 
-	upload(indices: ArrayLike<number>)
+	upload(indices)
 	{
 		const values = new Uint16Array(indices);
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.glBuffer);
-		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, values, gl.STREAM_DRAW);
+		webGL.bindBuffer(webGL.ELEMENT_ARRAY_BUFFER, this.glBuffer);
+		webGL.bufferData(webGL.ELEMENT_ARRAY_BUFFER, values, webGL.STREAM_DRAW);
 		this.length = values.length;
 	}
 }
@@ -474,11 +433,11 @@ class IndexList
 export
 class Model
 {
-	shapes: Shape[];
-	shader_: Shader;
-	transform_: Transform;
+	shapes;
+	shader_;
+	transform_;
 
-	constructor(shapes: Iterable<Shape>, shader = Shader.Default)
+	constructor(shapes, shader = Shader.Default)
 	{
 		this.shapes = [ ...shapes ];
 		this.shader_ = shader;
@@ -518,7 +477,7 @@ class Shader
 		return defaultShader;
 	}
 
-	static async fromFiles(options: ShaderFileOptions)
+	static async fromFiles(options)
 	{
 		const vertexShaderURL = Game.urlOf(options.vertexFile);
 		const fragmentShaderURL = Game.urlOf(options.fragmentFile);
@@ -533,20 +492,20 @@ class Shader
 }
 
 	fragmentShaderSource = "";
-	glFragmentShader: WebGLShader;
-	glProgram: WebGLProgram;
-	glVertexShader: WebGLShader;
+	glFragmentShader;
+	glProgram;
+	glVertexShader;
 	modelViewMatrix = Transform.Identity;
 	projection = Transform.Identity;
-	uniformIDs: { [x: string]: WebGLUniformLocation | null } = {};
+	uniformIDs = {};
 	vertexShaderSource = "";
-	valuesToSet: { [x: string]: { type: string, value: any } } = {};
+	valuesToSet = {};
 
-	constructor(options: ShaderFileOptions | ShaderSourceOptions)
+	constructor(options)
 	{
-		const program = gl.createProgram();
-		const vertexShader = gl.createShader(gl.VERTEX_SHADER);
-		const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+		const program = webGL.createProgram();
+		const vertexShader = webGL.createShader(webGL.VERTEX_SHADER);
+		const fragmentShader = webGL.createShader(webGL.FRAGMENT_SHADER);
 		if (program === null || vertexShader === null || fragmentShader === null)
 			throw new Error(`Engine couldn't create a WebGL shader object.`);
 		this.glProgram = program;
@@ -564,50 +523,50 @@ class Shader
 		}
 	}
 
-	activate(useTexture: boolean)
+	activate(useTexture)
 	{
 		if (activeShader !== this) {
-			gl.useProgram(this.glProgram);
+			webGL.useProgram(this.glProgram);
 			for (const name of Object.keys(this.valuesToSet)) {
 				const entry = this.valuesToSet[name];
 				let location = this.uniformIDs[name];
 				if (location === undefined) {
-					location = gl.getUniformLocation(this.glProgram, name);
+					location = webGL.getUniformLocation(this.glProgram, name);
 					this.uniformIDs[name] = location;
 				}
-				let size: number;
+				let size;
 				switch (entry.type) {
 					case 'boolean':
-						gl.uniform1i(location, entry.value ? 1 : 0);
+						webGL.uniform1i(location, entry.value ? 1 : 0);
 						break;
 					case 'float':
-						gl.uniform1f(location, entry.value);
+						webGL.uniform1f(location, entry.value);
 						break;
 					case 'floatArray':
-						gl.uniform1fv(location, entry.value);
+						webGL.uniform1fv(location, entry.value);
 						break;
 					case 'floatVector':
 						size = entry.value.length;
-						size === 4 ? gl.uniform4fv(location, entry.value)
-							: size === 3 ? gl.uniform3fv(location, entry.value)
-							: size === 2 ? gl.uniform2fv(location, entry.value)
-							: gl.uniform1fv(location, entry.value);
+						size === 4 ? webGL.uniform4fv(location, entry.value)
+							: size === 3 ? webGL.uniform3fv(location, entry.value)
+							: size === 2 ? webGL.uniform2fv(location, entry.value)
+							: webGL.uniform1fv(location, entry.value);
 						break;
 					case 'int':
-						gl.uniform1i(location, entry.value);
+						webGL.uniform1i(location, entry.value);
 						break;
 					case 'intArray':
-						gl.uniform1iv(location, entry.value);
+						webGL.uniform1iv(location, entry.value);
 						break;
 					case 'intVector':
 						size = entry.value.length;
-						size === 4 ? gl.uniform4iv(location, entry.value)
-							: size === 3 ? gl.uniform3iv(location, entry.value)
-							: size === 2 ? gl.uniform2iv(location, entry.value)
-							: gl.uniform1iv(location, entry.value);
+						size === 4 ? webGL.uniform4iv(location, entry.value)
+							: size === 3 ? webGL.uniform3iv(location, entry.value)
+							: size === 2 ? webGL.uniform2iv(location, entry.value)
+							: webGL.uniform1iv(location, entry.value);
 						break;
 					case 'matrix':
-						gl.uniformMatrix4fv(location, false, entry.value.values);
+						webGL.uniformMatrix4fv(location, false, entry.value.values);
 						break;
 				}
 			}
@@ -625,31 +584,31 @@ class Shader
 		});
 	}
 
-	compile(vertexShaderSource: string, fragmentShaderSource: string)
+	compile(vertexShaderSource, fragmentShaderSource)
 	{
 		// compile vertex and fragment shaders and check for errors
-		gl.shaderSource(this.glVertexShader, vertexShaderSource);
-		gl.shaderSource(this.glFragmentShader, fragmentShaderSource);
-		gl.compileShader(this.glVertexShader);
-		if (!gl.getShaderParameter(this.glVertexShader, gl.COMPILE_STATUS)) {
-			const message = gl.getShaderInfoLog(this.glVertexShader);
+		webGL.shaderSource(this.glVertexShader, vertexShaderSource);
+		webGL.shaderSource(this.glFragmentShader, fragmentShaderSource);
+		webGL.compileShader(this.glVertexShader);
+		if (!webGL.getShaderParameter(this.glVertexShader, webGL.COMPILE_STATUS)) {
+			const message = webGL.getShaderInfoLog(this.glVertexShader);
 			throw Error(`Couldn't compile WebGL vertex shader.\n${message}`);
 		}
-		gl.compileShader(this.glFragmentShader);
-		if (!gl.getShaderParameter(this.glFragmentShader, gl.COMPILE_STATUS)) {
-			const message = gl.getShaderInfoLog(this.glFragmentShader);
+		webGL.compileShader(this.glFragmentShader);
+		if (!webGL.getShaderParameter(this.glFragmentShader, webGL.COMPILE_STATUS)) {
+			const message = webGL.getShaderInfoLog(this.glFragmentShader);
 			throw Error(`Couldn't compile WebGL fragment shader.\n${message}`);
 		}
 
 		// link the individual shaders into a program, check for errors
-		gl.attachShader(this.glProgram, this.glVertexShader);
-		gl.attachShader(this.glProgram, this.glFragmentShader);
-		gl.bindAttribLocation(this.glProgram, 0, 'al_pos');
-		gl.bindAttribLocation(this.glProgram, 1, 'al_color');
-		gl.bindAttribLocation(this.glProgram, 2, 'al_texcoord');
-		gl.linkProgram(this.glProgram);
-		if (!gl.getProgramParameter(this.glProgram, gl.LINK_STATUS)) {
-			const message = gl.getProgramInfoLog(this.glProgram);
+		webGL.attachShader(this.glProgram, this.glVertexShader);
+		webGL.attachShader(this.glProgram, this.glFragmentShader);
+		webGL.bindAttribLocation(this.glProgram, 0, 'al_pos');
+		webGL.bindAttribLocation(this.glProgram, 1, 'al_color');
+		webGL.bindAttribLocation(this.glProgram, 2, 'al_texcoord');
+		webGL.linkProgram(this.glProgram);
+		if (!webGL.getProgramParameter(this.glProgram, webGL.LINK_STATUS)) {
+			const message = webGL.getProgramInfoLog(this.glProgram);
 			throw Error(`Couldn't link WebGL shader program.\n${message}`);
 		}
 
@@ -663,7 +622,7 @@ class Shader
 		this.setInt('al_tex', 0);
 	}
 	
-	project(matrix: Transform)
+	project(matrix)
 	{
 		this.projection = matrix.clone();
 		let transformation = this.modelViewMatrix.clone()
@@ -671,140 +630,140 @@ class Shader
 		this.setMatrix('al_projview_matrix', transformation);
 	}
 
-	setBoolean(name: string, value: boolean)
+	setBoolean(name, value)
 	{
 		if (activeShader === this) {
 			let location = this.uniformIDs[name];
 			if (location === undefined) {
-				location = gl.getUniformLocation(this.glProgram, name);
+				location = webGL.getUniformLocation(this.glProgram, name);
 				this.uniformIDs[name] = location;
 			}
-			gl.uniform1i(location, value ? 1 : 0);
+			webGL.uniform1i(location, value ? 1 : 0);
 		}
 		else {
 			this.valuesToSet[name] = { type: 'boolean', value };
 		}
 	}
 
-	setColorVector(name: string, color: Color)
+	setColorVector(name, color)
 	{
 		this.setFloatVector(name, color.toVector());
 	}
 
-	setFloat(name: string, value: number)
+	setFloat(name, value)
 	{
 		if (activeShader === this) {
 			let location = this.uniformIDs[name];
 			if (location === undefined) {
-				location = gl.getUniformLocation(this.glProgram, name);
+				location = webGL.getUniformLocation(this.glProgram, name);
 				this.uniformIDs[name] = location;
 			}
-			gl.uniform1f(location, value);
+			webGL.uniform1f(location, value);
 		}
 		else {
 			this.valuesToSet[name] = { type: 'float', value };
 		}
 	}
 
-	setFloatArray(name: string, values: number[])
+	setFloatArray(name, values)
 	{
 		if (activeShader === this) {
 			let location = this.uniformIDs[name];
 			if (location === undefined) {
-				location = gl.getUniformLocation(this.glProgram, name);
+				location = webGL.getUniformLocation(this.glProgram, name);
 				this.uniformIDs[name] = location;
 			}
-			gl.uniform1fv(location, values);
+			webGL.uniform1fv(location, values);
 		}
 		else {
 			this.valuesToSet[name] = { type: 'floatArray', value: values };
 		}
 	}
 
-	setFloatVector(name: string, values: number[])
+	setFloatVector(name, values)
 	{
 		if (activeShader === this) {
 			let location = this.uniformIDs[name];
 			if (location === undefined) {
-				location = gl.getUniformLocation(this.glProgram, name);
+				location = webGL.getUniformLocation(this.glProgram, name);
 				this.uniformIDs[name] = location;
 			}
 			const size = values.length;
-			size === 4 ? gl.uniform4fv(location, values)
-				: size === 3 ? gl.uniform3fv(location, values)
-				: size === 2 ? gl.uniform2fv(location, values)
-				: gl.uniform1fv(location, values);
+			size === 4 ? webGL.uniform4fv(location, values)
+				: size === 3 ? webGL.uniform3fv(location, values)
+				: size === 2 ? webGL.uniform2fv(location, values)
+				: webGL.uniform1fv(location, values);
 		}
 		else {
 			this.valuesToSet[name] = { type: 'floatVector', value: values };
 		}
 	}
 
-	setInt(name: string, value: number)
+	setInt(name, value)
 	{
 		if (activeShader === this) {
 			let location = this.uniformIDs[name];
 			if (location === undefined) {
-				location = gl.getUniformLocation(this.glProgram, name);
+				location = webGL.getUniformLocation(this.glProgram, name);
 				this.uniformIDs[name] = location;
 			}
-			gl.uniform1i(location, value);
+			webGL.uniform1i(location, value);
 		}
 		else {
 			this.valuesToSet[name] = { type: 'int', value };
 		}
 	}
 
-	setIntArray(name: string, values: number[])
+	setIntArray(name, values)
 	{
 		if (activeShader === this) {
 			let location = this.uniformIDs[name];
 			if (location === undefined) {
-				location = gl.getUniformLocation(this.glProgram, name);
+				location = webGL.getUniformLocation(this.glProgram, name);
 				this.uniformIDs[name] = location;
 			}
-			gl.uniform1iv(location, values);
+			webGL.uniform1iv(location, values);
 		}
 		else {
 			this.valuesToSet[name] = { type: 'intArray', value: values };
 		}
 	}
 
-	setIntVector(name: string, values: number[])
+	setIntVector(name, values)
 	{
 		if (activeShader === this) {
 			let location = this.uniformIDs[name];
 			if (location === undefined) {
-				location = gl.getUniformLocation(this.glProgram, name);
+				location = webGL.getUniformLocation(this.glProgram, name);
 				this.uniformIDs[name] = location;
 			}
 			const size = values.length;
-			size === 4 ? gl.uniform4iv(location, values)
-				: size === 3 ? gl.uniform3iv(location, values)
-				: size === 2 ? gl.uniform2iv(location, values)
-				: gl.uniform1iv(location, values);
+			size === 4 ? webGL.uniform4iv(location, values)
+				: size === 3 ? webGL.uniform3iv(location, values)
+				: size === 2 ? webGL.uniform2iv(location, values)
+				: webGL.uniform1iv(location, values);
 		}
 		else {
 			this.valuesToSet[name] = { type: 'intVector', value: values };
 		}
 	}
 
-	setMatrix(name: string, value: Transform)
+	setMatrix(name, value)
 	{
 		if (activeShader === this) {
 			let location = this.uniformIDs[name];
 			if (location === undefined) {
-				location = gl.getUniformLocation(this.glProgram, name);
+				location = webGL.getUniformLocation(this.glProgram, name);
 				this.uniformIDs[name] = location;
 			}
-			gl.uniformMatrix4fv(location, false, value.values);
+			webGL.uniformMatrix4fv(location, false, value.values);
 		}
 		else {
 			this.valuesToSet[name] = { type: 'matrix', value };
 		}
 	}
 
-	transform(matrix: Transform)
+	transform(matrix)
 	{
 		this.modelViewMatrix = matrix.clone();
 		let transformation = this.modelViewMatrix.clone()
@@ -816,41 +775,40 @@ class Shader
 export
 class Shape
 {
-	static drawImmediate(surface: Surface, type: ShapeType, texture: Texture | null, vertices: ArrayLike<Vertex>): void
-	static drawImmediate(surface: Surface, type: ShapeType, vertices: ArrayLike<Vertex>): void
-	static drawImmediate(surface: Surface, type: ShapeType, arg1: Texture | ArrayLike<Vertex> | null, arg2?: ArrayLike<Vertex>)
+	static drawImmediate(surface, shapeType, arg1, arg2)
 	{
 		if (arg1 instanceof Texture || arg1 === null) {
-			surface.activate(defaultShader, arg1);
-			Galileo.draw(type, new VertexList(arg2!));
+			const texture = arg1;
+			const vertices = arg2;
+			surface.activate(defaultShader, texture);
+			Galileo.draw(shapeType, new VertexList(vertices));
 		}
 		else {
+			const vertices = arg1;
 			surface.activate(defaultShader);
-			Galileo.draw(type, new VertexList(arg1));
+			Galileo.draw(shapeType, new VertexList(vertices));
 		}
 	}
 
-	indices: IndexList | null;
-	texture_: Texture | null;
-	type: ShapeType;
-	vertices: VertexList;
+	indices;
+	texture_;
+	type;
+	vertexList;
 
-	constructor(type: ShapeType, texture: Texture | null, vertices: VertexList, indices?: IndexList | null)
-	constructor(type: ShapeType, vertices: VertexList, indices?: IndexList | null)
-	constructor(type: ShapeType, arg1: Texture | VertexList | null, arg2: VertexList | IndexList | null = null, arg3: IndexList | null = null)
+	constructor(shapeType, arg1, arg2 = null, arg3 = null)
 	{
-		this.type = type;
+		this.type = shapeType;
 		if (arg2 instanceof VertexList) {
 			if (!(arg1 instanceof Texture) && arg1 != undefined)
 				throw new Error("Expected a Texture or 'null' as second argument to Shape constructor");
-			this.vertices = arg2;
+			this.vertexList = arg2;
 			this.indices = arg3;
 			this.texture_ = arg1;
 		}
 		else {
 			if (!(arg1 instanceof VertexList))
 				throw new Error("Expected a VertexList or Texture as second argument to Shape constructor");
-			this.vertices = arg1;
+			this.vertexList = arg1;
 			this.indices = arg2;
 			this.texture_ = null;
 		}
@@ -868,7 +826,7 @@ class Shape
 
 	get vertexList()
 	{
-		return this.vertices;
+		return this.vertexList;
 	}
 
 	set indexList(value)
@@ -889,20 +847,20 @@ class Shape
 	{
 		if (!(value instanceof VertexList))
 			throw TypeError("Shape#vertexList must be set to a VertexList object.");
-		this.vertices = value;
+		this.vertexList = value;
 	}
 
 	draw(surface = Surface.Screen, transform = Transform.Identity, shader = Shader.Default)
 	{
 		surface.activate(shader, this.texture_, transform);
-		Galileo.draw(this.type, this.vertices, this.indices);
+		Galileo.draw(this.type, this.vertexList, this.indices);
 	}
 }
 
 export
 class Texture
 {
-	static async fromFile(fileName: string)
+	static async fromFile(fileName)
 	{
 		const imageURL = Game.urlOf(fileName);
 		const image = await Fido.fetchImage(imageURL);
@@ -911,15 +869,13 @@ class Texture
 		return texture;
 	}
 
-	fileName: string | undefined;
-	glTexture: WebGLTexture;
-	size: Size = { width: 0, height: 0 };
+	fileName;
+	glTexture;
+	size = { width: 0, height: 0 };
 
-	constructor(...args: | [ HTMLImageElement ]
-	                     | [ string ]
-	                     | [ number, number, (BufferSource | Color)? ])
+	constructor(...args)
 	{
-		const glTexture = gl.createTexture();
+		const glTexture = webGL.createTexture();
 		if (glTexture === null)
 			throw new Error(`Engine couldn't create a WebGL texture object.`);
 		this.glTexture = glTexture;
@@ -927,12 +883,12 @@ class Texture
 			throw Error("'new Texture' with filename is not supported in Oozaru.");
 		}
 		else {
-			const oldBinding = gl.getParameter(gl.TEXTURE_BINDING_2D);
-			gl.bindTexture(gl.TEXTURE_2D, glTexture);
-			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+			const oldBinding = webGL.getParameter(webGL.TEXTURE_BINDING_2D);
+			webGL.bindTexture(webGL.TEXTURE_2D, glTexture);
+			webGL.pixelStorei(webGL.UNPACK_FLIP_Y_WEBGL, true);
 			if (args[0] instanceof HTMLImageElement) {
 				const image = args[0];
-				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+				webGL.texImage2D(webGL.TEXTURE_2D, 0, webGL.RGBA, webGL.RGBA, webGL.UNSIGNED_BYTE, image);
 				this.size = { width: args[0].width, height: args[0].height };
 			}
 			else if (typeof args[0] === 'number' && typeof args[1] === 'number') {
@@ -944,22 +900,22 @@ class Texture
 					const buffer = args[2] instanceof ArrayBuffer ? args[2] : args[2].buffer;
 					if (buffer.byteLength < width * height * 4)
 						throw RangeError(`The provided buffer is too small to initialize a ${width}x${height} texture.`);
-					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+					webGL.texImage2D(webGL.TEXTURE_2D, 0, webGL.RGBA, width, height, 0, webGL.RGBA, webGL.UNSIGNED_BYTE,
 						new Uint8Array(buffer));
 				}
 				else {
 					const pixels = new Uint32Array(width * height);
 					if (args[2] !== undefined)
 						pixels.fill((args[2].a * 255 << 24) + (args[2].b * 255 << 16) + (args[2].g * 255 << 8) + (args[2].r * 255));
-					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+					webGL.texImage2D(webGL.TEXTURE_2D, 0, webGL.RGBA, width, height, 0, webGL.RGBA, webGL.UNSIGNED_BYTE,
 						new Uint8Array(pixels.buffer));
 				}
 				this.size = { width, height };
 			}
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-			gl.bindTexture(gl.TEXTURE_2D, oldBinding);
+			webGL.texParameteri(webGL.TEXTURE_2D, webGL.TEXTURE_MIN_FILTER, webGL.LINEAR);
+			webGL.texParameteri(webGL.TEXTURE_2D, webGL.TEXTURE_WRAP_S, webGL.CLAMP_TO_EDGE);
+			webGL.texParameteri(webGL.TEXTURE_2D, webGL.TEXTURE_WRAP_T, webGL.CLAMP_TO_EDGE);
+			webGL.bindTexture(webGL.TEXTURE_2D, oldBinding);
 		}
 	}
 
@@ -973,19 +929,19 @@ class Texture
 		return this.size.width;
 	}
 
-	upload(content: BufferSource, x = 0, y = 0, width = this.width, height = this.height)
+	upload(content, x = 0, y = 0, width = this.width, height = this.height)
 	{
 		const pixelData = ArrayBuffer.isView(content)
 			? new Uint8Array(content.buffer)
 			: new Uint8Array(content);
-		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
-		gl.texSubImage2D(gl.TEXTURE_2D, 0, x, this.size.height - y - height, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
+		webGL.bindTexture(webGL.TEXTURE_2D, this.glTexture);
+		webGL.texSubImage2D(webGL.TEXTURE_2D, 0, x, this.size.height - y - height, width, height, webGL.RGBA, webGL.UNSIGNED_BYTE, pixelData);
 	}
 
 	useTexture(textureUnit = 0)
 	{
-		gl.activeTexture(gl.TEXTURE0 + textureUnit);
-		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
+		webGL.activeTexture(webGL.TEXTURE0 + textureUnit);
+		webGL.bindTexture(webGL.TEXTURE_2D, this.glTexture);
 	}
 }
 
@@ -993,21 +949,21 @@ export
 class Surface extends Texture
 {
 	blendOp_ = BlendOp.Default;
-	clipRectangle: Rectangle;
+	clipRectangle;
 	depthOp_ = DepthOp.AlwaysPass;
-	frameBuffer: WebGLFramebuffer | null;
-	projection: Transform;
+	frameBuffer;
+	projection;
 
 	static get Screen()
 	{
-		const screenSurface = Object.create(Surface.prototype) as Surface;
-		screenSurface.size = { width: gl.canvas.width, height: gl.canvas.height };
+		const screenSurface = Object.create(Surface.prototype);
+		screenSurface.size = { width: webGL.canvas.width, height: webGL.canvas.height };
 		screenSurface.blendOp_ = BlendOp.Default;
-		screenSurface.clipRectangle = { x: 0, y: 0, w: gl.canvas.width, h: gl.canvas.height };
+		screenSurface.clipRectangle = { x: 0, y: 0, w: webGL.canvas.width, h: webGL.canvas.height };
 		screenSurface.depthOp_ = DepthOp.AlwaysPass;
 		screenSurface.frameBuffer = null;
 		screenSurface.projection = new Transform()
-			.project2D(0, 0, gl.canvas.width, gl.canvas.height);
+			.project2D(0, 0, webGL.canvas.width, webGL.canvas.height);
 		Object.defineProperty(Surface, 'Screen', {
 			value: screenSurface,
 			writable: false,
@@ -1017,34 +973,32 @@ class Surface extends Texture
 		return screenSurface;
 	}
 
-	static fromFile(fileName: string): Promise<Surface>
+	static async fromFile(fileName)
 	{
 		throw Error("'Surface.fromFile' is not supported in Oozaru.");
 	}
 
-	constructor(...args: | [ HTMLImageElement ]
-	                     | [ string ]
-	                     | [ number, number, (BufferSource | Color)? ])
+	constructor(...args)
 	{
 		if (typeof args[0] === 'string')
 			throw Error("'new Surface' with filename is not supported in Oozaru.");
 
 		super(...args);
 
-		const frameBuffer = gl.createFramebuffer();
-		const depthBuffer = gl.createRenderbuffer();
+		const frameBuffer = webGL.createFramebuffer();
+		const depthBuffer = webGL.createRenderbuffer();
 		if (frameBuffer === null || depthBuffer === null)
 			throw new Error(`Engine couldn't create a WebGL framebuffer object.`);
 
 		// in order to set up a new FBO we need to change the current framebuffer binding, so make sure
 		// it gets changed back afterwards.
-		const previousFBO = gl.getParameter(gl.FRAMEBUFFER_BINDING);
-		gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
-		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.glTexture, 0);
-		gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
-		gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.width, this.height);
-		gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
-		gl.bindFramebuffer(gl.FRAMEBUFFER, previousFBO);
+		const previousFBO = webGL.getParameter(webGL.FRAMEBUFFER_BINDING);
+		webGL.bindFramebuffer(webGL.FRAMEBUFFER, frameBuffer);
+		webGL.framebufferTexture2D(webGL.FRAMEBUFFER, webGL.COLOR_ATTACHMENT0, webGL.TEXTURE_2D, this.glTexture, 0);
+		webGL.bindRenderbuffer(webGL.RENDERBUFFER, depthBuffer);
+		webGL.renderbufferStorage(webGL.RENDERBUFFER, webGL.DEPTH_COMPONENT16, this.width, this.height);
+		webGL.framebufferRenderbuffer(webGL.FRAMEBUFFER, webGL.DEPTH_ATTACHMENT, webGL.RENDERBUFFER, depthBuffer);
+		webGL.bindFramebuffer(webGL.FRAMEBUFFER, previousFBO);
 
 		this.clipRectangle = { x: 0, y: 0, w: this.width, h: this.height };
 		this.frameBuffer = frameBuffer;
@@ -1086,12 +1040,12 @@ class Surface extends Texture
 		this.projection = value;
 	}
 
-	activate(shader: Shader, texture: Texture | null = null, transform = Transform.Identity)
+	activate(shader, texture = null, transform = Transform.Identity)
 	{
 		if (this !== activeSurface) {
-			gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
-			gl.viewport(0, 0, this.width, this.height);
-			gl.scissor(this.clipRectangle.x, this.clipRectangle.y, this.clipRectangle.w, this.clipRectangle.h);
+			webGL.bindFramebuffer(webGL.FRAMEBUFFER, this.frameBuffer);
+			webGL.viewport(0, 0, this.width, this.height);
+			webGL.scissor(this.clipRectangle.x, this.clipRectangle.y, this.clipRectangle.w, this.clipRectangle.h);
 			applyBlendOp(this.blendOp_);
 			applyDepthOp(this.depthOp_);
 			activeSurface = this;
@@ -1102,14 +1056,14 @@ class Surface extends Texture
 		texture?.useTexture(0);
 	}
 
-	clipTo(x: number, y: number, width: number, height: number)
+	clipTo(x, y, width, height)
 	{
 		this.clipRectangle.x = x;
 		this.clipRectangle.y = y;
 		this.clipRectangle.w = width;
 		this.clipRectangle.h = height;
 		if (this === activeSurface)
-			gl.scissor(x, this.height - y - height, width, height);
+			webGL.scissor(x, this.height - y - height, width, height);
 	}
 
 	unclip()
@@ -1121,7 +1075,7 @@ class Surface extends Texture
 export
 class Transform
 {
-	values: Float32Array;
+	values;
 
 	static get Identity()
 	{
@@ -1143,7 +1097,7 @@ class Transform
 		]);
 	}
 
-	constructor(values?: ArrayLike<number>)
+	constructor(values)
 	{
 		if (values !== undefined) {
 			if (values.length !== 16)
@@ -1165,7 +1119,7 @@ class Transform
 		return new Transform(this.values);
 	}
 
-	compose(other: Transform)
+	compose(other)
 	{
 		const m1 = this.values;
 		const m2 = other.values;
@@ -1215,7 +1169,7 @@ class Transform
 		return this;
 	}
 
-	project2D(left: number, top: number, right: number, bottom: number, near = -1.0, far = 1.0)
+	project2D(left, top, right, bottom, near = -1.0, far = 1.0)
 	{
 		const deltaX = right - left;
 		const deltaY = top - bottom;
@@ -1234,7 +1188,7 @@ class Transform
 		return this.compose(projection);
 	}
 
-	project3D(fov: number, aspect: number, near: number, far: number)
+	project3D(fov, aspect, near, far)
 	{
 		const fh = Math.tan(fov * Math.PI / 360.0) * near;
 		const fw = fh * aspect;
@@ -1257,7 +1211,7 @@ class Transform
 		return this.compose(projection);
 	}
 
-	rotate(angle: number, vX: number, vY: number, vZ: number)
+	rotate(angle, vX, vY, vZ)
 	{
 		// normalize the rotation axis vector
 		const norm = Math.sqrt(vX * vX + vY * vY + vZ * vZ);
@@ -1290,7 +1244,7 @@ class Transform
 		return this.compose(rotation);
 	}
 
-	scale(sX: number, sY: number, sZ = 1.0)
+	scale(sX, sY, sZ = 1.0)
 	{
 		this.values[0] *= sX;
 		this.values[4] *= sX;
@@ -1310,7 +1264,7 @@ class Transform
 		return this;
 	}
 
-	translate(tX: number, tY: number, tZ = 0.0)
+	translate(tX, tY, tZ = 0.0)
 	{
 		this.values[12]	+= tX;
 		this.values[13] += tY;
@@ -1322,12 +1276,12 @@ class Transform
 export
 class VertexList
 {
-	glBuffer: WebGLBuffer | null = null;
-	length: number = 0;
+	glBuffer = null;
+	length = 0;
 
-	constructor(vertices: ArrayLike<Vertex>)
+	constructor(vertices)
 	{
-		this.glBuffer = gl.createBuffer();
+		this.glBuffer = webGL.createBuffer();
 		if (this.glBuffer === null)
 			throw new Error(`Engine couldn't create a WebGL buffer object.`);
 		this.upload(vertices);
@@ -1335,16 +1289,16 @@ class VertexList
 
 	activate()
 	{
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.glBuffer);
-		gl.enableVertexAttribArray(0);
-		gl.enableVertexAttribArray(1);
-		gl.enableVertexAttribArray(2);
-		gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 40, 0);
-		gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 40, 16);
-		gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 40, 32);
+		webGL.bindBuffer(webGL.ARRAY_BUFFER, this.glBuffer);
+		webGL.enableVertexAttribArray(0);
+		webGL.enableVertexAttribArray(1);
+		webGL.enableVertexAttribArray(2);
+		webGL.vertexAttribPointer(0, 4, webGL.FLOAT, false, 40, 0);
+		webGL.vertexAttribPointer(1, 4, webGL.FLOAT, false, 40, 16);
+		webGL.vertexAttribPointer(2, 2, webGL.FLOAT, false, 40, 32);
 	}
 
-	upload(vertices: ArrayLike<Vertex>)
+	upload(vertices)
 	{
 		const data = new Float32Array(10 * vertices.length);
 		for (let i = 0, len = vertices.length; i < len; ++i) {
@@ -1360,69 +1314,69 @@ class VertexList
 			data[8 + i * 10] = vertex.u ?? 0.0;
 			data[9 + i * 10] = vertex.v ?? 0.0;
 		}
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.glBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, data, gl.STREAM_DRAW);
+		webGL.bindBuffer(webGL.ARRAY_BUFFER, this.glBuffer);
+		webGL.bufferData(webGL.ARRAY_BUFFER, data, webGL.STREAM_DRAW);
 		this.length = vertices.length;
 	}
 }
 
-function applyBlendOp(op: BlendOp)
+function applyBlendOp(blendOp)
 {
-	switch (op) {
+	switch (blendOp) {
 		case BlendOp.Default:
-			gl.blendEquation(gl.FUNC_ADD);
-			gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+			webGL.blendEquation(webGL.FUNC_ADD);
+			webGL.blendFunc(webGL.SRC_ALPHA, webGL.ONE_MINUS_SRC_ALPHA);
 			break;
 		case BlendOp.Add:
-			gl.blendEquation(gl.FUNC_ADD);
-			gl.blendFunc(gl.ONE, gl.ONE);
+			webGL.blendEquation(webGL.FUNC_ADD);
+			webGL.blendFunc(webGL.ONE, webGL.ONE);
 			break;
 		case BlendOp.Average:
-			gl.blendEquation(gl.FUNC_ADD);
-			gl.blendFunc(gl.CONSTANT_COLOR, gl.CONSTANT_COLOR);
-			gl.blendColor(0.5, 0.5, 0.5, 0.5);
+			webGL.blendEquation(webGL.FUNC_ADD);
+			webGL.blendFunc(webGL.CONSTANT_COLOR, webGL.CONSTANT_COLOR);
+			webGL.blendColor(0.5, 0.5, 0.5, 0.5);
 			break;
 		case BlendOp.CopyAlpha:
-			gl.blendEquation(gl.FUNC_ADD);
-			gl.blendFuncSeparate(gl.ZERO, gl.ONE, gl.ONE, gl.ZERO);
+			webGL.blendEquation(webGL.FUNC_ADD);
+			webGL.blendFuncSeparate(webGL.ZERO, webGL.ONE, webGL.ONE, webGL.ZERO);
 			break;
 		case BlendOp.CopyRGB:
-			gl.blendEquation(gl.FUNC_ADD);
-			gl.blendFuncSeparate(gl.ONE, gl.ZERO, gl.ZERO, gl.ONE);
+			webGL.blendEquation(webGL.FUNC_ADD);
+			webGL.blendFuncSeparate(webGL.ONE, webGL.ZERO, webGL.ZERO, webGL.ONE);
 			break;
 		case BlendOp.Invert:
-			gl.blendEquation(gl.FUNC_ADD);
-			gl.blendFunc(gl.ZERO, gl.ONE_MINUS_SRC_COLOR);
+			webGL.blendEquation(webGL.FUNC_ADD);
+			webGL.blendFunc(webGL.ZERO, webGL.ONE_MINUS_SRC_COLOR);
 			break;
 		case BlendOp.Multiply:
-			gl.blendEquation(gl.FUNC_ADD);
-			gl.blendFunc(gl.DST_COLOR, gl.ZERO);
+			webGL.blendEquation(webGL.FUNC_ADD);
+			webGL.blendFunc(webGL.DST_COLOR, webGL.ZERO);
 			break;
 		case BlendOp.Replace:
-			gl.blendEquation(gl.FUNC_ADD);
-			gl.blendFunc(gl.ONE, gl.ZERO);
+			webGL.blendEquation(webGL.FUNC_ADD);
+			webGL.blendFunc(webGL.ONE, webGL.ZERO);
 			break;
 		case BlendOp.Subtract:
-			gl.blendEquation(gl.FUNC_REVERSE_SUBTRACT);
-			gl.blendFunc(gl.ONE, gl.ONE);
+			webGL.blendEquation(webGL.FUNC_REVERSE_SUBTRACT);
+			webGL.blendFunc(webGL.ONE, webGL.ONE);
 			break;
 		default:
 			// something went horribly wrong if we got here; just set the blender to output
 			// nothing so the user can see something went awry.
-			gl.blendEquation(gl.FUNC_ADD);
-			gl.blendFunc(gl.ZERO, gl.ZERO);
+			webGL.blendEquation(webGL.FUNC_ADD);
+			webGL.blendFunc(webGL.ZERO, webGL.ZERO);
 	}
 }
 
-function applyDepthOp(op: DepthOp)
+function applyDepthOp(depthOp)
 {
-	const depthFunc = op === DepthOp.AlwaysPass ? gl.ALWAYS
-		: op === DepthOp.Equal ? gl.EQUAL
-		: op === DepthOp.Greater ? gl.GREATER
-		: op === DepthOp.GreaterOrEqual ? gl.GEQUAL
-		: op === DepthOp.Less ? gl.LESS
-		: op === DepthOp.LessOrEqual ? gl.LEQUAL
-		: op === DepthOp.NotEqual ? gl.NOTEQUAL
-		: gl.NEVER;
-	gl.depthFunc(depthFunc);
+	const depthFunc = depthOp === DepthOp.AlwaysPass ? webGL.ALWAYS
+		: depthOp === DepthOp.Equal ? webGL.EQUAL
+		: depthOp === DepthOp.Greater ? webGL.GREATER
+		: depthOp === DepthOp.GreaterOrEqual ? webGL.GEQUAL
+		: depthOp === DepthOp.Less ? webGL.LESS
+		: depthOp === DepthOp.LessOrEqual ? webGL.LEQUAL
+		: depthOp === DepthOp.NotEqual ? webGL.NOTEQUAL
+		: webGL.NEVER;
+	webGL.depthFunc(depthFunc);
 }

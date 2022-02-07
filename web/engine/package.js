@@ -33,21 +33,13 @@
 import { DataStream } from './data-stream.js';
 import Fido from './fido.js';
 
-interface FileRecord
-{
-	byteOffset: number;
-	byteLength: number;
-	fileSize: number;
-	data?: ArrayBuffer;
-}
-
 export
 class Package
 {
-	#stream: DataStream;
-	#toc: Record<string, FileRecord> = {};
+	#stream;
+	#toc = {};
 	
-	static async fromFile(url: string)
+	static async fromFile(url)
 	{
 		const response = await Fido.fetch(url);
 		const buffer = await response.arrayBuffer();
@@ -55,9 +47,9 @@ class Package
 		return new this(stream);
 	}
 
-	constructor(stream: DataStream)
+	constructor(dataStream)
 	{
-		const spkHeader = stream.readStruct({
+		const spkHeader = dataStream.readStruct({
 			signature: 'string/4',
 			version:   'uint16-le',
 			numFiles:  'uint32-le',
@@ -68,9 +60,9 @@ class Package
 			throw RangeError("Not a valid Sphere package file");
 		if (spkHeader.version !== 1)
 			throw RangeError(`Unsupported SPK format version '${spkHeader.version}'`);
-		stream.position = spkHeader.tocOffset;
+		dataStream.position = spkHeader.tocOffset;
 		for (let i = 0; i < spkHeader.numFiles; ++i) {
-			const entry = stream.readStruct({
+			const entry = dataStream.readStruct({
 				version:    'uint16-le',
 				nameLength: 'uint16-le',
 				byteOffset: 'uint32-le',
@@ -79,17 +71,17 @@ class Package
 			});
 			if (entry.version !== 1)
 				throw RangeError(`Unsupported SPK file record version '${entry.version}'`);
-			const pathName = stream.readString(entry.nameLength);
+			const pathName = dataStream.readString(entry.nameLength);
 			this.#toc[pathName] = {
 				byteOffset: entry.byteOffset,
 				byteLength: entry.byteLength,
 				fileSize: entry.fileSize,
 			};
 		}
-		this.#stream = stream;
+		this.#stream = dataStream;
 	}
 
-	dataOf(pathName: string)
+	dataOf(pathName)
 	{
 		if (!(pathName in this.#toc))
 			throw Error(`File not found in Sphere package '${pathName}'`);

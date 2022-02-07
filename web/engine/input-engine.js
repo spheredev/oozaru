@@ -31,147 +31,138 @@
 **/
 
 export
-enum Key
+const Key =
 {
-	Alt,
-	AltGr,
-	Apostrophe,
-	Backslash,
-	Backspace,
-	CapsLock,
-	CloseBrace,
-	Comma,
-	Delete,
-	Down,
-	End,
-	Enter,
-	Equals,
-	Escape,
-	F1,
-	F2,
-	F3,
-	F4,
-	F5,
-	F6,
-	F7,
-	F8,
-	F9,
-	F10,
-	F11,
-	F12,
-	Home,
-	Hyphen,
-	Insert,
-	LCtrl,
-	LShift,
-	Left,
-	NumLock,
-	OpenBrace,
-	PageDown,
-	PageUp,
-	Period,
-	RCtrl,
-	RShift,
-	Right,
-	ScrollLock,
-	Semicolon,
-	Slash,
-	Space,
-	Tab,
-	Tilde,
-	Up,
-	A,
-	B,
-	C,
-	D,
-	E,
-	F,
-	G,
-	H,
-	I,
-	J,
-	K,
-	L,
-	M,
-	N,
-	O,
-	P,
-	Q,
-	R,
-	S,
-	T,
-	U,
-	V,
-	W,
-	X,
-	Y,
-	Z,
-	D1,
-	D2,
-	D3,
-	D4,
-	D5,
-	D6,
-	D7,
-	D8,
-	D9,
-	D0,
-	NumPad1,
-	NumPad2,
-	NumPad3,
-	NumPad4,
-	NumPad5,
-	NumPad6,
-	NumPad7,
-	NumPad8,
-	NumPad9,
-	NumPad0,
-	NumPadEnter,
-	Add,
-	Decimal,
-	Divide,
-	Multiply,
-	Subtract,
+	Alt: 0,
+	AltGr: 1,
+	Apostrophe: 2,
+	Backslash: 3,
+	Backspace: 4,
+	CapsLock: 5,
+	CloseBrace: 6,
+	Comma: 7,
+	Delete: 8,
+	Down: 9,
+	End: 10,
+	Enter: 11,
+	Equals: 12,
+	Escape: 13,
+	F1: 14,
+	F2: 15,
+	F3: 16,
+	F4: 17,
+	F5: 18,
+	F6: 19,
+	F7: 20,
+	F8: 21,
+	F9: 22,
+	F10: 23,
+	F11: 24,
+	F12: 25,
+	Home: 26,
+	Hyphen: 27,
+	Insert: 28,
+	LCtrl: 29,
+	LShift: 30,
+	Left: 31,
+	NumLock: 32,
+	OpenBrace: 33,
+	PageDown: 34,
+	PageUp: 35,
+	Period: 36,
+	RCtrl: 37,
+	RShift: 38,
+	Right: 39,
+	ScrollLock: 40,
+	Semicolon: 41,
+	Slash: 42,
+	Space: 43,
+	Tab: 44,
+	Tilde: 45,
+	Up: 46,
+	A: 47,
+	B: 48,
+	C: 49,
+	D: 50,
+	E: 51,
+	F: 52,
+	G: 53,
+	H: 54,
+	I: 55,
+	J: 56,
+	K: 57,
+	L: 58,
+	M: 59,
+	N: 60,
+	O: 61,
+	P: 62,
+	Q: 63,
+	R: 64,
+	S: 65,
+	T: 66,
+	U: 67,
+	V: 68,
+	W: 69,
+	X: 70,
+	Y: 71,
+	Z: 72,
+	D1: 73,
+	D2: 74,
+	D3: 75,
+	D4: 76,
+	D5: 77,
+	D6: 78,
+	D7: 79,
+	D8: 80,
+	D9: 81,
+	D0: 82,
+	NumPad1: 83,
+	NumPad2: 84,
+	NumPad3: 85,
+	NumPad4: 86,
+	NumPad5: 87,
+	NumPad6: 88,
+	NumPad7: 89,
+	NumPad8: 90,
+	NumPad9: 91,
+	NumPad0: 92,
+	NumPadEnter: 93,
+	Add: 94,
+	Decimal: 95,
+	Divide: 96,
+	Multiply: 97,
+	Subtract: 98,
 }
 
 export
-interface MouseEvent
+const MouseKey =
 {
-	key: MouseKey;
-	delta?: number;
-	x: number;
-	y: number;
+	Left: 0,
+	Middle: 1,
+	Right: 2,
+	Back: 3,
+	Forward: 4,
+	WheelUp: 5,
+	WheelDown: 6,
 }
 
-export
-enum MouseKey
-{
-	Left,
-	Middle,
-	Right,
-	Back,
-	Forward,
-	WheelUp,
-	WheelDown,
-}
-
-var buttonDown: { [x: number]: boolean } = {};
-var keyQueue: Key[] = [];
-var keyState: { [x: string]: boolean } = { '': false };
-var lastMouseX: number | undefined = undefined;
-var lastMouseY: number | undefined = undefined;
-var mouseQueue: MouseEvent[] = [];
+var buttonsDown = {};
+var keyQueue = [];
+var keyStates = { '': false };
+var lastMouseX = undefined;
+var lastMouseY = undefined;
+var mouseQueue = [];
 
 export default
 class InputEngine
 {
-	static initialize(canvas: HTMLCanvasElement)
+	static initialize(canvas)
 	{
 		canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 		canvas.addEventListener('keydown', e => {
 			e.preventDefault();
-			keyState[e.code] = true;
+			keyStates[e.code] = true;
 			switch (e.code) {
 				case 'ArrowLeft': keyQueue.push(Key.Left); break;
 				case 'ArrowRight': keyQueue.push(Key.Right); break;
@@ -267,7 +258,7 @@ class InputEngine
 		});
 		canvas.addEventListener('keyup', e => {
 			e.preventDefault();
-			keyState[e.code] = false;
+			keyStates[e.code] = false;
 		});
 
 		canvas.addEventListener('mousemove', e => {
@@ -288,7 +279,7 @@ class InputEngine
 				: e.button === 3 ? MouseKey.Back
 				: e.button === 4 ? MouseKey.Forward
 				: MouseKey.Left;
-			buttonDown[key] = true;
+			buttonsDown[key] = true;
 		});
 		canvas.addEventListener('mouseup', e => {
 			e.preventDefault();
@@ -297,7 +288,7 @@ class InputEngine
 				: e.button === 3 ? MouseKey.Back
 				: e.button === 4 ? MouseKey.Forward
 				: MouseKey.Left;
-			buttonDown[key] = false;
+			buttonsDown[key] = false;
 			mouseQueue.push({
 				key,
 				x: e.offsetX,
@@ -395,7 +386,7 @@ class Keyboard
 		return false;
 	}
 
-	static charOf(key: Key, shifted = false): string
+	static charOf(key, shifted = false)
 	{
 		return key === Key.Space ? " "
 			: key === Key.Apostrophe ? shifted ? "\"" : "'"
@@ -460,7 +451,7 @@ class Keyboard
 		return key !== undefined ? key : null;
 	}
 
-	static isPressed(key: Key)
+	static isPressed(key)
 	{
 		const keySpec = key === Key.Tilde ? 'Backquote'
 			: key === Key.D0 ? 'Digit0'
@@ -508,7 +499,7 @@ class Keyboard
 			: key === Key.RCtrl ? 'ControlRight'
 			: key === Key.AltGr ? 'AltRight'
 			: '';
-		return keyState[keySpec];
+		return keyStates[keySpec];
 	}
 }
 
@@ -546,13 +537,13 @@ class Mouse
 		return event !== undefined ? event : { key: null };
 	}
 
-	static isPressed(key: MouseKey)
+	static isPressed(key)
 	{
-		return !!buttonDown[key];
+		return !!buttonsDown[key];
 	}
 }
 
-function memoize(object: object, key: PropertyKey, value: unknown)
+function memoize(object, key, value)
 {
 	Object.defineProperty(object, key, {
 		writable: false,

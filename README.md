@@ -4,9 +4,9 @@
 
 **Oozaru** is a lightweight implementation of the
 [Sphere](https://github.com/spheredev/neosphere) game engine API for the Web,
-written in TypeScript and based on standard HTML and JavaScript technologies;
-the engine is designed to run in most modern browsers without any third-party
-browser plugins.
+written purely in JavaScript and based on standard HTML and JavaScript
+technologies; the engine is designed to run out-of-the-box in most modern
+browsers with no required build step.
 
 Oozaru is currently in beta, but will eventually be fully integrated
 into the official Sphere development toolchain.

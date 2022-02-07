@@ -40,34 +40,25 @@ import InputEngine, { Joystick, Key, Keyboard, Mouse, MouseKey } from './input-e
 import JobQueue, { Dispatch, JobToken, JobType } from './job-queue.js';
 import { Version } from './version.js';
 
-enum DataType
+const DataType =
 {
-	Bytes,
-	JSON,
-	Lines,
-	Raw,
-	Text,
+	Bytes: 0,
+	JSON: 1,
+	Lines: 2,
+	Raw: 3,
+	Text: 4,
 }
 
-enum FileOp
+const FileOp =
 {
-	Read,
-	Update,
-	Write,
-}
-
-interface ReadFileReturn
-{
-	[DataType.Bytes]: Uint8Array;
-	[DataType.JSON]: any;
-	[DataType.Lines]: string[];
-	[DataType.Raw]: ArrayBuffer;
-	[DataType.Text]: string;
+	Read: 0,
+	Update: 1,
+	Write: 2,
 }
 
 const console = globalThis.console;
 
-var mainObject: { [x: string]: any } | undefined;
+var mainObject;
 
 export default
 class Pegasus
@@ -123,7 +114,7 @@ class Pegasus
 			writable: true,
 			enumerable: false,
 			configurable: true,
-			value: async function fromFile(fileName: string) {
+			value: async function fromFile(fileName) {
 				const url = Game.urlOf(fileName);
 				const text = await Fido.fetchText(url);
 				return JSON.parse(text);
@@ -131,7 +122,7 @@ class Pegasus
 		})
 	}
 
-	static async launchGame(rootPath: string)
+	static async launchGame(rootPath)
 	{
 		// load the game's JSON manifest
 		await Game.initialize(rootPath);
@@ -227,14 +218,14 @@ class Sphere
 		return JobQueue.now();
 	}
 
-	static sleep(numFrames: number)
+	static sleep(numFrames)
 	{
-		return new Promise<void>(resolve => {
+		return new Promise((resolve) => {
 			Dispatch.later(numFrames, resolve);
 		});
 	}
 
-	static setResolution(width: number, height: number)
+	static setResolution(width, height)
 	{
 		Galileo.rerez(width, height);
 	}
@@ -242,10 +233,10 @@ class Sphere
 
 class FS
 {
-	static async evaluateScript(fileName: string)
+	static async evaluateScript(fileName)
 	{
 		const url = Game.urlOf(fileName);
-		return new Promise<void>((resolve, reject) => {
+		return new Promise((resolve, reject) => {
 			const script = document.createElement('script');
 			script.onload = () => {
 				resolve();
@@ -260,7 +251,7 @@ class FS
 		});
 	}
 
-	static async fileExists(pathName: string)
+	static async fileExists(pathName)
 	{
 		const url = Game.urlOf(pathName);
 		try {
@@ -272,14 +263,12 @@ class FS
 		}
 	}
 
-	static fullPath(pathName: string, baseDirName: string)
+	static fullPath(pathName, baseDirName)
 	{
 		return Game.fullPath(pathName, baseDirName);
 	}
 
-	static readFile(fileName: string): Promise<ReadFileReturn[DataType.Text]>;
-	static readFile<T extends DataType>(fileName: string, dataType: T): Promise<ReadFileReturn[T]>;
-	static async readFile(fileName: string, dataType = DataType.Text)
+	static async readFile(fileName, dataType = DataType.Text)
 	{
 		const url = Game.urlOf(fileName);
 		switch (dataType) {
@@ -301,19 +290,19 @@ class FS
 
 class FileStream
 {
-	fullPath: string;
-	stream: DataStream | null;
+	dataStream;
+	fullPath;
 
-	static async fromFile(fileName: string, fileOp: FileOp)
+	static async fromFile(fileName, fileOp)
 	{
 		if (fileOp !== FileOp.Read)
 			throw new RangeError(`Oozaru currently only supports FileStreams in read mode`);
 
 		const url = Game.urlOf(fileName);
 		const data = await Fido.fetchData(url);
-		const fileStream = Object.create(this.prototype) as FileStream;
+		const fileStream = Object.create(this.prototype);
 		fileStream.fullPath = fileName;
-		fileStream.stream = new DataStream(data);
+		fileStream.dataStream = new DataStream(data);
 		return fileStream;
 	}
 
@@ -329,40 +318,40 @@ class FileStream
 
 	get fileSize()
 	{
-		if (this.stream === null)
+		if (this.dataStream === null)
 			throw new Error(`The FileStream has already been disposed`);
-		return this.stream.bufferSize;
+		return this.dataStream.bufferSize;
 	}
 
 	get position()
 	{
-		if (this.stream === null)
+		if (this.dataStream === null)
 			throw new Error(`The FileStream has already been disposed`);
-		return this.stream.position;
+		return this.dataStream.position;
 	}
 
 	set position(value)
 	{
-		if (this.stream === null)
+		if (this.dataStream === null)
 			throw new Error(`The FileStream has already been disposed`);
-		this.stream.position = value;
+		this.dataStream.position = value;
 	}
 
 	dispose()
 	{
-		this.stream = null;
+		this.dataStream = null;
 	}
 
-	read(numBytes: number)
+	read(numBytes)
 	{
-		if (this.stream === null)
+		if (this.dataStream === null)
 			throw new Error(`The FileStream has already been disposed`);
-		return this.stream.readBytes(numBytes).buffer;
+		return this.dataStream.readBytes(numBytes).buffer;
 	}
 
-	write(_data: BufferSource)
+	write(data)
 	{
-		if (this.stream === null)
+		if (this.dataStream === null)
 			throw Error(`The FileStream has already been disposed`);
 		throw Error(`Oozaru doesn't yet support FileStream#write()`);
 	}
@@ -370,12 +359,12 @@ class FileStream
 
 class RNG
 {
-	static fromSeed(seed: number)
+	static fromSeed(seed)
 	{
 		return new RNG();
 	}
 	
-	static fromState(state: string)
+	static fromState(state)
 	{
 		return new RNG();
 	}
@@ -384,7 +373,7 @@ class RNG
 	{
 	}
 
-	[Symbol.iterator](): Iterator<number>
+	[Symbol.iterator]()
 	{
 		return this;
 	}
@@ -394,11 +383,11 @@ class RNG
 		return "";
 	}
 
-	set state(value: string)
+	set state(value)
 	{
 	}
 
-	next(): IteratorResult<number>
+	next()
 	{
 		return { done: false, value: Math.random() };
 	}
@@ -406,7 +395,7 @@ class RNG
 
 class SSj
 {
-	static log(object: any)
+	static log(object)
 	{
 		console.log(object);
 	}

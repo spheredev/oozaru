@@ -37,7 +37,7 @@ class Version
 {
     static apiVersion = 2;
     static apiLevel = 4;
-    static json: any;
+    static json;
 
     static async initialize()
     {

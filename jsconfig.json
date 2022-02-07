@@ -1,0 +1,11 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "lib": [ "esnext", "dom" ],
+        "module": "esnext",
+    },
+
+    "include": [
+        "web/engine/*.js",
+    ]
+}

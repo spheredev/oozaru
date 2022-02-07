@@ -30,15 +30,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-interface FetchJob
-{
-	bytesDone: number;
-	finished: boolean;
-	totalSize: number | null;
-	url:  string;
-}
-
-var jobs: FetchJob[] = [];
+var jobs = [];
 
 export default
 class Fido
@@ -61,12 +53,12 @@ class Fido
 		return bytesTotal > 0 ? bytesDone / bytesTotal : 1.0;
 	}
 
-	static async fetch(url: string)
+	static async fetch(url)
 	{
 		const response = await fetch(url);
 		if (!response.ok || response.body === null)
 			throw Error(`Couldn't fetch the file '${url}'. (HTTP ${response.status})`);
-		const job: FetchJob = {
+		const job = {
 			url,
 			bytesDone: 0,
 			totalSize: null,
@@ -94,16 +86,16 @@ class Fido
 		return new Blob(chunks);
 	}
 
-	static async fetchData(url: string)
+	static async fetchData(url)
 	{
 		const blob = await this.fetch(url);
 		return blob.arrayBuffer();
 	}
 
-	static async fetchImage(url: string)
+	static async fetchImage(url)
 	{
 		const blob = await this.fetch(url);
-		return new Promise<HTMLImageElement>((resolve, reject) => {
+		return new Promise((resolve, reject) => {
 			const image = new Image();
 			image.onload = () => {
 				resolve(image);
@@ -117,13 +109,13 @@ class Fido
 		});
 	}
 
-	static async fetchJSON(url: string)
+	static async fetchJSON(url)
 	{
 		const text = await this.fetchText(url);
 		return JSON.parse(text);
 	}
 
-	static async fetchText(url: string)
+	static async fetchText(url)
 	{
 		const blob = await this.fetch(url);
 		return blob.text();

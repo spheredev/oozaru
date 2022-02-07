@@ -33,7 +33,7 @@
 import { Deque } from './deque.js';
 import Game from './game.js';
 
-var defaultMixer: Mixer | null = null;
+var defaultMixer = null;
 
 export default
 class Audialis
@@ -47,6 +47,10 @@ class Audialis
 export
 class Mixer
 {
+	context;
+	gainer;
+	panner;
+
 	static get Default()
 	{
 		if (defaultMixer === null)
@@ -54,11 +58,7 @@ class Mixer
 		return defaultMixer;
 	}
 
-	context: AudioContext;
-	gainer: GainNode;
-	panner: StereoPannerNode;
-
-	constructor(sampleRate: number, bits: number, numChannels = 2)
+	constructor(sampleRate, bits, numChannels = 2)
 	{
 		this.context = new AudioContext({ sampleRate });
 		this.gainer = this.context.createGain();
@@ -90,11 +90,16 @@ class Mixer
 export
 class Sound
 {
-	static async fromFile(fileName: string)
+	audioNode = null;
+	currentMixer = null;
+	element;
+	fileName;
+
+	static async fromFile(fileName)
 	{
 		const url = Game.urlOf(fileName);
 		const audioElement = new Audio();
-		await new Promise<void>((resolve, reject) => {
+		await new Promise((resolve, reject) => {
 			audioElement.onloadedmetadata = () => {
 				resolve();
 			}
@@ -108,12 +113,7 @@ class Sound
 		return sound;
 	}
 
-	audioNode: MediaElementAudioSourceNode | null = null;
-	currentMixer: Mixer | null = null;
-	element: HTMLAudioElement;
-	fileName: string | undefined;
-
-	constructor(source: HTMLAudioElement | string)
+	constructor(source)
 	{
 		if (source instanceof HTMLAudioElement) {
 			this.element = source;
@@ -205,13 +205,13 @@ class Sound
 export
 class SoundStream
 {
-	buffers = new Deque<Float32Array>();
-	currentMixer: Mixer | null = null;
+	buffers = new Deque();
+	currentMixer = null;
 	inputPtr = 0.0;
-	node: ScriptProcessorNode | null = null;
-	numChannels: number;
+	node = null;
+	numChannels;
 	paused = true;
-	sampleRate: number;
+	sampleRate;
 	timeBuffered = 0.0;
 
 	constructor(frequency = 22050, bits = 8, numChannels = 1)
@@ -242,7 +242,7 @@ class SoundStream
 			}
 			this.node = mixer.context.createScriptProcessor(0, 0, this.numChannels);
 			this.node.onaudioprocess = (e) => {
-				const outputs: Float32Array[] = [];
+				const outputs = [];
 				for (let i = 0; i < this.numChannels; ++i)
 					outputs[i] = e.outputBuffer.getChannelData(i);
 				if (this.paused || this.timeBuffered < e.outputBuffer.duration) {
@@ -309,7 +309,7 @@ class SoundStream
 		this.timeBuffered = 0.0;
 	}
 
-	write(data: Float32Array)
+	write(data)
 	{
 		this.buffers.push(data);
 		this.timeBuffered += data.length / (this.sampleRate * this.numChannels);

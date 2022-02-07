@@ -32,19 +32,10 @@
 
 import { DataStream } from './data-stream.js';
 import Fido from './fido.js';
-import { Color, Shape, ShapeType, type Size, type Surface, Texture, type Vertex } from './galileo.js';
+import { Color, Shape, ShapeType, Texture } from './galileo.js';
 import Game from './game.js';
 
-interface Glyph
-{
-	pixelData: Uint8Array;
-	width: number;
-	height: number;
-	u: number;
-	v: number;
-}
-
-var defaultFont: Font;
+var defaultFont;
 
 export default
 class Fontso
@@ -58,30 +49,29 @@ class Fontso
 export
 class Font
 {
+	glyphAtlas;
+	glyphData = [];
+	fileName;
+	lineHeight = 0;
+	maxWidth = 0;
+	numGlyphs = 0;
+	stride;
+
 	static get Default()
 	{
 		return defaultFont;
 	}
 
-	static async fromFile(fileName: string)
+	static async fromFile(fileName)
 	{
 		const fontURL = Game.urlOf(fileName);
 		const fileData = await Fido.fetchData(fontURL);
 		const font = new Font(fileData);
-		font.#fileName = Game.fullPath(fileName);
+		font.fileName = Game.fullPath(fileName);
 		return font;
 	}
 
-	#atlas: Texture;
-	#fileName: string | undefined;
-	#glyphs: Glyph[] = [];
-	#lineHeight = 0;
-	#maxWidth = 0;
-	#numGlyphs = 0;
-	#stride: number;
-
-	constructor(...args: | [ ArrayBuffer ]
-	                     | [ string ])
+	constructor(...args)
 	{
 		if (typeof args[0] === 'string') {
 			throw Error("'new Font' with filename is not supported in Oozaru.");
@@ -101,17 +91,17 @@ class Font
 			if (rfnHeader.numGlyphs <= 0)
 				throw new Error(`Malformed RFN font (no glyphs)`);
 			const numAcross = Math.ceil(Math.sqrt(rfnHeader.numGlyphs));
-			this.#stride = 1.0 / numAcross;
+			this.stride = 1.0 / numAcross;
 			for (let i = 0; i < rfnHeader.numGlyphs; ++i) {
 				let charInfo = dataStream.readStruct({
 					width:    'uint16-le',
 					height:   'uint16-le',
 					reserved: 'reserve/28',
 				});
-				this.#lineHeight = Math.max(this.#lineHeight, charInfo.height);
-				this.#maxWidth = Math.max(this.#maxWidth, charInfo.width);
+				this.lineHeight = Math.max(this.lineHeight, charInfo.height);
+				this.maxWidth = Math.max(this.maxWidth, charInfo.width);
 				const pixelData = dataStream.readBytes(charInfo.width * charInfo.height * 4);
-				this.#glyphs.push({
+				this.glyphData.push({
 					width: charInfo.width,
 					height: charInfo.height,
 					u: i % numAcross / numAcross,
@@ -119,13 +109,13 @@ class Font
 					pixelData,
 				});
 			}
-			this.#atlas = new Texture(numAcross * this.#maxWidth, numAcross * this.#lineHeight);
-			this.#numGlyphs = rfnHeader.numGlyphs;
-			for (let i = 0; i < this.#numGlyphs; ++i) {
-				const glyph = this.#glyphs[i];
-				const x = i % numAcross * this.#maxWidth;
-				const y = Math.floor(i / numAcross) * this.#lineHeight;
-				this.#atlas.upload(glyph.pixelData, x, y, glyph.width, glyph.height);
+			this.glyphAtlas = new Texture(numAcross * this.maxWidth, numAcross * this.lineHeight);
+			this.numGlyphs = rfnHeader.numGlyphs;
+			for (let i = 0; i < this.numGlyphs; ++i) {
+				const glyph = this.glyphData[i];
+				const x = i % numAcross * this.maxWidth;
+				const y = Math.floor(i / numAcross) * this.lineHeight;
+				this.glyphAtlas.upload(glyph.pixelData, x, y, glyph.width, glyph.height);
 			}
 		}
 		else {
@@ -135,86 +125,83 @@ class Font
 
 	get fileName()
 	{
-		return this.#fileName;
+		return this.fileName;
 	}
 
 	get height()
 	{
-		return this.#lineHeight;
+		return this.lineHeight;
 	}
 
-	drawText(surface: Surface, x: number, y: number, text: string | number | boolean, color = Color.White, wrapWidth?: number)
+	drawText(surface, x, y, text, color = Color.White, wrapWidth)
 	{
 		text = text.toString();
-		if (wrapWidth !== undefined) {
-			const lines = this.wordWrap(text, wrapWidth);
-			for (let i = 0, len = lines.length; i < len; ++i)
-				this.#renderString(surface, x, y, lines[i], color);
-		}
-		else {
-			this.#renderString(surface, x, y, text, color);
-		}
+		const lines = wrapWidth !== undefined
+			? this.wordWrap(text, wrapWidth)
+			: [ text ];
+		for (let i = 0, len = lines.length; i < len; ++i)
+			this.renderString(surface, x, y + i * this.lineHeight, lines[i], color);
 	}
 
-	getTextSize(text: string | number | boolean, wrapWidth?: number): Size
+	getTextSize(text, wrapWidth)
 	{
 		text = text.toString();
 		if (wrapWidth !== undefined) {
 			const lines = this.wordWrap(text, wrapWidth);
 			return {
 				width: wrapWidth,
-				height: lines.length * this.#lineHeight,
+				height: lines.length * this.lineHeight,
 			};
 		}
 		else {
 			return {
 				width: this.widthOf(text),
-				height: this.#lineHeight,
+				height: this.lineHeight,
 			};
 		}
 	}
 
-	heightOf(text: string | number | boolean, wrapWidth?: number)
+	heightOf(text, wrapWidth)
 	{
 		return this.getTextSize(text, wrapWidth).height;
 	}
 
-	widthOf(text: string | number | boolean)
+	widthOf(text)
 	{
 		text = text.toString();
-		let cp: number | undefined;
+		let cp;
 		let ptr = 0;
 		let width = 0;
 		while ((cp = text.codePointAt(ptr++)) !== undefined) {
 			if (cp > 0xFFFF)  // surrogate pair?
 				++ptr;
 			cp = toCP1252(cp);
-			if (cp >= this.#numGlyphs)
+			if (cp >= this.numGlyphs)
 				cp = 0x1A;
-			width += this.#glyphs[cp].width;
+			width += this.glyphData[cp].width;
 		}
 		return width;
 	}
 
-	wordWrap(text: string | number | boolean, wrapWidth: number)
+	wordWrap(text, wrapWidth)
 	{
 		text = text.toString();
-		const lines: string[] = [];
-		const codepoints: number[] = [];
+		const lines = [];
+		const codepoints = [];
 		let currentLine = "";
 		let lineWidth = 0;
 		let lineFinished = false;
 		let wordWidth = 0;
 		let wordFinished = false;
-		let cp: number | undefined;
+		let cp;
 		let ptr = 0;
 		while ((cp = text.codePointAt(ptr++)) !== undefined) {
 			if (cp > 0xFFFF)  // surrogate pair?
 				++ptr;
 			cp = toCP1252(cp);
-			if (cp >= this.#numGlyphs)
+			if (cp >= this.numGlyphs)
 				cp = 0x1A;
-			const glyph = this.#glyphs[cp];
+			const glyph = this.glyphData[cp];
 			switch (cp) {
 				case 13: case 10:  // newline
 					if (cp === 13 && text.codePointAt(ptr) == 10)
@@ -223,7 +210,7 @@ class Font
 					break;
 				case 8:  // tab
 					codepoints.push(cp);
-					wordWidth += this.#glyphs[32].width * 3;
+					wordWidth += this.glyphData[32].width * 3;
 					wordFinished = true;
 					break;
 				case 32:  // space
@@ -256,29 +243,29 @@ class Font
 		return lines;
 	}
 
-	#renderString(surface: Surface, x: number, y: number, text: string, color: Color)
+	renderString(surface, x, y, text, color)
 	{
 		x = Math.trunc(x);
         y = Math.trunc(y);
         if (text === "")
 			return;  // empty string, nothing to render
-		let cp: number | undefined;
+		let cp;
 		let ptr = 0;
 		let xOffset = 0;
-		const vertices: Vertex[] = [];
+		const vertices = [];
 		while ((cp = text.codePointAt(ptr++)) !== undefined) {
 			if (cp > 0xFFFF)  // surrogate pair?
 				++ptr;
 			cp = toCP1252(cp);
-			if (cp >= this.#numGlyphs)
+			if (cp >= this.numGlyphs)
 				cp = 0x1A;
-			const glyph = this.#glyphs[cp];
+			const glyph = this.glyphData[cp];
 			const x1 = x + xOffset, x2 = x1 + glyph.width;
 			const y1 = y, y2 = y1 + glyph.height;
 			const u1 = glyph.u;
-			const u2 = u1 + glyph.width / this.#maxWidth * this.#stride;
+			const u2 = u1 + glyph.width / this.maxWidth * this.stride;
 			const v1 = glyph.v;
-			const v2 = v1 - glyph.height / this.#lineHeight * this.#stride;
+			const v2 = v1 - glyph.height / this.lineHeight * this.stride;
 			vertices.push(
 				{ x: x1, y: y1, u: u1, v: v1, color },
 				{ x: x2, y: y1, u: u2, v: v1, color },
@@ -289,11 +276,11 @@ class Font
 			);
 			xOffset += glyph.width;
 		}
-        Shape.drawImmediate(surface, ShapeType.Triangles, this.#atlas, vertices);
+        Shape.drawImmediate(surface, ShapeType.Triangles, this.glyphAtlas, vertices);
 	}
 }
 
-function toCP1252(codepoint: number)
+function toCP1252(codepoint)
 {
 	return codepoint == 0x20AC ? 128
 		: codepoint == 0x201A ? 130

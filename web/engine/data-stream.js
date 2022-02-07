@@ -33,101 +33,101 @@
 export
 class DataStream
 {
-	#bytes: Uint8Array;
-	#ptr = 0;
-	#textDec = new TextDecoder();
-	#view: DataView;
+	bytes;
+	dataView;
+	ptr = 0;
+	textDecoder = new TextDecoder();
 
-	constructor(buffer: BufferSource)
+	constructor(buffer)
 	{
 		if (ArrayBuffer.isView(buffer))
-			this.#bytes = new Uint8Array(buffer.buffer);
+			this.bytes = new Uint8Array(buffer.buffer);
 		else
-			this.#bytes = new Uint8Array(buffer);
-		this.#view = new DataView(this.#bytes.buffer);
+			this.bytes = new Uint8Array(buffer);
+		this.dataView = new DataView(this.bytes.buffer);
 	}
 
 	get atEOF()
 	{
-		return this.#ptr >= this.#bytes.length;
+		return this.ptr >= this.bytes.length;
 	}
 
 	get bufferSize()
 	{
-		return this.#bytes.length;
+		return this.bytes.length;
 	}
 
 	get position()
 	{
-		return this.#ptr;
+		return this.ptr;
 	}
 
 	set position(value)
 	{
-		if (value > this.#bytes.length)
+		if (value > this.bytes.length)
 			throw new RangeError(`Stream position '${value}' is out of range`);
-		this.#ptr = value;
+		this.ptr = value;
 	}
 
-	readBytes(numBytes: number): Uint8Array
+	readBytes(numBytes)
 	{
-		if (this.#ptr + numBytes > this.#bytes.length)
+		if (this.ptr + numBytes > this.bytes.length)
 			throw new Error(`Unable to read ${numBytes} bytes from stream`);
-		const bytes = this.#bytes.slice(this.#ptr, this.#ptr + numBytes);
-		this.#ptr += numBytes;
+		const bytes = this.bytes.slice(this.ptr, this.ptr + numBytes);
+		this.ptr += numBytes;
 		return bytes;
 	}
 
 	readFloat32(littleEndian = false)
 	{
-		if (this.#ptr + 4 > this.#bytes.length)
+		if (this.ptr + 4 > this.bytes.length)
 			throw new Error(`Unable to read 32-bit float from stream`);
-		const value = this.#view.getFloat32(this.#ptr, littleEndian);
-		this.#ptr += 4;
+		const value = this.dataView.getFloat32(this.ptr, littleEndian);
+		this.ptr += 4;
 		return value;
 	}
 
 	readFloat64(littleEndian = false)
 	{
-		if (this.#ptr + 8 > this.#bytes.length)
+		if (this.ptr + 8 > this.bytes.length)
 			throw new Error(`Unable to read 64-bit float from stream`);
-		const value = this.#view.getFloat64(this.#ptr, littleEndian);
-		this.#ptr += 8;
+		const value = this.dataView.getFloat64(this.ptr, littleEndian);
+		this.ptr += 8;
 		return value;
 	}
 
 	readInt8()
 	{
-		if (this.#ptr + 1 > this.#bytes.length)
+		if (this.ptr + 1 > this.bytes.length)
 			throw new Error(`Unable to read 8-bit signed integer from stream`);
-		return this.#view.getInt8(this.#ptr++);
+		return this.dataView.getInt8(this.ptr++);
 	}
 
 	readInt16(littleEndian = false)
 	{
-		if (this.#ptr + 2 > this.#bytes.length)
+		if (this.ptr + 2 > this.bytes.length)
 			throw new Error(`Unable to read 16-bit signed integer from stream`);
-		const value = this.#view.getInt16(this.#ptr, littleEndian);
-		this.#ptr += 2;
+		const value = this.dataView.getInt16(this.ptr, littleEndian);
+		this.ptr += 2;
 		return value;
 	}
 
 	readInt32(littleEndian = false)
 	{
-		if (this.#ptr + 4 > this.#bytes.length)
+		if (this.ptr + 4 > this.bytes.length)
 			throw new Error(`Unable to read 32-bit signed integer from stream`);
-		const value = this.#view.getInt32(this.#ptr, littleEndian);
-		this.#ptr += 4;
+		const value = this.dataView.getInt32(this.ptr, littleEndian);
+		this.ptr += 4;
 		return value;
 	}
 
-	readString(numBytes: number)
+	readString(numBytes)
 	{
-		if (this.#ptr + numBytes > this.#bytes.length)
+		if (this.ptr + numBytes > this.bytes.length)
 			throw new Error(`Unable to read ${numBytes}-byte string from stream`);
-		const slice = this.#bytes.subarray(this.#ptr, this.#ptr + numBytes);
-		this.#ptr += numBytes;
-		return this.#textDec.decode(slice);
+		const slice = this.bytes.subarray(this.ptr, this.ptr + numBytes);
+		this.ptr += numBytes;
+		return this.textDecoder.decode(slice);
 	}
 
 	readStringU8()
@@ -148,9 +148,9 @@ class DataStream
 		return this.readString(length);
 	}
 
-	readStruct(manifest: { [x: string]: string })
+	readStruct(manifest)
 	{
-		let retval: { [x: string]: any } = {};
+		let retval = {};
 		for (const key of Object.keys(manifest)) {
 			const matches = manifest[key].match(/(string|reserve)\/([0-9]*)/);
 			const valueType = matches !== null ? matches[1] : manifest[key];
@@ -229,33 +229,33 @@ class DataStream
 
 	readUint8()
 	{
-		if (this.#ptr + 1 > this.#bytes.length)
+		if (this.ptr + 1 > this.bytes.length)
 			throw new Error(`Unable to read 8-bit unsigned integer from stream`);
-		return this.#view.getUint8(this.#ptr++);
+		return this.dataView.getUint8(this.ptr++);
 	}
 
 	readUint16(littleEndian = false)
 	{
-		if (this.#ptr + 2 > this.#bytes.length)
+		if (this.ptr + 2 > this.bytes.length)
 			throw new Error(`Unable to read 16-bit unsigned integer from stream`);
-		const value = this.#view.getUint16(this.#ptr, littleEndian);
-		this.#ptr += 2;
+		const value = this.dataView.getUint16(this.ptr, littleEndian);
+		this.ptr += 2;
 		return value;
 	}
 
 	readUint32(littleEndian = false)
 	{
-		if (this.#ptr + 4 > this.#bytes.length)
+		if (this.ptr + 4 > this.bytes.length)
 			throw new Error(`Unable to read 32-bit unsigned integer from stream`);
-		const value = this.#view.getUint32(this.#ptr, littleEndian);
-		this.#ptr += 4;
+		const value = this.dataView.getUint32(this.ptr, littleEndian);
+		this.ptr += 4;
 		return value;
 	}
 
-	skipAhead(numBytes: number)
+	skipAhead(numBytes)
 	{
-		if (this.#ptr + numBytes > this.#bytes.length)
+		if (this.ptr + numBytes > this.bytes.length)
 			throw new Error(`Cannot read ${numBytes} bytes from stream`);
-		this.#ptr += numBytes;
+		this.ptr += numBytes;
 	}
 }

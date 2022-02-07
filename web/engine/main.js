@@ -57,7 +57,7 @@ async function main()
 		reportException(e.reason);
 	});
 
-	const menu = document.getElementById('menu')!;
+	const menu = document.getElementById('menu');
 	let useDistDir = true;
 	try {
 		const gameList = await Fido.fetchJSON('games/index.json');
@@ -85,10 +85,10 @@ async function main()
 		menu.appendChild(iconImage);
 	}
 
-	const canvas = document.getElementById('screen') as HTMLCanvasElement;
+	const canvas = document.getElementById('screen');
 	const overlay = document.getElementById('overlay');
 	canvas.focus();
-	canvas.onkeypress = canvas.onclick = async (e: KeyboardEvent | MouseEvent) => {
+	canvas.onkeypress = canvas.onclick = async (e) => {
 		if (gameID !== null || useDistDir) {
 			if (overlay !== null)
 				overlay.style.opacity = '0';
@@ -108,14 +108,14 @@ async function main()
 	};
 }
 
-function reportException(value: unknown)
+function reportException(thrownValue)
 {
 	let msg;
-	if (value instanceof Error && value.stack !== undefined)
-		msg = value.stack.replace(/\r?\n/g, '<br>');
+	if (thrownValue instanceof Error && thrownValue.stack !== undefined)
+		msg = thrownValue.stack.replace(/\r?\n/g, '<br>');
 	else
-		msg = String(value);
-	const readout = document.getElementById('readout') as HTMLPreElement;
+		msg = String(thrownValue);
+	const readout = document.getElementById('readout');
 	readout.classList.add('visible');
 	readout.innerHTML = `an error occurred.\r\n\r\n${msg}`;
 }

@@ -32,16 +32,16 @@
 
 import Fido from './fido.js';
 import Galileo from './galileo.js';
-import { fullURL, isConstructor } from './utilities.js';
+import { fullURL, isConstructible } from './utilities.js';
 import { Version } from './version.js';
 
 export default
 class Game
 {
-	static manifest: Manifest;
-	static rootPath: string;
+	static manifest;
+	static rootPath;
 
-	static async initialize(rootPath: string)
+	static async initialize(rootPath)
 	{
 		const manifest = await Manifest.fromFile(`${rootPath}/game.sgm`);
 
@@ -60,7 +60,7 @@ class Game
 		this.rootPath = rootPath;
 	}
 
-	static fullPath(pathName: string, baseDirName = '@/')
+	static fullPath(pathName, baseDirName = '@/')
 	{
 		// canonicalizing the base path first ensures the first hop will always be a SphereFS prefix.
 		// this makes things easier below.
@@ -98,8 +98,8 @@ class Game
 	static async launch()
 	{
 		document.title = `${Game.manifest.name} - ${Version.engine}`;
-		document.getElementById('gameTitle')!.innerHTML = Game.manifest.name;
-		document.getElementById('copyright')!.innerHTML = `game by ${Game.manifest.author}`;
+		document.getElementById('gameTitle').innerHTML = Game.manifest.name;
+		document.getElementById('copyright').innerHTML = `game by ${Game.manifest.author}`;
 
 		Galileo.rerez(Game.manifest.resolution.x, Game.manifest.resolution.y);
 
@@ -107,7 +107,7 @@ class Game
 		// function or class, call it.
 		const scriptURL = this.urlOf(this.manifest.mainPath);
 		const main = await import(fullURL(scriptURL));
-		if (isConstructor(main.default)) {
+		if (isConstructible(main.default)) {
 			const mainObject = new main.default();
 			if (typeof mainObject.start === 'function')
 				await mainObject.start();
@@ -117,7 +117,7 @@ class Game
 		}
 	}
 
-	static urlOf(pathName: string)
+	static urlOf(pathName)
 	{
 		const hops = pathName.split(/[\\/]+/);
 		if (hops[0] !== '@' && hops[0] !== '#' && hops[0] !== '~' && hops[0] !== '$' && hops[0] !== '%')
@@ -139,19 +139,19 @@ class Game
 export
 class Manifest
 {
-	apiLevel: number;
-	apiVersion: number;
-	author: string;
-	description: string;
-	mainPath: string;
-	name: string;
+	apiLevel;
+	apiVersion;
+	author;
+	description;
+	mainPath;
+	name;
 	resolution = { x: 320, y: 240 };
 	saveID = "";
 
-	static async fromFile(url: string)
+	static async fromFile(url)
 	{
 		const content = await Fido.fetchText(url);
-		const values: Record<string, string> = {};
+		const values = {};
 		for (const line of content.split(/\r?\n/)) {
 			const lineParse = line.match(/(.*)=(.*)/);
 			if (lineParse && lineParse.length === 3) {
@@ -163,7 +163,7 @@ class Manifest
 		return new this(values);
 	}
 
-	constructor(values: Record<string, string>)
+	constructor(values)
 	{
 		this.name = values.name ?? "Untitled";
 		this.author = values.author ?? "Unknown";

@@ -32,38 +32,18 @@
 
 import Galileo from './galileo.js';
 
-interface Job
-{
-	jobID: number;
-	type: JobType;
-	callback: () => void | PromiseLike<void>;
-	cancelled: boolean;
-	paused: boolean;
-	priority: number;
-	recurring: boolean;
-	busy: boolean;
-	timer: number;
-}
-
 export
-enum JobType
+const JobType =
 {
 	// in order of execution
-	Render,
-	Update,
-	Immediate,
-}
-
-export
-interface JobOptions
-{
-	inBackground?: boolean;
-	priority?: number;
+	Render: 0,
+	Update: 1,
+	Immediate: 2,
 }
 
 var frameCount = -1;
 var jobSortNeeded = false;
-var jobs: Job[] = [];
+var jobs = [];
 var nextJobID = 1;
 var rAFID = 0;
 
@@ -100,25 +80,25 @@ class Dispatch
 		throw new Error(`'Dispatch#cancelAll()' API is not implemented`);
 	}
 
-	static later(numFrames: number, callback: () => void)
+	static later(numFrames, callback)
 	{
 		const job = addJob(JobType.Update, callback, false, numFrames);
 		return new JobToken(job);
 	}
 
-	static now(callback: () => void)
+	static now(callback)
 	{
 		const job = addJob(JobType.Immediate, callback);
 		return new JobToken(job);
 	}
 
-	static onRender(callback: () => void, options?: JobOptions)
+	static onRender(callback, options)
 	{
 		const job = addJob(JobType.Render, callback, true, 0, options);
 		return new JobToken(job);
 	}
 
-	static onUpdate(callback: () => void, options?: JobOptions)
+	static onUpdate(callback, options)
 	{
 		const job = addJob(JobType.Update, callback, true, 0, options);
 		return new JobToken(job);
@@ -128,9 +108,9 @@ class Dispatch
 export
 class JobToken
 {
-	job: Job;
+	job;
 
-	constructor(job: Job)
+	constructor(job)
 	{
 		this.job = job;
 	}
@@ -151,14 +131,14 @@ class JobToken
 	}
 }
 
-function addJob(type: JobType, callback: () => void | PromiseLike<void>, recurring = false, delay: number = 0, options?: JobOptions)
+function addJob(type, callback, recurring = false, delay = 0, options)
 {
 	// for render jobs, invert priority so the highest-priority render is done last
 	let priority = options?.priority ?? 0.0;
 	if (type === JobType.Render)
 		priority = -(priority);
 
-	const job: Job = {
+	const job = {
 		jobID: nextJobID++,
 		type,
 		callback,
