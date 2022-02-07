@@ -1,6 +1,11 @@
 Oozaru Changelog
 ================
 
+v0.5.2 - TBD
+------------
+
+* Removes support for `JSON.fromFile()`.
+
 v0.5.1 - January 27, 2022
 -------------------------
 

@@ -36,7 +36,7 @@ import Fido from './fido.js';
 import { Font } from './fontso.js';
 import Game from './game.js';
 import Galileo, { BlendOp, Color, DepthOp, IndexList, Model, Shader, Shape, ShapeType, Surface, Texture, Transform, VertexList } from './galileo.js';
-import InputEngine, { Joystick, Key, Keyboard, Mouse, MouseKey } from './input-engine.js';
+import InputEngine, { Key, Keyboard, Mouse, MouseKey } from './input-engine.js';
 import JobQueue, { Dispatch, JobToken, JobType } from './job-queue.js';
 import { Version } from './version.js';
 
@@ -65,13 +65,6 @@ class Pegasus
 {
 	static initialize()
 	{
-		Object.defineProperty(globalThis, 'global', {
-			writable: false,
-			enumerable: false,
-			configurable: false,
-			value: globalThis,
-		});
-	
 		// register Sphere v2 API globals
 		Object.assign(globalThis, {
 			// enumerations
@@ -93,7 +86,6 @@ class Pegasus
 			Font,
 			IndexList,
 			JobToken,
-			Joystick,
 			Keyboard,
 			Mixer,
 			Model,
@@ -109,17 +101,6 @@ class Pegasus
 			Transform,
 			VertexList,
 		});
-	
-		Object.defineProperty(JSON, 'fromFile', {
-			writable: true,
-			enumerable: false,
-			configurable: true,
-			value: async function fromFile(fileName) {
-				const url = Game.urlOf(fileName);
-				const text = await Fido.fetchText(url);
-				return JSON.parse(text);
-			},
-		})
 	}
 
 	static async launchGame(rootPath)
