@@ -108,26 +108,26 @@ class Dispatch
 export
 class JobToken
 {
-	job;
+	#job;
 
 	constructor(job)
 	{
-		this.job = job;
+		this.#job = job;
 	}
 
 	cancel()
 	{
-		this.job.cancelled = true;
+		this.#job.cancelled = true;
 	}
 
 	pause()
 	{
-		this.job.paused = true;
+		this.#job.paused = true;
 	}
 
 	resume()
 	{
-		this.job.paused = false;
+		this.#job.paused = false;
 	}
 }
 

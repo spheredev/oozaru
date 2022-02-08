@@ -47,55 +47,65 @@ class Audialis
 export
 class Mixer
 {
-	audioContext;
-	gainNode;
-	panningNode;
+	#audioContext;
+	#gainNode;
+	#panningNode;
 
 	static get Default()
 	{
-		if (defaultMixer === null)
-			defaultMixer = new Mixer(44100, 16, 2);
 		return defaultMixer;
 	}
 
 	constructor(sampleRate, bits, numChannels = 2)
 	{
-		this.audioContext = new AudioContext({ sampleRate });
-		this.gainNode = this.audioContext.createGain();
-		this.panningNode = this.audioContext.createStereoPanner();
-		this.gainNode.gain.value = 1.0;
-		this.gainNode.connect(this.panningNode);
-		this.panningNode.connect(this.audioContext.destination);
+		this.#audioContext = new AudioContext({ sampleRate });
+		this.#gainNode = this.#audioContext.createGain();
+		this.#panningNode = this.#audioContext.createStereoPanner();
+		this.#gainNode.gain.value = 1.0;
+		this.#gainNode.connect(this.#panningNode);
+		this.#panningNode.connect(this.#audioContext.destination);
+	}
+
+	get audioNode()
+	{
+		return this.#gainNode;
 	}
 
 	get pan()
 	{
-		return this.panningNode.pan.value;
+		return this.#panningNode.pan.value;
 	}
 
 	get volume()
 	{
-		return this.gainNode.gain.value;
+		return this.#gainNode.gain.value;
 	}
 
 	set pan(value)
 	{
-		this.panningNode.pan.value = value;
+		this.#panningNode.pan.value = value;
 	}
 
 	set volume(value)
 	{
-		this.gainNode.gain.value = value;
+		this.#gainNode.gain.value = value;
+	}
+
+	attach(audioElement)
+	{
+		const audioNode = this.#audioContext.createMediaElementSource(audioElement);
+		audioNode.connect(this.#gainNode);
+		return audioNode;
 	}
 }
 
 export
 class Sound
 {
-	audioElement;
-	audioNode = null;
-	currentMixer = null;
-	fileName;
+	#audioElement;
+	#audioNode = null;
+	#currentMixer = null;
+	#fileName;
 
 	static async fromFile(fileName)
 	{
@@ -111,15 +121,15 @@ class Sound
 			audioElement.src = url;
 		});
 		const sound = new Sound(audioElement);
-		sound.fileName = Game.fullPath(fileName);
+		sound.#fileName = Game.fullPath(fileName);
 		return sound;
 	}
 
 	constructor(source)
 	{
 		if (source instanceof HTMLAudioElement) {
-			this.audioElement = source;
-			this.audioElement.loop = true;
+			this.#audioElement = source;
+			this.#audioElement.loop = true;
 		}
 		else if (typeof source === 'string') {
 			throw Error("'new Sound' with filename is not supported under Oozaru.");
@@ -129,139 +139,142 @@ class Sound
 		}
 	}
 
+	get fileName()
+	{
+		return this.#fileName;
+	}
+
 	get length()
 	{
-		return this.audioElement.duration;
+		return this.#audioElement.duration;
 	}
 
 	get playing()
 	{
-		return !this.audioElement.paused;
+		return !this.#audioElement.paused;
 	}
 
 	get position()
 	{
-		return this.audioElement.currentTime;
+		return this.#audioElement.currentTime;
 	}
 
 	get repeat()
 	{
-		return this.audioElement.loop;
+		return this.#audioElement.loop;
 	}
 
 	get speed()
 	{
-		return this.audioElement.playbackRate;
+		return this.#audioElement.playbackRate;
 	}
 
 	get volume()
 	{
-		return this.audioElement.volume;
+		return this.#audioElement.volume;
 	}
 
 	set position(value)
 	{
-		this.audioElement.currentTime = value;
+		this.#audioElement.currentTime = value;
 	}
 
 	set repeat(value)
 	{
-		this.audioElement.loop = value;
+		this.#audioElement.loop = value;
 	}
 
 	set speed(value)
 	{
-		this.audioElement.playbackRate = value;
+		this.#audioElement.playbackRate = value;
 	}
 
 	set volume(value)
 	{
-		this.audioElement.volume = value;
+		this.#audioElement.volume = value;
 	}
 
 	pause()
 	{
-		this.audioElement.pause();
+		this.#audioElement.pause();
 	}
 
 	play(mixer = Mixer.Default)
 	{
-		if (mixer !== this.currentMixer) {
-			this.currentMixer = mixer;
-			if (this.audioNode !== null)
-				this.audioNode.disconnect();
-			this.audioNode = mixer.audioContext.createMediaElementSource(this.audioElement);
-			this.audioNode.connect(mixer.gainNode);
+		if (mixer !== this.#currentMixer) {
+			this.#currentMixer = mixer;
+			if (this.#audioNode !== null)
+				this.#audioNode.disconnect();
+			this.#audioNode = mixer.attach(this.#audioElement);
 		}
-
-		this.audioElement.play();
+		this.#audioElement.play();
 	}
 
 	stop()
 	{
-		this.audioElement.pause();
-		this.audioElement.currentTime = 0.0;
+		this.#audioElement.pause();
+		this.#audioElement.currentTime = 0.0;
 	}
 }
 
 export
 class SoundStream
 {
-	buffers = new Deque();
-	currentMixer = null;
-	inputPtr = 0.0;
-	node = null;
-	numChannels;
-	paused = true;
-	sampleRate;
-	timeBuffered = 0.0;
+	#audioNode = null;
+	#buffers = new Deque();
+	#currentMixer = null;
+	#inputPtr = 0.0;
+	#numChannels;
+	#paused = true;
+	#sampleRate;
+	#timeBuffered = 0.0;
 
 	constructor(frequency = 22050, bits = 8, numChannels = 1)
 	{
 		if (bits != 32)
 			throw RangeError("SoundStream bit depth must be 32-bit under Oozaru.");
-		this.numChannels = numChannels;
-		this.sampleRate = frequency;
+		this.#numChannels = numChannels;
+		this.#sampleRate = frequency;
 	}
 
 	get length()
 	{
-		return this.timeBuffered;
+		return this.#timeBuffered;
 	}
 
 	pause()
 	{
-		this.paused = true;
+		this.#paused = true;
 	}
 
 	play(mixer = Mixer.Default)
 	{
-		this.paused = false;
-		if (mixer !== this.currentMixer) {
-			if (this.node !== null) {
-				this.node.onaudioprocess = null;
-				this.node.disconnect();
+		this.#paused = false;
+		if (mixer !== this.#currentMixer) {
+			if (this.#audioNode !== null) {
+				this.#audioNode.onaudioprocess = null;
+				this.#audioNode.disconnect();
 			}
-			this.node = mixer.audioContext.createScriptProcessor(0, 0, this.numChannels);
-			this.node.onaudioprocess = (e) => {
+			this.#audioNode = mixer.audioContext.createScriptProcessor(0, 0, this.#numChannels);
+			this.#audioNode.onaudioprocess = (e) => {
 				const outputs = [];
-				for (let i = 0; i < this.numChannels; ++i)
+				for (let i = 0; i < this.#numChannels; ++i)
 					outputs[i] = e.outputBuffer.getChannelData(i);
-				if (this.paused || this.timeBuffered < e.outputBuffer.duration) {
+				if (this.#paused || this.#timeBuffered < e.outputBuffer.duration) {
 					// not enough data buffered or stream is paused, fill with silence
-					for (let i = 0; i < this.numChannels; ++i)
+					for (let i = 0; i < this.#numChannels; ++i)
 						outputs[i].fill(0.0);
 					return;
 				}
-				this.timeBuffered -= e.outputBuffer.duration;
-				if (this.timeBuffered < 0.0)
-					this.timeBuffered = 0.0;
-				const step = this.sampleRate / e.outputBuffer.sampleRate;
-				let input = this.buffers.first;
-				let inputPtr = this.inputPtr;
+				this.#timeBuffered -= e.outputBuffer.duration;
+				if (this.#timeBuffered < 0.0)
+					this.#timeBuffered = 0.0;
+				const step = this.#sampleRate / e.outputBuffer.sampleRate;
+				let input = this.#buffers.first;
+				let inputPtr = this.#inputPtr;
 				for (let i = 0, len = outputs[0].length; i < len; ++i) {
-					const t1 = Math.floor(inputPtr) * this.numChannels;
-					let t2 = t1 + this.numChannels;
+					const t1 = Math.floor(inputPtr) * this.#numChannels;
+					let t2 = t1 + this.#numChannels;
 					const frac = inputPtr % 1.0;
 
 					// FIXME: if `t2` is past the end of the buffer, the first sample from the
@@ -270,50 +283,50 @@ class SoundStream
 					if (t2 >= input.length)
 						t2 = t1;
 
-					for (let j = 0; j < this.numChannels; ++j) {
+					for (let j = 0; j < this.#numChannels; ++j) {
 						const a = input[t1 + j];
 						const b = input[t2 + j];
 						outputs[j][i] = a + frac * (b - a);
 					}
 					inputPtr += step;
-					if (inputPtr >= Math.floor(input.length / this.numChannels)) {
-						this.buffers.shift();
-						if (!this.buffers.empty) {
-							inputPtr -= Math.floor(input.length / this.numChannels);
-							input = this.buffers.first;
+					if (inputPtr >= Math.floor(input.length / this.#numChannels)) {
+						this.#buffers.shift();
+						if (!this.#buffers.empty) {
+							inputPtr -= Math.floor(input.length / this.#numChannels);
+							input = this.#buffers.first;
 						}
 						else {
 							// no more data, fill the rest with silence and return
-							for (let j = 0; j < this.numChannels; ++j)
+							for (let j = 0; j < this.#numChannels; ++j)
 								outputs[j].fill(0.0, i + 1);
 							return;
 						}
 					}
 				}
-				this.inputPtr = inputPtr;
+				this.#inputPtr = inputPtr;
 			};
-			this.node.connect(mixer.gainNode);
-			this.currentMixer = mixer;
+			this.#audioNode.connect(mixer.audioNode);
+			this.#currentMixer = mixer;
 		}
 	}
 
 	stop()
 	{
-		if (this.node !== null) {
-			this.node.onaudioprocess = null;
-			this.node.disconnect();
+		if (this.#audioNode !== null) {
+			this.#audioNode.onaudioprocess = null;
+			this.#audioNode.disconnect();
 		}
-		this.buffers.clear();
-		this.inputPtr = 0.0;
-		this.currentMixer = null;
-		this.node = null;
-		this.paused = true;
-		this.timeBuffered = 0.0;
+		this.#buffers.clear();
+		this.#inputPtr = 0.0;
+		this.#currentMixer = null;
+		this.#audioNode = null;
+		this.#paused = true;
+		this.#timeBuffered = 0.0;
 	}
 
 	write(data)
 	{
-		this.buffers.push(data);
-		this.timeBuffered += data.length / (this.sampleRate * this.numChannels);
+		this.#buffers.push(data);
+		this.#timeBuffered += data.length / (this.#sampleRate * this.#numChannels);
 	}
 }

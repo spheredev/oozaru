@@ -132,7 +132,7 @@ const Key =
 	Divide: 96,
 	Multiply: 97,
 	Subtract: 98,
-}
+};
 
 export
 const MouseKey =
@@ -144,7 +144,7 @@ const MouseKey =
 	Forward: 4,
 	WheelUp: 5,
 	WheelDown: 6,
-}
+};
 
 var buttonStates = {};
 var keyQueue = [];
@@ -485,15 +485,4 @@ class Mouse
 	{
 		return buttonStates[key] ?? false;
 	}
-}
-
-function memoize(object, key, value)
-{
-	Object.defineProperty(object, key, {
-		writable: false,
-		enumerable: false,
-		configurable: true,
-		value,
-	});
-	return value;
 }

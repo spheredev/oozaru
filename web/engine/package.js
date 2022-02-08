@@ -36,8 +36,8 @@ import Fido from './fido.js';
 export
 class Package
 {
-	dataStream;
-	toc = {};
+	#dataStream;
+	#toc = {};
 
 	static async fromFile(url)
 	{
@@ -71,25 +71,25 @@ class Package
 			if (entry.version !== 1)
 				throw RangeError(`Unsupported SPK file record version '${entry.version}'`);
 			const pathName = dataStream.readString(entry.nameLength);
-			this.toc[pathName] = {
+			this.#toc[pathName] = {
 				byteOffset: entry.byteOffset,
 				byteLength: entry.byteLength,
 				fileSize: entry.fileSize,
 			};
 		}
-		this.dataStream = dataStream;
+		this.#dataStream = dataStream;
 	}
 
 	dataOf(pathName)
 	{
-		if (!(pathName in this.toc))
+		if (!(pathName in this.#toc))
 			throw Error(`File not found in Sphere package '${pathName}'`);
-		const fileRecord = this.toc[pathName];
+		const fileRecord = this.#toc[pathName];
 		if (fileRecord.data === undefined) {
 			if (fileRecord.byteLength !== fileRecord.fileSize)
 				throw RangeError(`Compressed packages are currently unsupported`);
-			this.dataStream.position = fileRecord.byteOffset;
-			const compressedData = this.dataStream.readBytes(fileRecord.byteLength);
+			this.#dataStream.position = fileRecord.byteOffset;
+			const compressedData = this.#dataStream.readBytes(fileRecord.byteLength);
 			fileRecord.data = compressedData.buffer;
 		}
 		return fileRecord.data;

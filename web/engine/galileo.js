@@ -75,7 +75,7 @@ const ShapeType =
 var activeShader = null;
 var activeSurface = null;
 var defaultShader;
-var webGL;
+var glContext;
 
 export default
 class Galileo
@@ -85,16 +85,15 @@ class Galileo
 		const webGLContext = canvas.getContext('webgl', { alpha: false });
 		if (webGLContext === null)
 			throw new Error(`Couldn't acquire a WebGL rendering context.`);
-		webGL = webGLContext;
-
-		webGL.clearColor(0.0, 0.0, 0.0, 1.0);
-		webGL.clearDepth(1.0);
-		webGL.blendEquation(webGLContext.FUNC_ADD);
-		webGL.blendFunc(webGLContext.SRC_ALPHA, webGLContext.ONE_MINUS_SRC_ALPHA);
-		webGL.depthFunc(webGLContext.ALWAYS);
-		webGL.enable(webGLContext.BLEND);
-		webGL.enable(webGLContext.DEPTH_TEST);
-		webGL.enable(webGLContext.SCISSOR_TEST);
+		glContext = webGLContext;
+		glContext.clearColor(0.0, 0.0, 0.0, 1.0);
+		glContext.clearDepth(1.0);
+		glContext.blendEquation(webGLContext.FUNC_ADD);
+		glContext.blendFunc(webGLContext.SRC_ALPHA, webGLContext.ONE_MINUS_SRC_ALPHA);
+		glContext.depthFunc(webGLContext.ALWAYS);
+		glContext.enable(webGLContext.BLEND);
+		glContext.enable(webGLContext.DEPTH_TEST);
+		glContext.enable(webGLContext.SCISSOR_TEST);
 
 		defaultShader = await Shader.fromFiles({
 			vertexFile: '#/default.vert.glsl',
@@ -106,24 +105,24 @@ class Galileo
 
 	static draw(shapeType, vertexList, indexList, offset = 0, numVertices)
 	{
-		const drawMode = shapeType === ShapeType.Fan ? webGL.TRIANGLE_FAN
-			: shapeType === ShapeType.Lines ? webGL.LINES
-			: shapeType === ShapeType.LineLoop ? webGL.LINE_LOOP
-			: shapeType === ShapeType.LineStrip ? webGL.LINE_STRIP
-			: shapeType === ShapeType.Points ? webGL.POINTS
-			: shapeType === ShapeType.TriStrip ? webGL.TRIANGLE_STRIP
-			: webGL.TRIANGLES;
+		const drawMode = shapeType === ShapeType.Fan ? glContext.TRIANGLE_FAN
+			: shapeType === ShapeType.Lines ? glContext.LINES
+			: shapeType === ShapeType.LineLoop ? glContext.LINE_LOOP
+			: shapeType === ShapeType.LineStrip ? glContext.LINE_STRIP
+			: shapeType === ShapeType.Points ? glContext.POINTS
+			: shapeType === ShapeType.TriStrip ? glContext.TRIANGLE_STRIP
+			: glContext.TRIANGLES;
 		vertexList.activate();
 		if (indexList != null) {
 			if (numVertices === undefined)
 				numVertices = indexList.length - offset;
 			indexList.activate();
-			webGL.drawElements(drawMode, numVertices, webGL.UNSIGNED_SHORT, offset);
+			glContext.drawElements(drawMode, numVertices, glContext.UNSIGNED_SHORT, offset);
 		}
 		else {
 			if (numVertices === undefined)
 				numVertices = vertexList.length - offset;
-			webGL.drawArrays(drawMode, offset, numVertices);
+			glContext.drawArrays(drawMode, offset, numVertices);
 		}
 	}
 
@@ -131,28 +130,28 @@ class Galileo
 	{
 		Surface.Screen.activate(defaultShader);
 		Surface.Screen.unclip();
-		webGL.disable(webGL.SCISSOR_TEST);
-		webGL.clear(webGL.COLOR_BUFFER_BIT | webGL.DEPTH_BUFFER_BIT);
-		webGL.enable(webGL.SCISSOR_TEST);
+		glContext.disable(glContext.SCISSOR_TEST);
+		glContext.clear(glContext.COLOR_BUFFER_BIT | glContext.DEPTH_BUFFER_BIT);
+		glContext.enable(glContext.SCISSOR_TEST);
 	}
 
 	static rerez(width, height)
 	{
-		webGL.canvas.width = width;
-		webGL.canvas.height = height;
+		glContext.canvas.width = width;
+		glContext.canvas.height = height;
 		Surface.Screen.size = { width, height };
 		Surface.Screen.projection = new Transform()
 			.project2D(0, 0, width, height);
 		if (width <= 400 && height <= 300) {
-			webGL.canvas.style.width = `${width * 2}px`;
-			webGL.canvas.style.height = `${height * 2}px`;
+			glContext.canvas.style.width = `${width * 2}px`;
+			glContext.canvas.style.height = `${height * 2}px`;
 		}
 		else {
-			webGL.canvas.style.width = `${width}px`;
-			webGL.canvas.style.height = `${height}px`;
+			glContext.canvas.style.width = `${width}px`;
+			glContext.canvas.style.height = `${height}px`;
 		}
 		if (activeSurface === Surface.Screen)
-			webGL.viewport(0, 0, webGL.canvas.width, webGL.canvas.height);
+			glContext.viewport(0, 0, glContext.canvas.width, glContext.canvas.height);
 	}
 }
 
@@ -166,150 +165,155 @@ class Color
 
 	// note: predefined colors encoded in 8-bit RGBA (not float) because this whole table was
 	//       copied and pasted from neoSphere and I was too lazy to convert it.
-	static get AliceBlue ()            { return new Color(240 / 255, 248 / 255, 255 / 255, 255 / 255); }
-	static get AntiqueWhite ()         { return new Color(250 / 255, 235 / 255, 215 / 255, 255 / 255); }
-	static get Aqua ()                 { return new Color(0   / 255, 255 / 255, 255 / 255, 255 / 255); }
-	static get Aquamarine ()           { return new Color(127 / 255, 255 / 255, 212 / 255, 255 / 255); }
-	static get Azure ()                { return new Color(240 / 255, 255 / 255, 255 / 255, 255 / 255); }
-	static get Beige ()                { return new Color(245 / 255, 245 / 255, 220 / 255, 255 / 255); }
-	static get Bisque ()               { return new Color(255 / 255, 228 / 255, 196 / 255, 255 / 255); }
-	static get Black ()                { return new Color(0   / 255, 0   / 255, 0   / 255, 255 / 255); }
-	static get BlanchedAlmond ()       { return new Color(255 / 255, 235 / 255, 205 / 255, 255 / 255); }
-	static get Blue ()                 { return new Color(0   / 255, 0   / 255, 255 / 255, 255 / 255); }
-	static get BlueViolet ()           { return new Color(138 / 255, 43  / 255, 226 / 255, 255 / 255); }
-	static get Brown ()                { return new Color(165 / 255, 42  / 255, 42  / 255, 255 / 255); }
-	static get BurlyWood ()            { return new Color(222 / 255, 184 / 255, 135 / 255, 255 / 255); }
-	static get CadetBlue ()            { return new Color(95  / 255, 158 / 255, 160 / 255, 255 / 255); }
-	static get Chartreuse ()           { return new Color(127 / 255, 255 / 255, 0   / 255, 255 / 255); }
-	static get Chocolate ()            { return new Color(210 / 255, 105 / 255, 30  / 255, 255 / 255); }
-	static get Coral ()                { return new Color(255 / 255, 127 / 255, 80  / 255, 255 / 255); }
-	static get CornflowerBlue ()       { return new Color(100 / 255, 149 / 255, 237 / 255, 255 / 255); }
-	static get Cornsilk ()             { return new Color(255 / 255, 248 / 255, 220 / 255, 255 / 255); }
-	static get Crimson ()              { return new Color(220 / 255, 20  / 255, 60  / 255, 255 / 255); }
-	static get Cyan ()                 { return new Color(0   / 255, 255 / 255, 255 / 255, 255 / 255); }
-	static get DarkBlue ()             { return new Color(0   / 255, 0   / 255, 139 / 255, 255 / 255); }
-	static get DarkCyan ()             { return new Color(0   / 255, 139 / 255, 139 / 255, 255 / 255); }
-	static get DarkGoldenrod ()        { return new Color(184 / 255, 134 / 255, 11  / 255, 255 / 255); }
-	static get DarkGray ()             { return new Color(169 / 255, 169 / 255, 169 / 255, 255 / 255); }
-	static get DarkGreen ()            { return new Color(0   / 255, 100 / 255, 0   / 255, 255 / 255); }
-	static get DarkKhaki ()            { return new Color(189 / 255, 183 / 255, 107 / 255, 255 / 255); }
-	static get DarkMagenta ()          { return new Color(139 / 255, 0   / 255, 139 / 255, 255 / 255); }
-	static get DarkOliveGreen ()       { return new Color(85  / 255, 107 / 255, 47  / 255, 255 / 255); }
-	static get DarkOrange ()           { return new Color(255 / 255, 140 / 255, 0   / 255, 255 / 255); }
-	static get DarkOrchid ()           { return new Color(153 / 255, 50  / 255, 204 / 255, 255 / 255); }
-	static get DarkRed ()              { return new Color(139 / 255, 0   / 255, 0   / 255, 255 / 255); }
-	static get DarkSalmon ()           { return new Color(233 / 255, 150 / 255, 122 / 255, 255 / 255); }
-	static get DarkSeaGreen ()         { return new Color(143 / 255, 188 / 255, 143 / 255, 255 / 255); }
-	static get DarkSlateBlue ()        { return new Color(72  / 255, 61  / 255, 139 / 255, 255 / 255); }
-	static get DarkSlateGray ()        { return new Color(47  / 255, 79  / 255, 79  / 255, 255 / 255); }
-	static get DarkTurquoise ()        { return new Color(0   / 255, 206 / 255, 209 / 255, 255 / 255); }
-	static get DarkViolet ()           { return new Color(148 / 255, 0   / 255, 211 / 255, 255 / 255); }
-	static get DeepPink ()             { return new Color(255 / 255, 20  / 255, 147 / 255, 255 / 255); }
-	static get DeepSkyBlue ()          { return new Color(0   / 255, 191 / 255, 255 / 255, 255 / 255); }
-	static get DimGray ()              { return new Color(105 / 255, 105 / 255, 105 / 255, 255 / 255); }
-	static get DodgerBlue ()           { return new Color(30  / 255, 144 / 255, 255 / 255, 255 / 255); }
-	static get FireBrick ()            { return new Color(178 / 255, 34  / 255, 34  / 255, 255 / 255); }
-	static get FloralWhite ()          { return new Color(255 / 255, 250 / 255, 240 / 255, 255 / 255); }
-	static get ForestGreen ()          { return new Color(34  / 255, 139 / 255, 34  / 255, 255 / 255); }
-	static get Fuchsia ()              { return new Color(255 / 255, 0   / 255, 255 / 255, 255 / 255); }
-	static get Gainsboro ()            { return new Color(220 / 255, 220 / 255, 220 / 255, 255 / 255); }
-	static get GhostWhite ()           { return new Color(248 / 255, 248 / 255, 255 / 255, 255 / 255); }
-	static get Gold ()                 { return new Color(255 / 255, 215 / 255, 0   / 255, 255 / 255); }
-	static get Goldenrod ()            { return new Color(218 / 255, 165 / 255, 32  / 255, 255 / 255); }
-	static get Gray ()                 { return new Color(128 / 255, 128 / 255, 128 / 255, 255 / 255); }
-	static get Green ()                { return new Color(0   / 255, 128 / 255, 0   / 255, 255 / 255); }
-	static get GreenYellow ()          { return new Color(173 / 255, 255 / 255, 47  / 255, 255 / 255); }
-	static get Honeydew ()             { return new Color(240 / 255, 255 / 255, 240 / 255, 255 / 255); }
-	static get HotPink ()              { return new Color(255 / 255, 105 / 255, 180 / 255, 255 / 255); }
-	static get IndianRed ()            { return new Color(205 / 255, 92  / 255, 92  / 255, 255 / 255); }
-	static get Indigo ()               { return new Color(75  / 255, 0   / 255, 130 / 255, 255 / 255); }
-	static get Ivory ()                { return new Color(255 / 255, 255 / 255, 240 / 255, 255 / 255); }
-	static get Khaki ()                { return new Color(240 / 255, 230 / 255, 140 / 255, 255 / 255); }
-	static get Lavender ()             { return new Color(230 / 255, 230 / 255, 250 / 255, 255 / 255); }
-	static get LavenderBlush ()        { return new Color(255 / 255, 240 / 255, 245 / 255, 255 / 255); }
-	static get LawnGreen ()            { return new Color(124 / 255, 252 / 255, 0   / 255, 255 / 255); }
-	static get LemonChiffon ()         { return new Color(255 / 255, 250 / 255, 205 / 255, 255 / 255); }
-	static get LightBlue ()            { return new Color(173 / 255, 216 / 255, 230 / 255, 255 / 255); }
-	static get LightCoral ()           { return new Color(240 / 255, 128 / 255, 128 / 255, 255 / 255); }
-	static get LightCyan ()            { return new Color(224 / 255, 255 / 255, 255 / 255, 255 / 255); }
-	static get LightGoldenrodYellow () { return new Color(250 / 255, 250 / 255, 210 / 255, 255 / 255); }
-	static get LightGray ()            { return new Color(211 / 255, 211 / 255, 211 / 255, 255 / 255); }
-	static get LightGreen ()           { return new Color(144 / 255, 238 / 255, 144 / 255, 255 / 255); }
-	static get LightPink ()            { return new Color(255 / 255, 182 / 255, 193 / 255, 255 / 255); }
-	static get LightSalmon ()          { return new Color(255 / 255, 160 / 255, 122 / 255, 255 / 255); }
-	static get LightSeaGreen ()        { return new Color(32  / 255, 178 / 255, 170 / 255, 255 / 255); }
-	static get LightSkyBlue ()         { return new Color(135 / 255, 206 / 255, 250 / 255, 255 / 255); }
-	static get LightSlateGray ()       { return new Color(119 / 255, 136 / 255, 153 / 255, 255 / 255); }
-	static get LightSteelBlue ()       { return new Color(176 / 255, 196 / 255, 222 / 255, 255 / 255); }
-	static get LightYellow ()          { return new Color(255 / 255, 255 / 255, 224 / 255, 255 / 255); }
-	static get Lime ()                 { return new Color(0   / 255, 255 / 255, 0   / 255, 255 / 255); }
-	static get LimeGreen ()            { return new Color(50  / 255, 205 / 255, 50  / 255, 255 / 255); }
-	static get Linen ()                { return new Color(250 / 255, 240 / 255, 230 / 255, 255 / 255); }
-	static get Magenta ()              { return new Color(255 / 255, 0   / 255, 255 / 255, 255 / 255); }
-	static get Maroon ()               { return new Color(128 / 255, 0   / 255, 0   / 255, 255 / 255); }
-	static get MediumAquamarine ()     { return new Color(102 / 255, 205 / 255, 170 / 255, 255 / 255); }
-	static get MediumBlue ()           { return new Color(0   / 255, 0   / 255, 205 / 255, 255 / 255); }
-	static get MediumOrchid ()         { return new Color(186 / 255, 85  / 255, 211 / 255, 255 / 255); }
-	static get MediumPurple ()         { return new Color(147 / 255, 112 / 255, 219 / 255, 255 / 255); }
-	static get MediumSeaGreen ()       { return new Color(60  / 255, 179 / 255, 113 / 255, 255 / 255); }
-	static get MediumSlateBlue ()      { return new Color(123 / 255, 104 / 255, 238 / 255, 255 / 255); }
-	static get MediumSpringGreen ()    { return new Color(0   / 255, 250 / 255, 154 / 255, 255 / 255); }
-	static get MediumTurquoise ()      { return new Color(72  / 255, 209 / 255, 204 / 255, 255 / 255); }
-	static get MediumVioletRed ()      { return new Color(199 / 255, 21  / 255, 133 / 255, 255 / 255); }
-	static get MidnightBlue ()         { return new Color(25  / 255, 25  / 255, 112 / 255, 255 / 255); }
-	static get MintCream ()            { return new Color(245 / 255, 255 / 255, 250 / 255, 255 / 255); }
-	static get MistyRose ()            { return new Color(255 / 255, 228 / 255, 225 / 255, 255 / 255); }
-	static get Moccasin ()             { return new Color(255 / 255, 228 / 255, 181 / 255, 255 / 255); }
-	static get NavajoWhite ()          { return new Color(255 / 255, 222 / 255, 173 / 255, 255 / 255); }
-	static get Navy ()                 { return new Color(0   / 255, 0   / 255, 128 / 255, 255 / 255); }
-	static get OldLace ()              { return new Color(253 / 255, 245 / 255, 230 / 255, 255 / 255); }
-	static get Olive ()                { return new Color(128 / 255, 128 / 255, 0   / 255, 255 / 255); }
-	static get OliveDrab ()            { return new Color(107 / 255, 142 / 255, 35  / 255, 255 / 255); }
-	static get Orange ()               { return new Color(255 / 255, 165 / 255, 0   / 255, 255 / 255); }
-	static get OrangeRed ()            { return new Color(255 / 255, 69  / 255, 0   / 255, 255 / 255); }
-	static get Orchid ()               { return new Color(218 / 255, 112 / 255, 214 / 255, 255 / 255); }
-	static get PaleGoldenrod ()        { return new Color(238 / 255, 232 / 255, 170 / 255, 255 / 255); }
-	static get PaleGreen ()            { return new Color(152 / 255, 251 / 255, 152 / 255, 255 / 255); }
-	static get PaleTurquoise ()        { return new Color(175 / 255, 238 / 255, 238 / 255, 255 / 255); }
-	static get PaleVioletRed ()        { return new Color(219 / 255, 112 / 255, 147 / 255, 255 / 255); }
-	static get PapayaWhip ()           { return new Color(225 / 255, 239 / 255, 213 / 255, 255 / 255); }
-	static get PeachPuff ()            { return new Color(255 / 255, 218 / 255, 185 / 255, 255 / 255); }
-	static get Peru ()                 { return new Color(205 / 255, 133 / 255, 63  / 255, 255 / 255); }
-	static get Pink ()                 { return new Color(255 / 255, 192 / 255, 203 / 255, 255 / 255); }
-	static get Plum ()                 { return new Color(221 / 255, 160 / 255, 221 / 255, 255 / 255); }
-	static get PowderBlue ()           { return new Color(176 / 255, 224 / 255, 230 / 255, 255 / 255); }
-	static get Purple ()               { return new Color(128 / 255, 0   / 255, 128 / 255, 255 / 255); }
-	static get Red ()                  { return new Color(255 / 255, 0   / 255, 0   / 255, 255 / 255); }
-	static get RosyBrown ()            { return new Color(188 / 255, 143 / 255, 143 / 255, 255 / 255); }
-	static get RoyalBlue ()            { return new Color(65  / 255, 105 / 255, 225 / 255, 255 / 255); }
-	static get SaddleBrown ()          { return new Color(139 / 255, 69  / 255, 19  / 255, 255 / 255); }
-	static get Salmon ()               { return new Color(250 / 255, 128 / 255, 114 / 255, 255 / 255); }
-	static get SandyBrown ()           { return new Color(244 / 255, 164 / 255, 96  / 255, 255 / 255); }
-	static get SeaGreen ()             { return new Color(46  / 255, 139 / 255, 87  / 255, 255 / 255); }
-	static get Seashell ()             { return new Color(255 / 255, 245 / 255, 238 / 255, 255 / 255); }
-	static get Sienna ()               { return new Color(160 / 255, 82  / 255, 45  / 255, 255 / 255); }
-	static get Silver ()               { return new Color(192 / 255, 192 / 255, 192 / 255, 255 / 255); }
-	static get SkyBlue ()              { return new Color(135 / 255, 206 / 255, 235 / 255, 255 / 255); }
-	static get SlateBlue ()            { return new Color(106 / 255, 90  / 255, 205 / 255, 255 / 255); }
-	static get SlateGray ()            { return new Color(112 / 255, 128 / 255, 144 / 255, 255 / 255); }
-	static get Snow ()                 { return new Color(255 / 255, 250 / 255, 250 / 255, 255 / 255); }
-	static get SpringGreen ()          { return new Color(0   / 255, 255 / 255, 127 / 255, 255 / 255); }
-	static get SteelBlue ()            { return new Color(70  / 255, 130 / 255, 180 / 255, 255 / 255); }
-	static get Tan ()                  { return new Color(210 / 255, 180 / 255, 140 / 255, 255 / 255); }
-	static get Teal ()                 { return new Color(0   / 255, 128 / 255, 128 / 255, 255 / 255); }
-	static get Thistle ()              { return new Color(216 / 255, 191 / 255, 216 / 255, 255 / 255); }
-	static get Tomato ()               { return new Color(255 / 255, 99  / 255, 71  / 255, 255 / 255); }
-	static get Transparent ()          { return new Color(0   / 255, 0   / 255, 0   / 255, 0   / 255); }
-	static get Turquoise ()            { return new Color(64  / 255, 224 / 255, 208 / 255, 255 / 255); }
-	static get Violet ()               { return new Color(238 / 255, 130 / 255, 238 / 255, 255 / 255); }
-	static get Wheat ()                { return new Color(245 / 255, 222 / 255, 179 / 255, 255 / 255); }
-	static get White ()                { return new Color(255 / 255, 255 / 255, 255 / 255, 255 / 255); }
-	static get WhiteSmoke ()           { return new Color(245 / 255, 245 / 255, 245 / 255, 255 / 255); }
-	static get Yellow ()               { return new Color(255 / 255, 255 / 255, 0   / 255, 255 / 255); }
-	static get YellowGreen ()          { return new Color(154 / 255, 205 / 255, 50  / 255, 255 / 255); }
-	static get PurwaBlue ()            { return new Color(155 / 255, 225 / 255, 255 / 255, 255 / 255); }
-	static get RebeccaPurple ()        { return new Color(102 / 255, 51  / 255, 153 / 255, 255 / 255); }
-	static get StankyBean ()           { return new Color(197 / 255, 162 / 255, 171 / 255, 255 / 255); }
+	static get AliceBlue() { return new Color(240 / 255, 248 / 255, 255 / 255, 255 / 255); }
+	static get AntiqueWhite() { return new Color(250 / 255, 235 / 255, 215 / 255, 255 / 255); }
+	static get Aqua() { return new Color(0 / 255, 255 / 255, 255 / 255, 255 / 255); }
+	static get Aquamarine() { return new Color(127 / 255, 255 / 255, 212 / 255, 255 / 255); }
+	static get Azure() { return new Color(240 / 255, 255 / 255, 255 / 255, 255 / 255); }
+	static get Beige() { return new Color(245 / 255, 245 / 255, 220 / 255, 255 / 255); }
+	static get Bisque() { return new Color(255 / 255, 228 / 255, 196 / 255, 255 / 255); }
+	static get Black() { return new Color(0 / 255, 0 / 255, 0 / 255, 255 / 255); }
+	static get BlanchedAlmond() { return new Color(255 / 255, 235 / 255, 205 / 255, 255 / 255); }
+	static get Blue() { return new Color(0 / 255, 0 / 255, 255 / 255, 255 / 255); }
+	static get BlueViolet() { return new Color(138 / 255, 43 / 255, 226 / 255, 255 / 255); }
+	static get Brown() { return new Color(165 / 255, 42 / 255, 42 / 255, 255 / 255); }
+	static get BurlyWood() { return new Color(222 / 255, 184 / 255, 135 / 255, 255 / 255); }
+	static get CadetBlue() { return new Color(95 / 255, 158 / 255, 160 / 255, 255 / 255); }
+	static get Chartreuse() { return new Color(127 / 255, 255 / 255, 0 / 255, 255 / 255); }
+	static get Chocolate() { return new Color(210 / 255, 105 / 255, 30 / 255, 255 / 255); }
+	static get Coral() { return new Color(255 / 255, 127 / 255, 80 / 255, 255 / 255); }
+	static get CornflowerBlue() { return new Color(100 / 255, 149 / 255, 237 / 255, 255 / 255); }
+	static get Cornsilk() { return new Color(255 / 255, 248 / 255, 220 / 255, 255 / 255); }
+	static get Crimson() { return new Color(220 / 255, 20 / 255, 60 / 255, 255 / 255); }
+	static get Cyan() { return new Color(0 / 255, 255 / 255, 255 / 255, 255 / 255); }
+	static get DarkBlue() { return new Color(0 / 255, 0 / 255, 139 / 255, 255 / 255); }
+	static get DarkCyan() { return new Color(0 / 255, 139 / 255, 139 / 255, 255 / 255); }
+	static get DarkGoldenrod() { return new Color(184 / 255, 134 / 255, 11 / 255, 255 / 255); }
+	static get DarkGray() { return new Color(169 / 255, 169 / 255, 169 / 255, 255 / 255); }
+	static get DarkGreen() { return new Color(0 / 255, 100 / 255, 0 / 255, 255 / 255); }
+	static get DarkKhaki() { return new Color(189 / 255, 183 / 255, 107 / 255, 255 / 255); }
+	static get DarkMagenta() { return new Color(139 / 255, 0 / 255, 139 / 255, 255 / 255); }
+	static get DarkOliveGreen() { return new Color(85 / 255, 107 / 255, 47 / 255, 255 / 255); }
+	static get DarkOrange() { return new Color(255 / 255, 140 / 255, 0 / 255, 255 / 255); }
+	static get DarkOrchid() { return new Color(153 / 255, 50 / 255, 204 / 255, 255 / 255); }
+	static get DarkRed() { return new Color(139 / 255, 0 / 255, 0 / 255, 255 / 255); }
+	static get DarkSalmon() { return new Color(233 / 255, 150 / 255, 122 / 255, 255 / 255); }
+	static get DarkSeaGreen() { return new Color(143 / 255, 188 / 255, 143 / 255, 255 / 255); }
+	static get DarkSlateBlue() { return new Color(72 / 255, 61 / 255, 139 / 255, 255 / 255); }
+	static get DarkSlateGray() { return new Color(47 / 255, 79 / 255, 79 / 255, 255 / 255); }
+	static get DarkTurquoise() { return new Color(0 / 255, 206 / 255, 209 / 255, 255 / 255); }
+	static get DarkViolet() { return new Color(148 / 255, 0 / 255, 211 / 255, 255 / 255); }
+	static get DeepPink() { return new Color(255 / 255, 20 / 255, 147 / 255, 255 / 255); }
+	static get DeepSkyBlue() { return new Color(0 / 255, 191 / 255, 255 / 255, 255 / 255); }
+	static get DimGray() { return new Color(105 / 255, 105 / 255, 105 / 255, 255 / 255); }
+	static get DodgerBlue() { return new Color(30 / 255, 144 / 255, 255 / 255, 255 / 255); }
+	static get FireBrick() { return new Color(178 / 255, 34 / 255, 34 / 255, 255 / 255); }
+	static get FloralWhite() { return new Color(255 / 255, 250 / 255, 240 / 255, 255 / 255); }
+	static get ForestGreen() { return new Color(34 / 255, 139 / 255, 34 / 255, 255 / 255); }
+	static get Fuchsia() { return new Color(255 / 255, 0 / 255, 255 / 255, 255 / 255); }
+	static get Gainsboro() { return new Color(220 / 255, 220 / 255, 220 / 255, 255 / 255); }
+	static get GhostWhite() { return new Color(248 / 255, 248 / 255, 255 / 255, 255 / 255); }
+	static get Gold() { return new Color(255 / 255, 215 / 255, 0 / 255, 255 / 255); }
+	static get Goldenrod() { return new Color(218 / 255, 165 / 255, 32 / 255, 255 / 255); }
+	static get Gray() { return new Color(128 / 255, 128 / 255, 128 / 255, 255 / 255); }
+	static get Green() { return new Color(0 / 255, 128 / 255, 0 / 255, 255 / 255); }
+	static get GreenYellow() { return new Color(173 / 255, 255 / 255, 47 / 255, 255 / 255); }
+	static get Honeydew() { return new Color(240 / 255, 255 / 255, 240 / 255, 255 / 255); }
+	static get HotPink() { return new Color(255 / 255, 105 / 255, 180 / 255, 255 / 255); }
+	static get IndianRed() { return new Color(205 / 255, 92 / 255, 92 / 255, 255 / 255); }
+	static get Indigo() { return new Color(75 / 255, 0 / 255, 130 / 255, 255 / 255); }
+	static get Ivory() { return new Color(255 / 255, 255 / 255, 240 / 255, 255 / 255); }
+	static get Khaki() { return new Color(240 / 255, 230 / 255, 140 / 255, 255 / 255); }
+	static get Lavender() { return new Color(230 / 255, 230 / 255, 250 / 255, 255 / 255); }
+	static get LavenderBlush() { return new Color(255 / 255, 240 / 255, 245 / 255, 255 / 255); }
+	static get LawnGreen() { return new Color(124 / 255, 252 / 255, 0 / 255, 255 / 255); }
+	static get LemonChiffon() { return new Color(255 / 255, 250 / 255, 205 / 255, 255 / 255); }
+	static get LightBlue() { return new Color(173 / 255, 216 / 255, 230 / 255, 255 / 255); }
+	static get LightCoral() { return new Color(240 / 255, 128 / 255, 128 / 255, 255 / 255); }
+	static get LightCyan() { return new Color(224 / 255, 255 / 255, 255 / 255, 255 / 255); }
+	static get LightGoldenrodYellow() { return new Color(250 / 255, 250 / 255, 210 / 255, 255 / 255); }
+	static get LightGray() { return new Color(211 / 255, 211 / 255, 211 / 255, 255 / 255); }
+	static get LightGreen() { return new Color(144 / 255, 238 / 255, 144 / 255, 255 / 255); }
+	static get LightPink() { return new Color(255 / 255, 182 / 255, 193 / 255, 255 / 255); }
+	static get LightSalmon() { return new Color(255 / 255, 160 / 255, 122 / 255, 255 / 255); }
+	static get LightSeaGreen() { return new Color(32 / 255, 178 / 255, 170 / 255, 255 / 255); }
+	static get LightSkyBlue() { return new Color(135 / 255, 206 / 255, 250 / 255, 255 / 255); }
+	static get LightSlateGray() { return new Color(119 / 255, 136 / 255, 153 / 255, 255 / 255); }
+	static get LightSteelBlue() { return new Color(176 / 255, 196 / 255, 222 / 255, 255 / 255); }
+	static get LightYellow() { return new Color(255 / 255, 255 / 255, 224 / 255, 255 / 255); }
+	static get Lime() { return new Color(0 / 255, 255 / 255, 0 / 255, 255 / 255); }
+	static get LimeGreen() { return new Color(50 / 255, 205 / 255, 50 / 255, 255 / 255); }
+	static get Linen() { return new Color(250 / 255, 240 / 255, 230 / 255, 255 / 255); }
+	static get Magenta() { return new Color(255 / 255, 0 / 255, 255 / 255, 255 / 255); }
+	static get Maroon() { return new Color(128 / 255, 0 / 255, 0 / 255, 255 / 255); }
+	static get MediumAquamarine() { return new Color(102 / 255, 205 / 255, 170 / 255, 255 / 255); }
+	static get MediumBlue() { return new Color(0 / 255, 0 / 255, 205 / 255, 255 / 255); }
+	static get MediumOrchid() { return new Color(186 / 255, 85 / 255, 211 / 255, 255 / 255); }
+	static get MediumPurple() { return new Color(147 / 255, 112 / 255, 219 / 255, 255 / 255); }
+	static get MediumSeaGreen() { return new Color(60 / 255, 179 / 255, 113 / 255, 255 / 255); }
+	static get MediumSlateBlue() { return new Color(123 / 255, 104 / 255, 238 / 255, 255 / 255); }
+	static get MediumSpringGreen() { return new Color(0 / 255, 250 / 255, 154 / 255, 255 / 255); }
+	static get MediumTurquoise() { return new Color(72 / 255, 209 / 255, 204 / 255, 255 / 255); }
+	static get MediumVioletRed() { return new Color(199 / 255, 21 / 255, 133 / 255, 255 / 255); }
+	static get MidnightBlue() { return new Color(25 / 255, 25 / 255, 112 / 255, 255 / 255); }
+	static get MintCream() { return new Color(245 / 255, 255 / 255, 250 / 255, 255 / 255); }
+	static get MistyRose() { return new Color(255 / 255, 228 / 255, 225 / 255, 255 / 255); }
+	static get Moccasin() { return new Color(255 / 255, 228 / 255, 181 / 255, 255 / 255); }
+	static get NavajoWhite() { return new Color(255 / 255, 222 / 255, 173 / 255, 255 / 255); }
+	static get Navy() { return new Color(0 / 255, 0 / 255, 128 / 255, 255 / 255); }
+	static get OldLace() { return new Color(253 / 255, 245 / 255, 230 / 255, 255 / 255); }
+	static get Olive() { return new Color(128 / 255, 128 / 255, 0 / 255, 255 / 255); }
+	static get OliveDrab() { return new Color(107 / 255, 142 / 255, 35 / 255, 255 / 255); }
+	static get Orange() { return new Color(255 / 255, 165 / 255, 0 / 255, 255 / 255); }
+	static get OrangeRed() { return new Color(255 / 255, 69 / 255, 0 / 255, 255 / 255); }
+	static get Orchid() { return new Color(218 / 255, 112 / 255, 214 / 255, 255 / 255); }
+	static get PaleGoldenrod() { return new Color(238 / 255, 232 / 255, 170 / 255, 255 / 255); }
+	static get PaleGreen() { return new Color(152 / 255, 251 / 255, 152 / 255, 255 / 255); }
+	static get PaleTurquoise() { return new Color(175 / 255, 238 / 255, 238 / 255, 255 / 255); }
+	static get PaleVioletRed() { return new Color(219 / 255, 112 / 255, 147 / 255, 255 / 255); }
+	static get PapayaWhip() { return new Color(225 / 255, 239 / 255, 213 / 255, 255 / 255); }
+	static get PeachPuff() { return new Color(255 / 255, 218 / 255, 185 / 255, 255 / 255); }
+	static get Peru() { return new Color(205 / 255, 133 / 255, 63 / 255, 255 / 255); }
+	static get Pink() { return new Color(255 / 255, 192 / 255, 203 / 255, 255 / 255); }
+	static get Plum() { return new Color(221 / 255, 160 / 255, 221 / 255, 255 / 255); }
+	static get PowderBlue() { return new Color(176 / 255, 224 / 255, 230 / 255, 255 / 255); }
+	static get Purple() { return new Color(128 / 255, 0 / 255, 128 / 255, 255 / 255); }
+	static get Red() { return new Color(255 / 255, 0 / 255, 0 / 255, 255 / 255); }
+	static get RosyBrown() { return new Color(188 / 255, 143 / 255, 143 / 255, 255 / 255); }
+	static get RoyalBlue() { return new Color(65 / 255, 105 / 255, 225 / 255, 255 / 255); }
+	static get SaddleBrown() { return new Color(139 / 255, 69 / 255, 19 / 255, 255 / 255); }
+	static get Salmon() { return new Color(250 / 255, 128 / 255, 114 / 255, 255 / 255); }
+	static get SandyBrown() { return new Color(244 / 255, 164 / 255, 96 / 255, 255 / 255); }
+	static get SeaGreen() { return new Color(46 / 255, 139 / 255, 87 / 255, 255 / 255); }
+	static get Seashell() { return new Color(255 / 255, 245 / 255, 238 / 255, 255 / 255); }
+	static get Sienna() { return new Color(160 / 255, 82 / 255, 45 / 255, 255 / 255); }
+	static get Silver() { return new Color(192 / 255, 192 / 255, 192 / 255, 255 / 255); }
+	static get SkyBlue() { return new Color(135 / 255, 206 / 255, 235 / 255, 255 / 255); }
+	static get SlateBlue() { return new Color(106 / 255, 90 / 255, 205 / 255, 255 / 255); }
+	static get SlateGray() { return new Color(112 / 255, 128 / 255, 144 / 255, 255 / 255); }
+	static get Snow() { return new Color(255 / 255, 250 / 255, 250 / 255, 255 / 255); }
+	static get SpringGreen() { return new Color(0 / 255, 255 / 255, 127 / 255, 255 / 255); }
+	static get SteelBlue() { return new Color(70 / 255, 130 / 255, 180 / 255, 255 / 255); }
+	static get Tan() { return new Color(210 / 255, 180 / 255, 140 / 255, 255 / 255); }
+	static get Teal() { return new Color(0 / 255, 128 / 255, 128 / 255, 255 / 255); }
+	static get Thistle() { return new Color(216 / 255, 191 / 255, 216 / 255, 255 / 255); }
+	static get Tomato() { return new Color(255 / 255, 99 / 255, 71 / 255, 255 / 255); }
+	static get Transparent() { return new Color(0 / 255, 0 / 255, 0 / 255, 0 / 255); }
+	static get Turquoise() { return new Color(64 / 255, 224 / 255, 208 / 255, 255 / 255); }
+	static get Violet() { return new Color(238 / 255, 130 / 255, 238 / 255, 255 / 255); }
+	static get Wheat() { return new Color(245 / 255, 222 / 255, 179 / 255, 255 / 255); }
+	static get White() { return new Color(255 / 255, 255 / 255, 255 / 255, 255 / 255); }
+	static get WhiteSmoke() { return new Color(245 / 255, 245 / 255, 245 / 255, 255 / 255); }
+	static get Yellow() { return new Color(255 / 255, 255 / 255, 0 / 255, 255 / 255); }
+	static get YellowGreen() { return new Color(154 / 255, 205 / 255, 50 / 255, 255 / 255); }
+	static get PurwaBlue() { return new Color(155 / 255, 225 / 255, 255 / 255, 255 / 255); }
+	static get RebeccaPurple() { return new Color(102 / 255, 51 / 255, 153 / 255, 255 / 255); }
+	static get StankyBean() { return new Color(197 / 255, 162 / 255, 171 / 255, 255 / 255); }
+
+	static fromRGB(r, g, b, a = 255)
+	{
+		return new Color(r / 255.0, g / 255.0, b / 255.0, a / 255.0);
+	}
 
 	static is(x, y)
 	{
@@ -405,84 +409,93 @@ class Color
 export
 class IndexList
 {
-	glBuffer = null;
-	length = 0;
+	#glBuffer = null;
+	#length = 0;
 
 	constructor(indices)
 	{
-		this.glBuffer = webGL.createBuffer();
-		if (this.glBuffer === null)
-			throw new Error(`Engine couldn't create a WebGL buffer object.`);
+		this.#glBuffer = glContext.createBuffer();
+		if (this.#glBuffer === null)
+			throw new Error(`The engine couldn't create a WebGL buffer object.`);
 		this.upload(indices);
+	}
+
+	get length()
+	{
+		return this.#length;
 	}
 
 	activate()
 	{
-		webGL.bindBuffer(webGL.ELEMENT_ARRAY_BUFFER, this.glBuffer);
+		glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, this.#glBuffer);
 	}
 
 	upload(indices)
 	{
 		const values = new Uint16Array(indices);
-		webGL.bindBuffer(webGL.ELEMENT_ARRAY_BUFFER, this.glBuffer);
-		webGL.bufferData(webGL.ELEMENT_ARRAY_BUFFER, values, webGL.STREAM_DRAW);
-		this.length = values.length;
+		glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, this.#glBuffer);
+		glContext.bufferData(glContext.ELEMENT_ARRAY_BUFFER, values, glContext.STREAM_DRAW);
+		this.#length = values.length;
 	}
 }
 
 export
 class Model
 {
-	shapes;
-	shader_;
-	transform_;
+	#shapes;
+	#shader;
+	#transform;
 
 	constructor(shapes, shader = Shader.Default)
 	{
-		this.shapes = [ ...shapes ];
-		this.shader_ = shader;
-		this.transform_ = new Transform();
+		this.#shapes = [ ...shapes ];
+		this.#shader = shader;
+		this.#transform = Transform.Identity;
 	}
 
 	get shader()
 	{
-		return this.shader_;
+		return this.#shader;
 	}
 
 	get transform()
 	{
-		return this.transform_;
+		return this.#transform;
 	}
 
 	set shader(value)
 	{
-		this.shader_ = value;
+		if (!(value instanceof Shader))
+			throw TypeError("Model#shader must be set to a 'Shader' object");
+		this.#shader = value;
 	}
 
 	set transform(value)
 	{
-		this.transform_ = value;
+		if (!(value instanceof Transform))
+			throw TypeError("Model#transform must be set to a 'Transform' object");
+		this.#transform = value;
 	}
 
 	draw(surface = Surface.Screen)
 	{
-		for (const shape of this.shapes)
-			shape.draw(surface, this.transform_, this.shader_);
+		for (const shape of this.#shapes)
+			shape.draw(surface, this.#transform, this.#shader);
 	}
 }
 
 export
 class Shader
 {
-	fragmentShaderSource = "";
-	glFragmentShader;
-	glProgram;
-	glVertexShader;
-	modelViewMatrix = Transform.Identity;
-	projection = Transform.Identity;
-	uniformIDs = {};
-	vertexShaderSource = "";
-	valuesToSet = {};
+	#fragmentShaderSource = "";
+	#glFragmentShader;
+	#glProgram;
+	#glVertexShader;
+	#modelViewMatrix = Transform.Identity;
+	#projection = Transform.Identity;
+	#uniformIDs = {};
+	#vertexShaderSource = "";
+	#valuesToSet = {};
 
 	static get Default()
 	{
@@ -505,14 +518,14 @@ class Shader
 
 	constructor(options)
 	{
-		const program = webGL.createProgram();
-		const vertexShader = webGL.createShader(webGL.VERTEX_SHADER);
-		const fragmentShader = webGL.createShader(webGL.FRAGMENT_SHADER);
+		const program = glContext.createProgram();
+		const vertexShader = glContext.createShader(glContext.VERTEX_SHADER);
+		const fragmentShader = glContext.createShader(glContext.FRAGMENT_SHADER);
 		if (program === null || vertexShader === null || fragmentShader === null)
 			throw new Error(`Engine couldn't create a WebGL shader object.`);
-		this.glProgram = program;
-		this.glVertexShader = vertexShader;
-		this.glFragmentShader = fragmentShader;
+		this.#glProgram = program;
+		this.#glVertexShader = vertexShader;
+		this.#glFragmentShader = fragmentShader;
 
 		if ('vertexFile' in options && options.vertexFile !== undefined) {
 			throw Error("'new Shader' with filenames is not supported in Oozaru.");
@@ -528,51 +541,51 @@ class Shader
 	activate(useTexture)
 	{
 		if (activeShader !== this) {
-			webGL.useProgram(this.glProgram);
-			for (const name of Object.keys(this.valuesToSet)) {
-				const entry = this.valuesToSet[name];
-				let location = this.uniformIDs[name];
+			glContext.useProgram(this.#glProgram);
+			for (const name of Object.keys(this.#valuesToSet)) {
+				const entry = this.#valuesToSet[name];
+				let location = this.#uniformIDs[name];
 				if (location === undefined) {
-					location = webGL.getUniformLocation(this.glProgram, name);
-					this.uniformIDs[name] = location;
+					location = glContext.getUniformLocation(this.#glProgram, name);
+					this.#uniformIDs[name] = location;
 				}
 				let size;
 				switch (entry.type) {
 					case 'boolean':
-						webGL.uniform1i(location, entry.value ? 1 : 0);
+						glContext.uniform1i(location, entry.value ? 1 : 0);
 						break;
 					case 'float':
-						webGL.uniform1f(location, entry.value);
+						glContext.uniform1f(location, entry.value);
 						break;
 					case 'floatArray':
-						webGL.uniform1fv(location, entry.value);
+						glContext.uniform1fv(location, entry.value);
 						break;
 					case 'floatVector':
 						size = entry.value.length;
-						size === 4 ? webGL.uniform4fv(location, entry.value)
-							: size === 3 ? webGL.uniform3fv(location, entry.value)
-							: size === 2 ? webGL.uniform2fv(location, entry.value)
-							: webGL.uniform1fv(location, entry.value);
+						size === 4 ? glContext.uniform4fv(location, entry.value)
+							: size === 3 ? glContext.uniform3fv(location, entry.value)
+							: size === 2 ? glContext.uniform2fv(location, entry.value)
+							: glContext.uniform1fv(location, entry.value);
 						break;
 					case 'int':
-						webGL.uniform1i(location, entry.value);
+						glContext.uniform1i(location, entry.value);
 						break;
 					case 'intArray':
-						webGL.uniform1iv(location, entry.value);
+						glContext.uniform1iv(location, entry.value);
 						break;
 					case 'intVector':
 						size = entry.value.length;
-						size === 4 ? webGL.uniform4iv(location, entry.value)
-							: size === 3 ? webGL.uniform3iv(location, entry.value)
-							: size === 2 ? webGL.uniform2iv(location, entry.value)
-							: webGL.uniform1iv(location, entry.value);
+						size === 4 ? glContext.uniform4iv(location, entry.value)
+							: size === 3 ? glContext.uniform3iv(location, entry.value)
+							: size === 2 ? glContext.uniform2iv(location, entry.value)
+							: glContext.uniform1iv(location, entry.value);
 						break;
 					case 'matrix':
-						webGL.uniformMatrix4fv(location, false, entry.value.values);
+						glContext.uniformMatrix4fv(location, false, entry.value.matrix);
 						break;
 				}
 			}
-			this.valuesToSet = {};
+			this.#valuesToSet = {};
 			activeShader = this;
 		}
 		this.setBoolean('al_use_tex', useTexture);
@@ -581,69 +594,69 @@ class Shader
 	clone()
 	{
 		return new Shader({
-			vertexSource: this.vertexShaderSource,
-			fragmentSource: this.fragmentShaderSource,
+			vertexSource: this.#vertexShaderSource,
+			fragmentSource: this.#fragmentShaderSource,
 		});
 	}
 
 	compile(vertexShaderSource, fragmentShaderSource)
 	{
 		// compile vertex and fragment shaders and check for errors
-		webGL.shaderSource(this.glVertexShader, vertexShaderSource);
-		webGL.shaderSource(this.glFragmentShader, fragmentShaderSource);
-		webGL.compileShader(this.glVertexShader);
-		if (!webGL.getShaderParameter(this.glVertexShader, webGL.COMPILE_STATUS)) {
-			const message = webGL.getShaderInfoLog(this.glVertexShader);
+		glContext.shaderSource(this.#glVertexShader, vertexShaderSource);
+		glContext.shaderSource(this.#glFragmentShader, fragmentShaderSource);
+		glContext.compileShader(this.#glVertexShader);
+		if (!glContext.getShaderParameter(this.#glVertexShader, glContext.COMPILE_STATUS)) {
+			const message = glContext.getShaderInfoLog(this.#glVertexShader);
 			throw Error(`Couldn't compile WebGL vertex shader.\n${message}`);
 		}
-		webGL.compileShader(this.glFragmentShader);
-		if (!webGL.getShaderParameter(this.glFragmentShader, webGL.COMPILE_STATUS)) {
-			const message = webGL.getShaderInfoLog(this.glFragmentShader);
+		glContext.compileShader(this.#glFragmentShader);
+		if (!glContext.getShaderParameter(this.#glFragmentShader, glContext.COMPILE_STATUS)) {
+			const message = glContext.getShaderInfoLog(this.#glFragmentShader);
 			throw Error(`Couldn't compile WebGL fragment shader.\n${message}`);
 		}
 
 		// link the individual shaders into a program, check for errors
-		webGL.attachShader(this.glProgram, this.glVertexShader);
-		webGL.attachShader(this.glProgram, this.glFragmentShader);
-		webGL.bindAttribLocation(this.glProgram, 0, 'al_pos');
-		webGL.bindAttribLocation(this.glProgram, 1, 'al_color');
-		webGL.bindAttribLocation(this.glProgram, 2, 'al_texcoord');
-		webGL.linkProgram(this.glProgram);
-		if (!webGL.getProgramParameter(this.glProgram, webGL.LINK_STATUS)) {
-			const message = webGL.getProgramInfoLog(this.glProgram);
+		glContext.attachShader(this.#glProgram, this.#glVertexShader);
+		glContext.attachShader(this.#glProgram, this.#glFragmentShader);
+		glContext.bindAttribLocation(this.#glProgram, 0, 'al_pos');
+		glContext.bindAttribLocation(this.#glProgram, 1, 'al_color');
+		glContext.bindAttribLocation(this.#glProgram, 2, 'al_texcoord');
+		glContext.linkProgram(this.#glProgram);
+		if (!glContext.getProgramParameter(this.#glProgram, glContext.LINK_STATUS)) {
+			const message = glContext.getProgramInfoLog(this.#glProgram);
 			throw Error(`Couldn't link WebGL shader program.\n${message}`);
 		}
 
-		this.vertexShaderSource = vertexShaderSource;
-		this.fragmentShaderSource = fragmentShaderSource;
-		this.uniformIDs = {};
+		this.#vertexShaderSource = vertexShaderSource;
+		this.#fragmentShaderSource = fragmentShaderSource;
+		this.#uniformIDs = {};
 
-		const transformation = this.modelViewMatrix.clone()
-			.compose(this.projection);
+		const transformation = this.#modelViewMatrix.clone()
+			.compose(this.#projection);
 		this.setMatrix('al_projview_matrix', transformation);
 		this.setInt('al_tex', 0);
 	}
-	
+
 	project(matrix)
 	{
-		this.projection = matrix.clone();
-		let transformation = this.modelViewMatrix.clone()
-			.compose(this.projection);
+		this.#projection = matrix.clone();
+		let transformation = this.#modelViewMatrix.clone()
+			.compose(this.#projection);
 		this.setMatrix('al_projview_matrix', transformation);
 	}
 
 	setBoolean(name, value)
 	{
 		if (activeShader === this) {
-			let location = this.uniformIDs[name];
+			let location = this.#uniformIDs[name];
 			if (location === undefined) {
-				location = webGL.getUniformLocation(this.glProgram, name);
-				this.uniformIDs[name] = location;
+				location = glContext.getUniformLocation(this.#glProgram, name);
+				this.#uniformIDs[name] = location;
 			}
-			webGL.uniform1i(location, value ? 1 : 0);
+			glContext.uniform1i(location, value ? 1 : 0);
 		}
 		else {
-			this.valuesToSet[name] = { type: 'boolean', value };
+			this.#valuesToSet[name] = { type: 'boolean', value };
 		}
 	}
 
@@ -655,121 +668,121 @@ class Shader
 	setFloat(name, value)
 	{
 		if (activeShader === this) {
-			let location = this.uniformIDs[name];
+			let location = this.#uniformIDs[name];
 			if (location === undefined) {
-				location = webGL.getUniformLocation(this.glProgram, name);
-				this.uniformIDs[name] = location;
+				location = glContext.getUniformLocation(this.#glProgram, name);
+				this.#uniformIDs[name] = location;
 			}
-			webGL.uniform1f(location, value);
+			glContext.uniform1f(location, value);
 		}
 		else {
-			this.valuesToSet[name] = { type: 'float', value };
+			this.#valuesToSet[name] = { type: 'float', value };
 		}
 	}
 
 	setFloatArray(name, values)
 	{
 		if (activeShader === this) {
-			let location = this.uniformIDs[name];
+			let location = this.#uniformIDs[name];
 			if (location === undefined) {
-				location = webGL.getUniformLocation(this.glProgram, name);
-				this.uniformIDs[name] = location;
+				location = glContext.getUniformLocation(this.#glProgram, name);
+				this.#uniformIDs[name] = location;
 			}
-			webGL.uniform1fv(location, values);
+			glContext.uniform1fv(location, values);
 		}
 		else {
-			this.valuesToSet[name] = { type: 'floatArray', value: values };
+			this.#valuesToSet[name] = { type: 'floatArray', value: values };
 		}
 	}
 
 	setFloatVector(name, values)
 	{
 		if (activeShader === this) {
-			let location = this.uniformIDs[name];
+			let location = this.#uniformIDs[name];
 			if (location === undefined) {
-				location = webGL.getUniformLocation(this.glProgram, name);
-				this.uniformIDs[name] = location;
+				location = glContext.getUniformLocation(this.#glProgram, name);
+				this.#uniformIDs[name] = location;
 			}
 			const size = values.length;
-			size === 4 ? webGL.uniform4fv(location, values)
-				: size === 3 ? webGL.uniform3fv(location, values)
-				: size === 2 ? webGL.uniform2fv(location, values)
-				: webGL.uniform1fv(location, values);
+			size === 4 ? glContext.uniform4fv(location, values)
+				: size === 3 ? glContext.uniform3fv(location, values)
+				: size === 2 ? glContext.uniform2fv(location, values)
+				: glContext.uniform1fv(location, values);
 		}
 		else {
-			this.valuesToSet[name] = { type: 'floatVector', value: values };
+			this.#valuesToSet[name] = { type: 'floatVector', value: values };
 		}
 	}
 
 	setInt(name, value)
 	{
 		if (activeShader === this) {
-			let location = this.uniformIDs[name];
+			let location = this.#uniformIDs[name];
 			if (location === undefined) {
-				location = webGL.getUniformLocation(this.glProgram, name);
-				this.uniformIDs[name] = location;
+				location = glContext.getUniformLocation(this.#glProgram, name);
+				this.#uniformIDs[name] = location;
 			}
-			webGL.uniform1i(location, value);
+			glContext.uniform1i(location, value);
 		}
 		else {
-			this.valuesToSet[name] = { type: 'int', value };
+			this.#valuesToSet[name] = { type: 'int', value };
 		}
 	}
 
 	setIntArray(name, values)
 	{
 		if (activeShader === this) {
-			let location = this.uniformIDs[name];
+			let location = this.#uniformIDs[name];
 			if (location === undefined) {
-				location = webGL.getUniformLocation(this.glProgram, name);
-				this.uniformIDs[name] = location;
+				location = glContext.getUniformLocation(this.#glProgram, name);
+				this.#uniformIDs[name] = location;
 			}
-			webGL.uniform1iv(location, values);
+			glContext.uniform1iv(location, values);
 		}
 		else {
-			this.valuesToSet[name] = { type: 'intArray', value: values };
+			this.#valuesToSet[name] = { type: 'intArray', value: values };
 		}
 	}
 
 	setIntVector(name, values)
 	{
 		if (activeShader === this) {
-			let location = this.uniformIDs[name];
+			let location = this.#uniformIDs[name];
 			if (location === undefined) {
-				location = webGL.getUniformLocation(this.glProgram, name);
-				this.uniformIDs[name] = location;
+				location = glContext.getUniformLocation(this.#glProgram, name);
+				this.#uniformIDs[name] = location;
 			}
 			const size = values.length;
-			size === 4 ? webGL.uniform4iv(location, values)
-				: size === 3 ? webGL.uniform3iv(location, values)
-				: size === 2 ? webGL.uniform2iv(location, values)
-				: webGL.uniform1iv(location, values);
+			size === 4 ? glContext.uniform4iv(location, values)
+				: size === 3 ? glContext.uniform3iv(location, values)
+				: size === 2 ? glContext.uniform2iv(location, values)
+				: glContext.uniform1iv(location, values);
 		}
 		else {
-			this.valuesToSet[name] = { type: 'intVector', value: values };
+			this.#valuesToSet[name] = { type: 'intVector', value: values };
 		}
 	}
 
 	setMatrix(name, value)
 	{
 		if (activeShader === this) {
-			let location = this.uniformIDs[name];
+			let location = this.#uniformIDs[name];
 			if (location === undefined) {
-				location = webGL.getUniformLocation(this.glProgram, name);
-				this.uniformIDs[name] = location;
+				location = glContext.getUniformLocation(this.#glProgram, name);
+				this.#uniformIDs[name] = location;
 			}
-			webGL.uniformMatrix4fv(location, false, value.values);
+			glContext.uniformMatrix4fv(location, false, value.matrix);
 		}
 		else {
-			this.valuesToSet[name] = { type: 'matrix', value };
+			this.#valuesToSet[name] = { type: 'matrix', value };
 		}
 	}
 
 	transform(matrix)
 	{
-		this.modelViewMatrix = matrix.clone();
-		let transformation = this.modelViewMatrix.clone()
-			.compose(this.projection);
+		this.#modelViewMatrix = matrix.clone();
+		let transformation = this.#modelViewMatrix.clone()
+			.compose(this.#projection);
 		this.setMatrix('al_projview_matrix', transformation);
 	}
 }
@@ -777,10 +790,10 @@ class Shader
 export
 class Shape
 {
-	indexList_;
-	texture_;
-	type;
-	vertexList_;
+	#indexList;
+	#shapeType;
+	#texture;
+	#vertexList;
 
 	static drawImmediate(surface, shapeType, arg1, arg2)
 	{
@@ -799,63 +812,63 @@ class Shape
 
 	constructor(shapeType, arg1, arg2 = null, arg3 = null)
 	{
-		this.type = shapeType;
+		this.#shapeType = shapeType;
 		if (arg2 instanceof VertexList) {
 			if (!(arg1 instanceof Texture) && arg1 != undefined)
-				throw new Error("Expected a Texture or 'null' as second argument to Shape constructor");
-			this.vertexList_ = arg2;
-			this.indexList_ = arg3;
-			this.texture_ = arg1;
+				throw new Error("Expected a Texture or 'null' as second argument of Shape constructor");
+			this.#vertexList = arg2;
+			this.#indexList = arg3;
+			this.#texture = arg1;
 		}
 		else {
 			if (!(arg1 instanceof VertexList))
-				throw new Error("Expected a VertexList or Texture as second argument to Shape constructor");
-			this.vertexList_ = arg1;
-			this.indexList_ = arg2;
-			this.texture_ = null;
+				throw new Error("Expected a VertexList or Texture as second argument of Shape constructor");
+			this.#vertexList = arg1;
+			this.#indexList = arg2;
+			this.#texture = null;
 		}
 	}
 
 	get indexList()
 	{
-		return this.indexList_;
+		return this.#indexList;
 	}
 
 	get texture()
 	{
-		return this.texture_;
+		return this.#texture;
 	}
 
 	get vertexList()
 	{
-		return this.vertexList_;
+		return this.#vertexList;
 	}
 
 	set indexList(value)
 	{
 		if (value !== null && !(value instanceof IndexList))
 			throw TypeError("Shape#indexList must be set to an IndexList object or 'null'.");
-		this.indexList_ = value;
+		this.#indexList = value;
 	}
 
 	set texture(value)
 	{
 		if (value !== null && !(value instanceof Texture))
 			throw TypeError("Shape#texture must be set to a Texture object or 'null'.");
-		this.texture_ = value;
+		this.#texture = value;
 	}
 
 	set vertexList(value)
 	{
 		if (!(value instanceof VertexList))
 			throw TypeError("Shape#vertexList must be set to a VertexList object.");
-		this.vertexList_ = value;
+		this.#vertexList = value;
 	}
 
 	draw(surface = Surface.Screen, transform = Transform.Identity, shader = Shader.Default)
 	{
-		surface.activate(shader, this.texture_, transform);
-		Galileo.draw(this.type, this.vertexList_, this.indexList_);
+		surface.activate(shader, this.#texture, transform);
+		Galileo.draw(this.#shapeType, this.#vertexList, this.#indexList);
 	}
 }
 
@@ -877,7 +890,7 @@ class Texture
 
 	constructor(...args)
 	{
-		const glTexture = webGL.createTexture();
+		const glTexture = glContext.createTexture();
 		if (glTexture === null)
 			throw new Error(`Engine couldn't create a WebGL texture object.`);
 		this.glTexture = glTexture;
@@ -885,12 +898,12 @@ class Texture
 			throw Error("'new Texture' with filename is not supported in Oozaru.");
 		}
 		else {
-			const oldBinding = webGL.getParameter(webGL.TEXTURE_BINDING_2D);
-			webGL.bindTexture(webGL.TEXTURE_2D, glTexture);
-			webGL.pixelStorei(webGL.UNPACK_FLIP_Y_WEBGL, true);
+			const oldBinding = glContext.getParameter(glContext.TEXTURE_BINDING_2D);
+			glContext.bindTexture(glContext.TEXTURE_2D, glTexture);
+			glContext.pixelStorei(glContext.UNPACK_FLIP_Y_WEBGL, true);
 			if (args[0] instanceof HTMLImageElement) {
 				const image = args[0];
-				webGL.texImage2D(webGL.TEXTURE_2D, 0, webGL.RGBA, webGL.RGBA, webGL.UNSIGNED_BYTE, image);
+				glContext.texImage2D(glContext.TEXTURE_2D, 0, glContext.RGBA, glContext.RGBA, glContext.UNSIGNED_BYTE, image);
 				this.size = { width: args[0].width, height: args[0].height };
 			}
 			else if (typeof args[0] === 'number' && typeof args[1] === 'number') {
@@ -902,22 +915,22 @@ class Texture
 					const buffer = args[2] instanceof ArrayBuffer ? args[2] : args[2].buffer;
 					if (buffer.byteLength < width * height * 4)
 						throw RangeError(`The provided buffer is too small to initialize a ${width}x${height} texture.`);
-					webGL.texImage2D(webGL.TEXTURE_2D, 0, webGL.RGBA, width, height, 0, webGL.RGBA, webGL.UNSIGNED_BYTE,
+					glContext.texImage2D(glContext.TEXTURE_2D, 0, glContext.RGBA, width, height, 0, glContext.RGBA, glContext.UNSIGNED_BYTE,
 						new Uint8Array(buffer));
 				}
 				else {
 					const pixels = new Uint32Array(width * height);
 					if (args[2] !== undefined)
 						pixels.fill((args[2].a * 255 << 24) + (args[2].b * 255 << 16) + (args[2].g * 255 << 8) + (args[2].r * 255));
-					webGL.texImage2D(webGL.TEXTURE_2D, 0, webGL.RGBA, width, height, 0, webGL.RGBA, webGL.UNSIGNED_BYTE,
+					glContext.texImage2D(glContext.TEXTURE_2D, 0, glContext.RGBA, width, height, 0, glContext.RGBA, glContext.UNSIGNED_BYTE,
 						new Uint8Array(pixels.buffer));
 				}
 				this.size = { width, height };
 			}
-			webGL.texParameteri(webGL.TEXTURE_2D, webGL.TEXTURE_MIN_FILTER, webGL.LINEAR);
-			webGL.texParameteri(webGL.TEXTURE_2D, webGL.TEXTURE_WRAP_S, webGL.CLAMP_TO_EDGE);
-			webGL.texParameteri(webGL.TEXTURE_2D, webGL.TEXTURE_WRAP_T, webGL.CLAMP_TO_EDGE);
-			webGL.bindTexture(webGL.TEXTURE_2D, oldBinding);
+			glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MIN_FILTER, glContext.LINEAR);
+			glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_S, glContext.CLAMP_TO_EDGE);
+			glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_T, glContext.CLAMP_TO_EDGE);
+			glContext.bindTexture(glContext.TEXTURE_2D, oldBinding);
 		}
 	}
 
@@ -936,14 +949,14 @@ class Texture
 		const pixelData = ArrayBuffer.isView(content)
 			? new Uint8Array(content.buffer)
 			: new Uint8Array(content);
-		webGL.bindTexture(webGL.TEXTURE_2D, this.glTexture);
-		webGL.texSubImage2D(webGL.TEXTURE_2D, 0, x, this.size.height - y - height, width, height, webGL.RGBA, webGL.UNSIGNED_BYTE, pixelData);
+		glContext.bindTexture(glContext.TEXTURE_2D, this.glTexture);
+		glContext.texSubImage2D(glContext.TEXTURE_2D, 0, x, this.size.height - y - height, width, height, glContext.RGBA, glContext.UNSIGNED_BYTE, pixelData);
 	}
 
 	useTexture(textureUnit = 0)
 	{
-		webGL.activeTexture(webGL.TEXTURE0 + textureUnit);
-		webGL.bindTexture(webGL.TEXTURE_2D, this.glTexture);
+		glContext.activeTexture(glContext.TEXTURE0 + textureUnit);
+		glContext.bindTexture(glContext.TEXTURE_2D, this.glTexture);
 	}
 }
 
@@ -959,13 +972,13 @@ class Surface extends Texture
 	static get Screen()
 	{
 		const screenSurface = Object.create(Surface.prototype);
-		screenSurface.size = { width: webGL.canvas.width, height: webGL.canvas.height };
+		screenSurface.size = { width: glContext.canvas.width, height: glContext.canvas.height };
 		screenSurface.blendOp_ = BlendOp.Default;
-		screenSurface.clipRectangle = { x: 0, y: 0, w: webGL.canvas.width, h: webGL.canvas.height };
+		screenSurface.clipRectangle = { x: 0, y: 0, w: glContext.canvas.width, h: glContext.canvas.height };
 		screenSurface.depthOp_ = DepthOp.AlwaysPass;
 		screenSurface.frameBuffer = null;
 		screenSurface.projection = new Transform()
-			.project2D(0, 0, webGL.canvas.width, webGL.canvas.height);
+			.project2D(0, 0, glContext.canvas.width, glContext.canvas.height);
 		Object.defineProperty(Surface, 'Screen', {
 			value: screenSurface,
 			writable: false,
@@ -987,20 +1000,20 @@ class Surface extends Texture
 
 		super(...args);
 
-		const frameBuffer = webGL.createFramebuffer();
-		const depthBuffer = webGL.createRenderbuffer();
+		const frameBuffer = glContext.createFramebuffer();
+		const depthBuffer = glContext.createRenderbuffer();
 		if (frameBuffer === null || depthBuffer === null)
 			throw new Error(`Engine couldn't create a WebGL framebuffer object.`);
 
 		// in order to set up a new FBO we need to change the current framebuffer binding, so make sure
 		// it gets changed back afterwards.
-		const previousFBO = webGL.getParameter(webGL.FRAMEBUFFER_BINDING);
-		webGL.bindFramebuffer(webGL.FRAMEBUFFER, frameBuffer);
-		webGL.framebufferTexture2D(webGL.FRAMEBUFFER, webGL.COLOR_ATTACHMENT0, webGL.TEXTURE_2D, this.glTexture, 0);
-		webGL.bindRenderbuffer(webGL.RENDERBUFFER, depthBuffer);
-		webGL.renderbufferStorage(webGL.RENDERBUFFER, webGL.DEPTH_COMPONENT16, this.width, this.height);
-		webGL.framebufferRenderbuffer(webGL.FRAMEBUFFER, webGL.DEPTH_ATTACHMENT, webGL.RENDERBUFFER, depthBuffer);
-		webGL.bindFramebuffer(webGL.FRAMEBUFFER, previousFBO);
+		const previousFBO = glContext.getParameter(glContext.FRAMEBUFFER_BINDING);
+		glContext.bindFramebuffer(glContext.FRAMEBUFFER, frameBuffer);
+		glContext.framebufferTexture2D(glContext.FRAMEBUFFER, glContext.COLOR_ATTACHMENT0, glContext.TEXTURE_2D, this.glTexture, 0);
+		glContext.bindRenderbuffer(glContext.RENDERBUFFER, depthBuffer);
+		glContext.renderbufferStorage(glContext.RENDERBUFFER, glContext.DEPTH_COMPONENT16, this.width, this.height);
+		glContext.framebufferRenderbuffer(glContext.FRAMEBUFFER, glContext.DEPTH_ATTACHMENT, glContext.RENDERBUFFER, depthBuffer);
+		glContext.bindFramebuffer(glContext.FRAMEBUFFER, previousFBO);
 
 		this.clipRectangle = { x: 0, y: 0, w: this.width, h: this.height };
 		this.frameBuffer = frameBuffer;
@@ -1045,9 +1058,9 @@ class Surface extends Texture
 	activate(shader, texture = null, transform = Transform.Identity)
 	{
 		if (this !== activeSurface) {
-			webGL.bindFramebuffer(webGL.FRAMEBUFFER, this.frameBuffer);
-			webGL.viewport(0, 0, this.width, this.height);
-			webGL.scissor(this.clipRectangle.x, this.clipRectangle.y, this.clipRectangle.w, this.clipRectangle.h);
+			glContext.bindFramebuffer(glContext.FRAMEBUFFER, this.frameBuffer);
+			glContext.viewport(0, 0, this.width, this.height);
+			glContext.scissor(this.clipRectangle.x, this.clipRectangle.y, this.clipRectangle.w, this.clipRectangle.h);
 			applyBlendOp(this.blendOp_);
 			applyDepthOp(this.depthOp_);
 			activeSurface = this;
@@ -1065,7 +1078,7 @@ class Surface extends Texture
 		this.clipRectangle.w = width;
 		this.clipRectangle.h = height;
 		if (this === activeSurface)
-			webGL.scissor(x, this.height - y - height, width, height);
+			glContext.scissor(x, this.height - y - height, width, height);
 	}
 
 	unclip()
@@ -1077,7 +1090,7 @@ class Surface extends Texture
 export
 class Transform
 {
-	values;
+	#values;
 
 	static get Identity()
 	{
@@ -1104,10 +1117,11 @@ class Transform
 		if (values !== undefined) {
 			if (values.length !== 16)
 				throw RangeError("new Transform() requires a 16-element array of numbers as input.");
-			this.values = new Float32Array(values);
+			this.#values = new Float32Array(values);
 		}
 		else {
-			this.values = new Float32Array([
+			// default configuration is an identity matrix
+			this.#values = new Float32Array([
 				1.0, 0.0, 0.0, 0.0,
 				0.0, 1.0, 0.0, 0.0,
 				0.0, 0.0, 1.0, 0.0,
@@ -1116,15 +1130,23 @@ class Transform
 		}
 	}
 
+	get matrix()
+	{
+		return this.#values;
+	}
+
 	clone()
 	{
-		return new Transform(this.values);
+		return new Transform(this.#values);
 	}
 
 	compose(other)
 	{
-		const m1 = this.values;
-		const m2 = other.values;
+		if (!(other instanceof Transform))
+			throw TypeError("Transform#compose argument must be a Transform object");
+		
+		const m1 = this.#values;
+		const m2 = other.#values;
 
 		// multiply from the left (i.e. `other * this`).  this emulates the way Allegro's
 		// `al_compose_transform()` function works--that is, transformations are logically applied in
@@ -1162,7 +1184,7 @@ class Transform
 
 	identity()
 	{
-		this.values.set([
+		this.#values.set([
 			1.0, 0.0, 0.0, 0.0,
 			0.0, 1.0, 0.0, 0.0,
 			0.0, 0.0, 1.0, 0.0,
@@ -1178,7 +1200,7 @@ class Transform
 		const deltaZ = far - near;
 
 		const projection = Transform.Zero;
-		const values = projection.values;
+		const values = projection.#values;
 		values[0] = 2.0 / deltaX;
 		values[5] = 2.0 / deltaY;
 		values[10] = 2.0 / deltaZ;
@@ -1200,7 +1222,7 @@ class Transform
 		const deltaZ = far - near;
 
 		const projection = Transform.Zero;
-		const values = projection.values;
+		const values = projection.#values;
 		values[0] = 2.0 * near / deltaX;
 		values[5] = 2.0 * near / deltaY;
 		values[8] = (fw + -fw) / deltaX;
@@ -1231,7 +1253,7 @@ class Transform
 		const siv = 1.0 - cos;
 
 		const rotation = Transform.Zero;
-		const values = rotation.values;
+		const values = rotation.#values;
 		values[0] = (siv * vX * vX) + cos;
 		values[1] = (siv * vX * vY) + (vZ * sin);
 		values[2] = (siv * vX * vZ) - (vY * sin);
@@ -1248,29 +1270,29 @@ class Transform
 
 	scale(sX, sY, sZ = 1.0)
 	{
-		this.values[0] *= sX;
-		this.values[4] *= sX;
-		this.values[8] *= sX;
-		this.values[12] *= sX;
+		this.#values[0] *= sX;
+		this.#values[4] *= sX;
+		this.#values[8] *= sX;
+		this.#values[12] *= sX;
 
-		this.values[1] *= sY;
-		this.values[5] *= sY;
-		this.values[9] *= sY;
-		this.values[13] *= sY;
+		this.#values[1] *= sY;
+		this.#values[5] *= sY;
+		this.#values[9] *= sY;
+		this.#values[13] *= sY;
 
-		this.values[2] *= sZ;
-		this.values[6] *= sZ;
-		this.values[10] *= sZ;
-		this.values[14] *= sZ;
+		this.#values[2] *= sZ;
+		this.#values[6] *= sZ;
+		this.#values[10] *= sZ;
+		this.#values[14] *= sZ;
 
 		return this;
 	}
 
 	translate(tX, tY, tZ = 0.0)
 	{
-		this.values[12]	+= tX;
-		this.values[13] += tY;
-		this.values[14] += tZ;
+		this.#values[12]	+= tX;
+		this.#values[13] += tY;
+		this.#values[14] += tZ;
 		return this;
 	}
 }
@@ -1278,26 +1300,31 @@ class Transform
 export
 class VertexList
 {
-	glBuffer = null;
-	length = 0;
+	#glBuffer = null;
+	#length = 0;
 
 	constructor(vertices)
 	{
-		this.glBuffer = webGL.createBuffer();
-		if (this.glBuffer === null)
+		this.#glBuffer = glContext.createBuffer();
+		if (this.#glBuffer === null)
 			throw new Error(`Engine couldn't create a WebGL buffer object.`);
 		this.upload(vertices);
 	}
 
+	get length()
+	{
+		return this.#length;
+	}
+
 	activate()
 	{
-		webGL.bindBuffer(webGL.ARRAY_BUFFER, this.glBuffer);
-		webGL.enableVertexAttribArray(0);
-		webGL.enableVertexAttribArray(1);
-		webGL.enableVertexAttribArray(2);
-		webGL.vertexAttribPointer(0, 4, webGL.FLOAT, false, 40, 0);
-		webGL.vertexAttribPointer(1, 4, webGL.FLOAT, false, 40, 16);
-		webGL.vertexAttribPointer(2, 2, webGL.FLOAT, false, 40, 32);
+		glContext.bindBuffer(glContext.ARRAY_BUFFER, this.#glBuffer);
+		glContext.enableVertexAttribArray(0);
+		glContext.enableVertexAttribArray(1);
+		glContext.enableVertexAttribArray(2);
+		glContext.vertexAttribPointer(0, 4, glContext.FLOAT, false, 40, 0);
+		glContext.vertexAttribPointer(1, 4, glContext.FLOAT, false, 40, 16);
+		glContext.vertexAttribPointer(2, 2, glContext.FLOAT, false, 40, 32);
 	}
 
 	upload(vertices)
@@ -1316,9 +1343,9 @@ class VertexList
 			data[8 + i * 10] = vertex.u ?? 0.0;
 			data[9 + i * 10] = vertex.v ?? 0.0;
 		}
-		webGL.bindBuffer(webGL.ARRAY_BUFFER, this.glBuffer);
-		webGL.bufferData(webGL.ARRAY_BUFFER, data, webGL.STREAM_DRAW);
-		this.length = vertices.length;
+		glContext.bindBuffer(glContext.ARRAY_BUFFER, this.#glBuffer);
+		glContext.bufferData(glContext.ARRAY_BUFFER, data, glContext.STREAM_DRAW);
+		this.#length = vertices.length;
 	}
 }
 
@@ -1326,59 +1353,59 @@ function applyBlendOp(blendOp)
 {
 	switch (blendOp) {
 		case BlendOp.Default:
-			webGL.blendEquation(webGL.FUNC_ADD);
-			webGL.blendFunc(webGL.SRC_ALPHA, webGL.ONE_MINUS_SRC_ALPHA);
+			glContext.blendEquation(glContext.FUNC_ADD);
+			glContext.blendFunc(glContext.SRC_ALPHA, glContext.ONE_MINUS_SRC_ALPHA);
 			break;
 		case BlendOp.Add:
-			webGL.blendEquation(webGL.FUNC_ADD);
-			webGL.blendFunc(webGL.ONE, webGL.ONE);
+			glContext.blendEquation(glContext.FUNC_ADD);
+			glContext.blendFunc(glContext.ONE, glContext.ONE);
 			break;
 		case BlendOp.Average:
-			webGL.blendEquation(webGL.FUNC_ADD);
-			webGL.blendFunc(webGL.CONSTANT_COLOR, webGL.CONSTANT_COLOR);
-			webGL.blendColor(0.5, 0.5, 0.5, 0.5);
+			glContext.blendEquation(glContext.FUNC_ADD);
+			glContext.blendFunc(glContext.CONSTANT_COLOR, glContext.CONSTANT_COLOR);
+			glContext.blendColor(0.5, 0.5, 0.5, 0.5);
 			break;
 		case BlendOp.CopyAlpha:
-			webGL.blendEquation(webGL.FUNC_ADD);
-			webGL.blendFuncSeparate(webGL.ZERO, webGL.ONE, webGL.ONE, webGL.ZERO);
+			glContext.blendEquation(glContext.FUNC_ADD);
+			glContext.blendFuncSeparate(glContext.ZERO, glContext.ONE, glContext.ONE, glContext.ZERO);
 			break;
 		case BlendOp.CopyRGB:
-			webGL.blendEquation(webGL.FUNC_ADD);
-			webGL.blendFuncSeparate(webGL.ONE, webGL.ZERO, webGL.ZERO, webGL.ONE);
+			glContext.blendEquation(glContext.FUNC_ADD);
+			glContext.blendFuncSeparate(glContext.ONE, glContext.ZERO, glContext.ZERO, glContext.ONE);
 			break;
 		case BlendOp.Invert:
-			webGL.blendEquation(webGL.FUNC_ADD);
-			webGL.blendFunc(webGL.ZERO, webGL.ONE_MINUS_SRC_COLOR);
+			glContext.blendEquation(glContext.FUNC_ADD);
+			glContext.blendFunc(glContext.ZERO, glContext.ONE_MINUS_SRC_COLOR);
 			break;
 		case BlendOp.Multiply:
-			webGL.blendEquation(webGL.FUNC_ADD);
-			webGL.blendFunc(webGL.DST_COLOR, webGL.ZERO);
+			glContext.blendEquation(glContext.FUNC_ADD);
+			glContext.blendFunc(glContext.DST_COLOR, glContext.ZERO);
 			break;
 		case BlendOp.Replace:
-			webGL.blendEquation(webGL.FUNC_ADD);
-			webGL.blendFunc(webGL.ONE, webGL.ZERO);
+			glContext.blendEquation(glContext.FUNC_ADD);
+			glContext.blendFunc(glContext.ONE, glContext.ZERO);
 			break;
 		case BlendOp.Subtract:
-			webGL.blendEquation(webGL.FUNC_REVERSE_SUBTRACT);
-			webGL.blendFunc(webGL.ONE, webGL.ONE);
+			glContext.blendEquation(glContext.FUNC_REVERSE_SUBTRACT);
+			glContext.blendFunc(glContext.ONE, glContext.ONE);
 			break;
 		default:
 			// something went horribly wrong if we got here; just set the blender to output
 			// nothing so the user can see something went awry.
-			webGL.blendEquation(webGL.FUNC_ADD);
-			webGL.blendFunc(webGL.ZERO, webGL.ZERO);
+			glContext.blendEquation(glContext.FUNC_ADD);
+			glContext.blendFunc(glContext.ZERO, glContext.ZERO);
 	}
 }
 
 function applyDepthOp(depthOp)
 {
-	const depthFunc = depthOp === DepthOp.AlwaysPass ? webGL.ALWAYS
-		: depthOp === DepthOp.Equal ? webGL.EQUAL
-		: depthOp === DepthOp.Greater ? webGL.GREATER
-		: depthOp === DepthOp.GreaterOrEqual ? webGL.GEQUAL
-		: depthOp === DepthOp.Less ? webGL.LESS
-		: depthOp === DepthOp.LessOrEqual ? webGL.LEQUAL
-		: depthOp === DepthOp.NotEqual ? webGL.NOTEQUAL
-		: webGL.NEVER;
-	webGL.depthFunc(depthFunc);
+	const depthFunc = depthOp === DepthOp.AlwaysPass ? glContext.ALWAYS
+		: depthOp === DepthOp.Equal ? glContext.EQUAL
+		: depthOp === DepthOp.Greater ? glContext.GREATER
+		: depthOp === DepthOp.GreaterOrEqual ? glContext.GEQUAL
+		: depthOp === DepthOp.Less ? glContext.LESS
+		: depthOp === DepthOp.LessOrEqual ? glContext.LEQUAL
+		: depthOp === DepthOp.NotEqual ? glContext.NOTEQUAL
+		: glContext.NEVER;
+	glContext.depthFunc(depthFunc);
 }

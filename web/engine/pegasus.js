@@ -47,14 +47,14 @@ const DataType =
 	Lines: 2,
 	Raw: 3,
 	Text: 4,
-}
+};
 
 const FileOp =
 {
 	Read: 0,
 	Update: 1,
 	Write: 2,
-}
+};
 
 const console = globalThis.console;
 
@@ -76,7 +76,7 @@ class Pegasus
 			Key,
 			MouseKey,
 			ShapeType,
-	
+
 			// classes and namespaces
 			Sphere,
 			Color,
