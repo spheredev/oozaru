@@ -93,7 +93,7 @@ async function main()
 			if (overlay !== null)
 				overlay.style.opacity = '0';
 			canvas.onclick = null;
-			canvas.onkeydown = null;
+			canvas.onkeypress = null;
 			canvas.focus();
 			await Galileo.initialize(canvas);
 			await Audialis.initialize();

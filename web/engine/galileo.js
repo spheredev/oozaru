@@ -777,10 +777,10 @@ class Shader
 export
 class Shape
 {
-	indices;
+	indexList_;
 	texture_;
 	type;
-	vertexList;
+	vertexList_;
 
 	static drawImmediate(surface, shapeType, arg1, arg2)
 	{
@@ -803,22 +803,22 @@ class Shape
 		if (arg2 instanceof VertexList) {
 			if (!(arg1 instanceof Texture) && arg1 != undefined)
 				throw new Error("Expected a Texture or 'null' as second argument to Shape constructor");
-			this.vertexList = arg2;
-			this.indices = arg3;
+			this.vertexList_ = arg2;
+			this.indexList_ = arg3;
 			this.texture_ = arg1;
 		}
 		else {
 			if (!(arg1 instanceof VertexList))
 				throw new Error("Expected a VertexList or Texture as second argument to Shape constructor");
-			this.vertexList = arg1;
-			this.indices = arg2;
+			this.vertexList_ = arg1;
+			this.indexList_ = arg2;
 			this.texture_ = null;
 		}
 	}
 
 	get indexList()
 	{
-		return this.indices;
+		return this.indexList_;
 	}
 
 	get texture()
@@ -828,14 +828,14 @@ class Shape
 
 	get vertexList()
 	{
-		return this.vertexList;
+		return this.vertexList_;
 	}
 
 	set indexList(value)
 	{
 		if (value !== null && !(value instanceof IndexList))
 			throw TypeError("Shape#indexList must be set to an IndexList object or 'null'.");
-		this.indices = value;
+		this.indexList_ = value;
 	}
 
 	set texture(value)
@@ -849,13 +849,13 @@ class Shape
 	{
 		if (!(value instanceof VertexList))
 			throw TypeError("Shape#vertexList must be set to a VertexList object.");
-		this.vertexList = value;
+		this.vertexList_ = value;
 	}
 
 	draw(surface = Surface.Screen, transform = Transform.Identity, shader = Shader.Default)
 	{
 		surface.activate(shader, this.texture_, transform);
-		Galileo.draw(this.type, this.vertexList, this.indices);
+		Galileo.draw(this.type, this.vertexList_, this.indexList_);
 	}
 }
 

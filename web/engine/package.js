@@ -41,10 +41,9 @@ class Package
 
 	static async fromFile(url)
 	{
-		const response = await Fido.fetch(url);
-		const buffer = await response.arrayBuffer();
-		const stream = new DataStream(buffer);
-		return new this(stream);
+		const buffer = await Fido.fetchData(url);
+		const dataStream = new DataStream(buffer);
+		return new Package(dataStream);
 	}
 
 	constructor(dataStream)

@@ -49,9 +49,9 @@ class Fontso
 export
 class Font
 {
+	fileName;
 	glyphAtlas;
 	glyphData = [];
-	fileName;
 	lineHeight = 0;
 	maxWidth = 0;
 	numGlyphs = 0;
@@ -121,11 +121,6 @@ class Font
 		else {
 			throw RangeError("Invalid argument(s) passed to 'new Font'.");
 		}
-	}
-
-	get fileName()
-	{
-		return this.fileName;
 	}
 
 	get height()
