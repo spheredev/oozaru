@@ -58,7 +58,7 @@ const DepthOp =
 	LessOrEqual: 5,
 	NeverPass: 6,
 	NotEqual: 7,
-}
+};
 
 export
 const ShapeType =
@@ -70,12 +70,12 @@ const ShapeType =
 	Points: 4,
 	Triangles: 5,
 	TriStrip: 6,
-}
+};
 
 var activeShader = null;
 var activeSurface = null;
 var defaultShader;
-var glContext;
+var gl;
 
 export default
 class Galileo
@@ -85,15 +85,15 @@ class Galileo
 		const webGLContext = canvas.getContext('webgl', { alpha: false });
 		if (webGLContext === null)
 			throw new Error(`Couldn't acquire a WebGL rendering context.`);
-		glContext = webGLContext;
-		glContext.clearColor(0.0, 0.0, 0.0, 1.0);
-		glContext.clearDepth(1.0);
-		glContext.blendEquation(webGLContext.FUNC_ADD);
-		glContext.blendFunc(webGLContext.SRC_ALPHA, webGLContext.ONE_MINUS_SRC_ALPHA);
-		glContext.depthFunc(webGLContext.ALWAYS);
-		glContext.enable(webGLContext.BLEND);
-		glContext.enable(webGLContext.DEPTH_TEST);
-		glContext.enable(webGLContext.SCISSOR_TEST);
+		gl = webGLContext;
+		gl.clearColor(0.0, 0.0, 0.0, 1.0);
+		gl.clearDepth(1.0);
+		gl.blendEquation(gl.FUNC_ADD);
+		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+		gl.depthFunc(gl.ALWAYS);
+		gl.enable(gl.BLEND);
+		gl.enable(gl.DEPTH_TEST);
+		gl.enable(gl.SCISSOR_TEST);
 
 		defaultShader = await Shader.fromFiles({
 			vertexFile: '#/default.vert.glsl',
@@ -105,24 +105,24 @@ class Galileo
 
 	static draw(shapeType, vertexList, indexList, offset = 0, numVertices)
 	{
-		const drawMode = shapeType === ShapeType.Fan ? glContext.TRIANGLE_FAN
-			: shapeType === ShapeType.Lines ? glContext.LINES
-			: shapeType === ShapeType.LineLoop ? glContext.LINE_LOOP
-			: shapeType === ShapeType.LineStrip ? glContext.LINE_STRIP
-			: shapeType === ShapeType.Points ? glContext.POINTS
-			: shapeType === ShapeType.TriStrip ? glContext.TRIANGLE_STRIP
-			: glContext.TRIANGLES;
+		const drawMode = shapeType === ShapeType.Fan ? gl.TRIANGLE_FAN
+			: shapeType === ShapeType.Lines ? gl.LINES
+			: shapeType === ShapeType.LineLoop ? gl.LINE_LOOP
+			: shapeType === ShapeType.LineStrip ? gl.LINE_STRIP
+			: shapeType === ShapeType.Points ? gl.POINTS
+			: shapeType === ShapeType.TriStrip ? gl.TRIANGLE_STRIP
+			: gl.TRIANGLES;
 		vertexList.activate();
 		if (indexList != null) {
 			if (numVertices === undefined)
 				numVertices = indexList.length - offset;
 			indexList.activate();
-			glContext.drawElements(drawMode, numVertices, glContext.UNSIGNED_SHORT, offset);
+			gl.drawElements(drawMode, numVertices, gl.UNSIGNED_SHORT, offset);
 		}
 		else {
 			if (numVertices === undefined)
 				numVertices = vertexList.length - offset;
-			glContext.drawArrays(drawMode, offset, numVertices);
+			gl.drawArrays(drawMode, offset, numVertices);
 		}
 	}
 
@@ -130,28 +130,28 @@ class Galileo
 	{
 		Surface.Screen.activate(defaultShader);
 		Surface.Screen.unclip();
-		glContext.disable(glContext.SCISSOR_TEST);
-		glContext.clear(glContext.COLOR_BUFFER_BIT | glContext.DEPTH_BUFFER_BIT);
-		glContext.enable(glContext.SCISSOR_TEST);
+		gl.disable(gl.SCISSOR_TEST);
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+		gl.enable(gl.SCISSOR_TEST);
 	}
 
 	static rerez(width, height)
 	{
-		glContext.canvas.width = width;
-		glContext.canvas.height = height;
+		gl.canvas.width = width;
+		gl.canvas.height = height;
 		Surface.Screen.size = { width, height };
 		Surface.Screen.projection = new Transform()
 			.project2D(0, 0, width, height);
 		if (width <= 400 && height <= 300) {
-			glContext.canvas.style.width = `${width * 2}px`;
-			glContext.canvas.style.height = `${height * 2}px`;
+			gl.canvas.style.width = `${width * 2}px`;
+			gl.canvas.style.height = `${height * 2}px`;
 		}
 		else {
-			glContext.canvas.style.width = `${width}px`;
-			glContext.canvas.style.height = `${height}px`;
+			gl.canvas.style.width = `${width}px`;
+			gl.canvas.style.height = `${height}px`;
 		}
 		if (activeSurface === Surface.Screen)
-			glContext.viewport(0, 0, glContext.canvas.width, glContext.canvas.height);
+			gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 	}
 }
 
@@ -414,7 +414,7 @@ class IndexList
 
 	constructor(indices)
 	{
-		this.#glBuffer = glContext.createBuffer();
+		this.#glBuffer = gl.createBuffer();
 		if (this.#glBuffer === null)
 			throw new Error(`The engine couldn't create a WebGL buffer object.`);
 		this.upload(indices);
@@ -427,14 +427,14 @@ class IndexList
 
 	activate()
 	{
-		glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, this.#glBuffer);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.#glBuffer);
 	}
 
 	upload(indices)
 	{
 		const values = new Uint16Array(indices);
-		glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, this.#glBuffer);
-		glContext.bufferData(glContext.ELEMENT_ARRAY_BUFFER, values, glContext.STREAM_DRAW);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.#glBuffer);
+		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, values, gl.STREAM_DRAW);
 		this.#length = values.length;
 	}
 }
@@ -518,9 +518,9 @@ class Shader
 
 	constructor(options)
 	{
-		const program = glContext.createProgram();
-		const vertexShader = glContext.createShader(glContext.VERTEX_SHADER);
-		const fragmentShader = glContext.createShader(glContext.FRAGMENT_SHADER);
+		const program = gl.createProgram();
+		const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+		const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
 		if (program === null || vertexShader === null || fragmentShader === null)
 			throw new Error(`Engine couldn't create a WebGL shader object.`);
 		this.#glProgram = program;
@@ -541,47 +541,47 @@ class Shader
 	activate(useTexture)
 	{
 		if (activeShader !== this) {
-			glContext.useProgram(this.#glProgram);
+			gl.useProgram(this.#glProgram);
 			for (const name of Object.keys(this.#valuesToSet)) {
 				const entry = this.#valuesToSet[name];
 				let location = this.#uniformIDs[name];
 				if (location === undefined) {
-					location = glContext.getUniformLocation(this.#glProgram, name);
+					location = gl.getUniformLocation(this.#glProgram, name);
 					this.#uniformIDs[name] = location;
 				}
 				let size;
 				switch (entry.type) {
 					case 'boolean':
-						glContext.uniform1i(location, entry.value ? 1 : 0);
+						gl.uniform1i(location, entry.value ? 1 : 0);
 						break;
 					case 'float':
-						glContext.uniform1f(location, entry.value);
+						gl.uniform1f(location, entry.value);
 						break;
 					case 'floatArray':
-						glContext.uniform1fv(location, entry.value);
+						gl.uniform1fv(location, entry.value);
 						break;
 					case 'floatVector':
 						size = entry.value.length;
-						size === 4 ? glContext.uniform4fv(location, entry.value)
-							: size === 3 ? glContext.uniform3fv(location, entry.value)
-							: size === 2 ? glContext.uniform2fv(location, entry.value)
-							: glContext.uniform1fv(location, entry.value);
+						size === 4 ? gl.uniform4fv(location, entry.value)
+							: size === 3 ? gl.uniform3fv(location, entry.value)
+							: size === 2 ? gl.uniform2fv(location, entry.value)
+							: gl.uniform1fv(location, entry.value);
 						break;
 					case 'int':
-						glContext.uniform1i(location, entry.value);
+						gl.uniform1i(location, entry.value);
 						break;
 					case 'intArray':
-						glContext.uniform1iv(location, entry.value);
+						gl.uniform1iv(location, entry.value);
 						break;
 					case 'intVector':
 						size = entry.value.length;
-						size === 4 ? glContext.uniform4iv(location, entry.value)
-							: size === 3 ? glContext.uniform3iv(location, entry.value)
-							: size === 2 ? glContext.uniform2iv(location, entry.value)
-							: glContext.uniform1iv(location, entry.value);
+						size === 4 ? gl.uniform4iv(location, entry.value)
+							: size === 3 ? gl.uniform3iv(location, entry.value)
+							: size === 2 ? gl.uniform2iv(location, entry.value)
+							: gl.uniform1iv(location, entry.value);
 						break;
 					case 'matrix':
-						glContext.uniformMatrix4fv(location, false, entry.value.matrix);
+						gl.uniformMatrix4fv(location, false, entry.value.matrix);
 						break;
 				}
 			}
@@ -602,28 +602,28 @@ class Shader
 	compile(vertexShaderSource, fragmentShaderSource)
 	{
 		// compile vertex and fragment shaders and check for errors
-		glContext.shaderSource(this.#glVertexShader, vertexShaderSource);
-		glContext.shaderSource(this.#glFragmentShader, fragmentShaderSource);
-		glContext.compileShader(this.#glVertexShader);
-		if (!glContext.getShaderParameter(this.#glVertexShader, glContext.COMPILE_STATUS)) {
-			const message = glContext.getShaderInfoLog(this.#glVertexShader);
+		gl.shaderSource(this.#glVertexShader, vertexShaderSource);
+		gl.shaderSource(this.#glFragmentShader, fragmentShaderSource);
+		gl.compileShader(this.#glVertexShader);
+		if (!gl.getShaderParameter(this.#glVertexShader, gl.COMPILE_STATUS)) {
+			const message = gl.getShaderInfoLog(this.#glVertexShader);
 			throw Error(`Couldn't compile WebGL vertex shader.\n${message}`);
 		}
-		glContext.compileShader(this.#glFragmentShader);
-		if (!glContext.getShaderParameter(this.#glFragmentShader, glContext.COMPILE_STATUS)) {
-			const message = glContext.getShaderInfoLog(this.#glFragmentShader);
+		gl.compileShader(this.#glFragmentShader);
+		if (!gl.getShaderParameter(this.#glFragmentShader, gl.COMPILE_STATUS)) {
+			const message = gl.getShaderInfoLog(this.#glFragmentShader);
 			throw Error(`Couldn't compile WebGL fragment shader.\n${message}`);
 		}
 
 		// link the individual shaders into a program, check for errors
-		glContext.attachShader(this.#glProgram, this.#glVertexShader);
-		glContext.attachShader(this.#glProgram, this.#glFragmentShader);
-		glContext.bindAttribLocation(this.#glProgram, 0, 'al_pos');
-		glContext.bindAttribLocation(this.#glProgram, 1, 'al_color');
-		glContext.bindAttribLocation(this.#glProgram, 2, 'al_texcoord');
-		glContext.linkProgram(this.#glProgram);
-		if (!glContext.getProgramParameter(this.#glProgram, glContext.LINK_STATUS)) {
-			const message = glContext.getProgramInfoLog(this.#glProgram);
+		gl.attachShader(this.#glProgram, this.#glVertexShader);
+		gl.attachShader(this.#glProgram, this.#glFragmentShader);
+		gl.bindAttribLocation(this.#glProgram, 0, 'al_pos');
+		gl.bindAttribLocation(this.#glProgram, 1, 'al_color');
+		gl.bindAttribLocation(this.#glProgram, 2, 'al_texcoord');
+		gl.linkProgram(this.#glProgram);
+		if (!gl.getProgramParameter(this.#glProgram, gl.LINK_STATUS)) {
+			const message = gl.getProgramInfoLog(this.#glProgram);
 			throw Error(`Couldn't link WebGL shader program.\n${message}`);
 		}
 
@@ -650,10 +650,10 @@ class Shader
 		if (activeShader === this) {
 			let location = this.#uniformIDs[name];
 			if (location === undefined) {
-				location = glContext.getUniformLocation(this.#glProgram, name);
+				location = gl.getUniformLocation(this.#glProgram, name);
 				this.#uniformIDs[name] = location;
 			}
-			glContext.uniform1i(location, value ? 1 : 0);
+			gl.uniform1i(location, value ? 1 : 0);
 		}
 		else {
 			this.#valuesToSet[name] = { type: 'boolean', value };
@@ -670,10 +670,10 @@ class Shader
 		if (activeShader === this) {
 			let location = this.#uniformIDs[name];
 			if (location === undefined) {
-				location = glContext.getUniformLocation(this.#glProgram, name);
+				location = gl.getUniformLocation(this.#glProgram, name);
 				this.#uniformIDs[name] = location;
 			}
-			glContext.uniform1f(location, value);
+			gl.uniform1f(location, value);
 		}
 		else {
 			this.#valuesToSet[name] = { type: 'float', value };
@@ -685,10 +685,10 @@ class Shader
 		if (activeShader === this) {
 			let location = this.#uniformIDs[name];
 			if (location === undefined) {
-				location = glContext.getUniformLocation(this.#glProgram, name);
+				location = gl.getUniformLocation(this.#glProgram, name);
 				this.#uniformIDs[name] = location;
 			}
-			glContext.uniform1fv(location, values);
+			gl.uniform1fv(location, values);
 		}
 		else {
 			this.#valuesToSet[name] = { type: 'floatArray', value: values };
@@ -700,14 +700,14 @@ class Shader
 		if (activeShader === this) {
 			let location = this.#uniformIDs[name];
 			if (location === undefined) {
-				location = glContext.getUniformLocation(this.#glProgram, name);
+				location = gl.getUniformLocation(this.#glProgram, name);
 				this.#uniformIDs[name] = location;
 			}
 			const size = values.length;
-			size === 4 ? glContext.uniform4fv(location, values)
-				: size === 3 ? glContext.uniform3fv(location, values)
-				: size === 2 ? glContext.uniform2fv(location, values)
-				: glContext.uniform1fv(location, values);
+			size === 4 ? gl.uniform4fv(location, values)
+				: size === 3 ? gl.uniform3fv(location, values)
+				: size === 2 ? gl.uniform2fv(location, values)
+				: gl.uniform1fv(location, values);
 		}
 		else {
 			this.#valuesToSet[name] = { type: 'floatVector', value: values };
@@ -719,10 +719,10 @@ class Shader
 		if (activeShader === this) {
 			let location = this.#uniformIDs[name];
 			if (location === undefined) {
-				location = glContext.getUniformLocation(this.#glProgram, name);
+				location = gl.getUniformLocation(this.#glProgram, name);
 				this.#uniformIDs[name] = location;
 			}
-			glContext.uniform1i(location, value);
+			gl.uniform1i(location, value);
 		}
 		else {
 			this.#valuesToSet[name] = { type: 'int', value };
@@ -734,10 +734,10 @@ class Shader
 		if (activeShader === this) {
 			let location = this.#uniformIDs[name];
 			if (location === undefined) {
-				location = glContext.getUniformLocation(this.#glProgram, name);
+				location = gl.getUniformLocation(this.#glProgram, name);
 				this.#uniformIDs[name] = location;
 			}
-			glContext.uniform1iv(location, values);
+			gl.uniform1iv(location, values);
 		}
 		else {
 			this.#valuesToSet[name] = { type: 'intArray', value: values };
@@ -749,14 +749,14 @@ class Shader
 		if (activeShader === this) {
 			let location = this.#uniformIDs[name];
 			if (location === undefined) {
-				location = glContext.getUniformLocation(this.#glProgram, name);
+				location = gl.getUniformLocation(this.#glProgram, name);
 				this.#uniformIDs[name] = location;
 			}
 			const size = values.length;
-			size === 4 ? glContext.uniform4iv(location, values)
-				: size === 3 ? glContext.uniform3iv(location, values)
-				: size === 2 ? glContext.uniform2iv(location, values)
-				: glContext.uniform1iv(location, values);
+			size === 4 ? gl.uniform4iv(location, values)
+				: size === 3 ? gl.uniform3iv(location, values)
+				: size === 2 ? gl.uniform2iv(location, values)
+				: gl.uniform1iv(location, values);
 		}
 		else {
 			this.#valuesToSet[name] = { type: 'intVector', value: values };
@@ -768,10 +768,10 @@ class Shader
 		if (activeShader === this) {
 			let location = this.#uniformIDs[name];
 			if (location === undefined) {
-				location = glContext.getUniformLocation(this.#glProgram, name);
+				location = gl.getUniformLocation(this.#glProgram, name);
 				this.#uniformIDs[name] = location;
 			}
-			glContext.uniformMatrix4fv(location, false, value.matrix);
+			gl.uniformMatrix4fv(location, false, value.matrix);
 		}
 		else {
 			this.#valuesToSet[name] = { type: 'matrix', value };
@@ -890,7 +890,7 @@ class Texture
 
 	constructor(...args)
 	{
-		const glTexture = glContext.createTexture();
+		const glTexture = gl.createTexture();
 		if (glTexture === null)
 			throw new Error(`Engine couldn't create a WebGL texture object.`);
 		this.glTexture = glTexture;
@@ -898,12 +898,12 @@ class Texture
 			throw Error("'new Texture' with filename is not supported in Oozaru.");
 		}
 		else {
-			const oldBinding = glContext.getParameter(glContext.TEXTURE_BINDING_2D);
-			glContext.bindTexture(glContext.TEXTURE_2D, glTexture);
-			glContext.pixelStorei(glContext.UNPACK_FLIP_Y_WEBGL, true);
+			const oldBinding = gl.getParameter(gl.TEXTURE_BINDING_2D);
+			gl.bindTexture(gl.TEXTURE_2D, glTexture);
+			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 			if (args[0] instanceof HTMLImageElement) {
 				const image = args[0];
-				glContext.texImage2D(glContext.TEXTURE_2D, 0, glContext.RGBA, glContext.RGBA, glContext.UNSIGNED_BYTE, image);
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 				this.size = { width: args[0].width, height: args[0].height };
 			}
 			else if (typeof args[0] === 'number' && typeof args[1] === 'number') {
@@ -915,22 +915,22 @@ class Texture
 					const buffer = args[2] instanceof ArrayBuffer ? args[2] : args[2].buffer;
 					if (buffer.byteLength < width * height * 4)
 						throw RangeError(`The provided buffer is too small to initialize a ${width}x${height} texture.`);
-					glContext.texImage2D(glContext.TEXTURE_2D, 0, glContext.RGBA, width, height, 0, glContext.RGBA, glContext.UNSIGNED_BYTE,
+					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
 						new Uint8Array(buffer));
 				}
 				else {
 					const pixels = new Uint32Array(width * height);
 					if (args[2] !== undefined)
 						pixels.fill((args[2].a * 255 << 24) + (args[2].b * 255 << 16) + (args[2].g * 255 << 8) + (args[2].r * 255));
-					glContext.texImage2D(glContext.TEXTURE_2D, 0, glContext.RGBA, width, height, 0, glContext.RGBA, glContext.UNSIGNED_BYTE,
+					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
 						new Uint8Array(pixels.buffer));
 				}
 				this.size = { width, height };
 			}
-			glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MIN_FILTER, glContext.LINEAR);
-			glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_S, glContext.CLAMP_TO_EDGE);
-			glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_T, glContext.CLAMP_TO_EDGE);
-			glContext.bindTexture(glContext.TEXTURE_2D, oldBinding);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+			gl.bindTexture(gl.TEXTURE_2D, oldBinding);
 		}
 	}
 
@@ -949,14 +949,14 @@ class Texture
 		const pixelData = ArrayBuffer.isView(content)
 			? new Uint8Array(content.buffer)
 			: new Uint8Array(content);
-		glContext.bindTexture(glContext.TEXTURE_2D, this.glTexture);
-		glContext.texSubImage2D(glContext.TEXTURE_2D, 0, x, this.size.height - y - height, width, height, glContext.RGBA, glContext.UNSIGNED_BYTE, pixelData);
+		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
+		gl.texSubImage2D(gl.TEXTURE_2D, 0, x, this.size.height - y - height, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
 	}
 
 	useTexture(textureUnit = 0)
 	{
-		glContext.activeTexture(glContext.TEXTURE0 + textureUnit);
-		glContext.bindTexture(glContext.TEXTURE_2D, this.glTexture);
+		gl.activeTexture(gl.TEXTURE0 + textureUnit);
+		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
 	}
 }
 
@@ -972,13 +972,13 @@ class Surface extends Texture
 	static get Screen()
 	{
 		const screenSurface = Object.create(Surface.prototype);
-		screenSurface.size = { width: glContext.canvas.width, height: glContext.canvas.height };
+		screenSurface.size = { width: gl.canvas.width, height: gl.canvas.height };
 		screenSurface.blendOp_ = BlendOp.Default;
-		screenSurface.clipRectangle = { x: 0, y: 0, w: glContext.canvas.width, h: glContext.canvas.height };
+		screenSurface.clipRectangle = { x: 0, y: 0, w: gl.canvas.width, h: gl.canvas.height };
 		screenSurface.depthOp_ = DepthOp.AlwaysPass;
 		screenSurface.frameBuffer = null;
 		screenSurface.projection = new Transform()
-			.project2D(0, 0, glContext.canvas.width, glContext.canvas.height);
+			.project2D(0, 0, gl.canvas.width, gl.canvas.height);
 		Object.defineProperty(Surface, 'Screen', {
 			value: screenSurface,
 			writable: false,
@@ -1000,20 +1000,20 @@ class Surface extends Texture
 
 		super(...args);
 
-		const frameBuffer = glContext.createFramebuffer();
-		const depthBuffer = glContext.createRenderbuffer();
+		const frameBuffer = gl.createFramebuffer();
+		const depthBuffer = gl.createRenderbuffer();
 		if (frameBuffer === null || depthBuffer === null)
 			throw new Error(`Engine couldn't create a WebGL framebuffer object.`);
 
 		// in order to set up a new FBO we need to change the current framebuffer binding, so make sure
 		// it gets changed back afterwards.
-		const previousFBO = glContext.getParameter(glContext.FRAMEBUFFER_BINDING);
-		glContext.bindFramebuffer(glContext.FRAMEBUFFER, frameBuffer);
-		glContext.framebufferTexture2D(glContext.FRAMEBUFFER, glContext.COLOR_ATTACHMENT0, glContext.TEXTURE_2D, this.glTexture, 0);
-		glContext.bindRenderbuffer(glContext.RENDERBUFFER, depthBuffer);
-		glContext.renderbufferStorage(glContext.RENDERBUFFER, glContext.DEPTH_COMPONENT16, this.width, this.height);
-		glContext.framebufferRenderbuffer(glContext.FRAMEBUFFER, glContext.DEPTH_ATTACHMENT, glContext.RENDERBUFFER, depthBuffer);
-		glContext.bindFramebuffer(glContext.FRAMEBUFFER, previousFBO);
+		const previousFBO = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.glTexture, 0);
+		gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+		gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.width, this.height);
+		gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, previousFBO);
 
 		this.clipRectangle = { x: 0, y: 0, w: this.width, h: this.height };
 		this.frameBuffer = frameBuffer;
@@ -1058,9 +1058,9 @@ class Surface extends Texture
 	activate(shader, texture = null, transform = Transform.Identity)
 	{
 		if (this !== activeSurface) {
-			glContext.bindFramebuffer(glContext.FRAMEBUFFER, this.frameBuffer);
-			glContext.viewport(0, 0, this.width, this.height);
-			glContext.scissor(this.clipRectangle.x, this.clipRectangle.y, this.clipRectangle.w, this.clipRectangle.h);
+			gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
+			gl.viewport(0, 0, this.width, this.height);
+			gl.scissor(this.clipRectangle.x, this.clipRectangle.y, this.clipRectangle.w, this.clipRectangle.h);
 			applyBlendOp(this.blendOp_);
 			applyDepthOp(this.depthOp_);
 			activeSurface = this;
@@ -1078,7 +1078,7 @@ class Surface extends Texture
 		this.clipRectangle.w = width;
 		this.clipRectangle.h = height;
 		if (this === activeSurface)
-			glContext.scissor(x, this.height - y - height, width, height);
+			gl.scissor(x, this.height - y - height, width, height);
 	}
 
 	unclip()
@@ -1305,7 +1305,7 @@ class VertexList
 
 	constructor(vertices)
 	{
-		this.#glBuffer = glContext.createBuffer();
+		this.#glBuffer = gl.createBuffer();
 		if (this.#glBuffer === null)
 			throw new Error(`Engine couldn't create a WebGL buffer object.`);
 		this.upload(vertices);
@@ -1318,13 +1318,13 @@ class VertexList
 
 	activate()
 	{
-		glContext.bindBuffer(glContext.ARRAY_BUFFER, this.#glBuffer);
-		glContext.enableVertexAttribArray(0);
-		glContext.enableVertexAttribArray(1);
-		glContext.enableVertexAttribArray(2);
-		glContext.vertexAttribPointer(0, 4, glContext.FLOAT, false, 40, 0);
-		glContext.vertexAttribPointer(1, 4, glContext.FLOAT, false, 40, 16);
-		glContext.vertexAttribPointer(2, 2, glContext.FLOAT, false, 40, 32);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.#glBuffer);
+		gl.enableVertexAttribArray(0);
+		gl.enableVertexAttribArray(1);
+		gl.enableVertexAttribArray(2);
+		gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 40, 0);
+		gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 40, 16);
+		gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 40, 32);
 	}
 
 	upload(vertices)
@@ -1343,8 +1343,8 @@ class VertexList
 			data[8 + i * 10] = vertex.u ?? 0.0;
 			data[9 + i * 10] = vertex.v ?? 0.0;
 		}
-		glContext.bindBuffer(glContext.ARRAY_BUFFER, this.#glBuffer);
-		glContext.bufferData(glContext.ARRAY_BUFFER, data, glContext.STREAM_DRAW);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.#glBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, data, gl.STREAM_DRAW);
 		this.#length = vertices.length;
 	}
 }
@@ -1353,59 +1353,59 @@ function applyBlendOp(blendOp)
 {
 	switch (blendOp) {
 		case BlendOp.Default:
-			glContext.blendEquation(glContext.FUNC_ADD);
-			glContext.blendFunc(glContext.SRC_ALPHA, glContext.ONE_MINUS_SRC_ALPHA);
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 			break;
 		case BlendOp.Add:
-			glContext.blendEquation(glContext.FUNC_ADD);
-			glContext.blendFunc(glContext.ONE, glContext.ONE);
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.ONE, gl.ONE);
 			break;
 		case BlendOp.Average:
-			glContext.blendEquation(glContext.FUNC_ADD);
-			glContext.blendFunc(glContext.CONSTANT_COLOR, glContext.CONSTANT_COLOR);
-			glContext.blendColor(0.5, 0.5, 0.5, 0.5);
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.CONSTANT_COLOR, gl.CONSTANT_COLOR);
+			gl.blendColor(0.5, 0.5, 0.5, 0.5);
 			break;
 		case BlendOp.CopyAlpha:
-			glContext.blendEquation(glContext.FUNC_ADD);
-			glContext.blendFuncSeparate(glContext.ZERO, glContext.ONE, glContext.ONE, glContext.ZERO);
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFuncSeparate(gl.ZERO, gl.ONE, gl.ONE, gl.ZERO);
 			break;
 		case BlendOp.CopyRGB:
-			glContext.blendEquation(glContext.FUNC_ADD);
-			glContext.blendFuncSeparate(glContext.ONE, glContext.ZERO, glContext.ZERO, glContext.ONE);
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFuncSeparate(gl.ONE, gl.ZERO, gl.ZERO, gl.ONE);
 			break;
 		case BlendOp.Invert:
-			glContext.blendEquation(glContext.FUNC_ADD);
-			glContext.blendFunc(glContext.ZERO, glContext.ONE_MINUS_SRC_COLOR);
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.ZERO, gl.ONE_MINUS_SRC_COLOR);
 			break;
 		case BlendOp.Multiply:
-			glContext.blendEquation(glContext.FUNC_ADD);
-			glContext.blendFunc(glContext.DST_COLOR, glContext.ZERO);
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.DST_COLOR, gl.ZERO);
 			break;
 		case BlendOp.Replace:
-			glContext.blendEquation(glContext.FUNC_ADD);
-			glContext.blendFunc(glContext.ONE, glContext.ZERO);
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.ONE, gl.ZERO);
 			break;
 		case BlendOp.Subtract:
-			glContext.blendEquation(glContext.FUNC_REVERSE_SUBTRACT);
-			glContext.blendFunc(glContext.ONE, glContext.ONE);
+			gl.blendEquation(gl.FUNC_REVERSE_SUBTRACT);
+			gl.blendFunc(gl.ONE, gl.ONE);
 			break;
 		default:
 			// something went horribly wrong if we got here; just set the blender to output
 			// nothing so the user can see something went awry.
-			glContext.blendEquation(glContext.FUNC_ADD);
-			glContext.blendFunc(glContext.ZERO, glContext.ZERO);
+			gl.blendEquation(gl.FUNC_ADD);
+			gl.blendFunc(gl.ZERO, gl.ZERO);
 	}
 }
 
 function applyDepthOp(depthOp)
 {
-	const depthFunc = depthOp === DepthOp.AlwaysPass ? glContext.ALWAYS
-		: depthOp === DepthOp.Equal ? glContext.EQUAL
-		: depthOp === DepthOp.Greater ? glContext.GREATER
-		: depthOp === DepthOp.GreaterOrEqual ? glContext.GEQUAL
-		: depthOp === DepthOp.Less ? glContext.LESS
-		: depthOp === DepthOp.LessOrEqual ? glContext.LEQUAL
-		: depthOp === DepthOp.NotEqual ? glContext.NOTEQUAL
-		: glContext.NEVER;
-	glContext.depthFunc(depthFunc);
+	const depthFunc = depthOp === DepthOp.AlwaysPass ? gl.ALWAYS
+		: depthOp === DepthOp.Equal ? gl.EQUAL
+		: depthOp === DepthOp.Greater ? gl.GREATER
+		: depthOp === DepthOp.GreaterOrEqual ? gl.GEQUAL
+		: depthOp === DepthOp.Less ? gl.LESS
+		: depthOp === DepthOp.LessOrEqual ? gl.LEQUAL
+		: depthOp === DepthOp.NotEqual ? gl.NOTEQUAL
+		: gl.NEVER;
+	gl.depthFunc(depthFunc);
 }

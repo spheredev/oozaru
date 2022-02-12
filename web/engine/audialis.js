@@ -49,7 +49,7 @@ class Mixer
 {
 	#audioContext;
 	#gainNode;
-	#panningNode;
+	#panNode;
 
 	static get Default()
 	{
@@ -60,20 +60,16 @@ class Mixer
 	{
 		this.#audioContext = new AudioContext({ sampleRate });
 		this.#gainNode = this.#audioContext.createGain();
-		this.#panningNode = this.#audioContext.createStereoPanner();
+		this.#panNode = this.#audioContext.createStereoPanner();
 		this.#gainNode.gain.value = 1.0;
-		this.#gainNode.connect(this.#panningNode);
-		this.#panningNode.connect(this.#audioContext.destination);
-	}
-
-	get audioNode()
-	{
-		return this.#gainNode;
+		this.#gainNode
+			.connect(this.#panNode)
+			.connect(this.#audioContext.destination);
 	}
 
 	get pan()
 	{
-		return this.#panningNode.pan.value;
+		return this.#panNode.pan.value;
 	}
 
 	get volume()
@@ -83,7 +79,7 @@ class Mixer
 
 	set pan(value)
 	{
-		this.#panningNode.pan.value = value;
+		this.#panNode.pan.value = value;
 	}
 
 	set volume(value)
@@ -91,11 +87,19 @@ class Mixer
 		this.#gainNode.gain.value = value;
 	}
 
-	attach(audioElement)
+	attachAudio(audioElement)
 	{
 		const audioNode = this.#audioContext.createMediaElementSource(audioElement);
 		audioNode.connect(this.#gainNode);
 		return audioNode;
+	}
+
+	attachScript(numChannels, callback)
+	{
+		const node = this.#audioContext.createScriptProcessor(0, 0, numChannels);
+		node.onaudioprocess = (e) => callback(e.outputBuffer);
+		node.connect(this.#gainNode);
+		return node;
 	}
 }
 
@@ -205,7 +209,7 @@ class Sound
 			this.#currentMixer = mixer;
 			if (this.#audioNode !== null)
 				this.#audioNode.disconnect();
-			this.#audioNode = mixer.attach(this.#audioElement);
+			this.#audioNode = mixer.attachAudio(this.#audioElement);
 		}
 		this.#audioElement.play();
 	}
@@ -251,25 +255,22 @@ class SoundStream
 	{
 		this.#paused = false;
 		if (mixer !== this.#currentMixer) {
-			if (this.#audioNode !== null) {
-				this.#audioNode.onaudioprocess = null;
+			if (this.#audioNode !== null)
 				this.#audioNode.disconnect();
-			}
-			this.#audioNode = mixer.audioContext.createScriptProcessor(0, 0, this.#numChannels);
-			this.#audioNode.onaudioprocess = (e) => {
+			this.#audioNode = mixer.attachScript(this.#numChannels, (buffer) => {
 				const outputs = [];
 				for (let i = 0; i < this.#numChannels; ++i)
-					outputs[i] = e.outputBuffer.getChannelData(i);
-				if (this.#paused || this.#timeBuffered < e.outputBuffer.duration) {
+					outputs[i] = buffer.getChannelData(i);
+				if (this.#paused || this.#timeBuffered < buffer.duration) {
 					// not enough data buffered or stream is paused, fill with silence
 					for (let i = 0; i < this.#numChannels; ++i)
 						outputs[i].fill(0.0);
 					return;
 				}
-				this.#timeBuffered -= e.outputBuffer.duration;
+				this.#timeBuffered -= buffer.duration;
 				if (this.#timeBuffered < 0.0)
 					this.#timeBuffered = 0.0;
-				const step = this.#sampleRate / e.outputBuffer.sampleRate;
+				const step = this.#sampleRate / buffer.sampleRate;
 				let input = this.#buffers.first;
 				let inputPtr = this.#inputPtr;
 				for (let i = 0, len = outputs[0].length; i < len; ++i) {
@@ -304,18 +305,15 @@ class SoundStream
 					}
 				}
 				this.#inputPtr = inputPtr;
-			};
-			this.#audioNode.connect(mixer.audioNode);
+			});
 			this.#currentMixer = mixer;
 		}
 	}
 
 	stop()
 	{
-		if (this.#audioNode !== null) {
-			this.#audioNode.onaudioprocess = null;
+		if (this.#audioNode !== null)
 			this.#audioNode.disconnect();
-		}
 		this.#buffers.clear();
 		this.#inputPtr = 0.0;
 		this.#currentMixer = null;
