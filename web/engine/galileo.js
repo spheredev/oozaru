@@ -187,154 +187,155 @@ class Color
 	b;
 	a;
 
-	// note: predefined colors encoded in 8-bit RGBA (not float) because this whole table was
-	//       copied and pasted from neoSphere and I was too lazy to convert it.
-	static get AliceBlue() { return new Color(240 / 255, 248 / 255, 255 / 255, 255 / 255); }
-	static get AntiqueWhite() { return new Color(250 / 255, 235 / 255, 215 / 255, 255 / 255); }
-	static get Aqua() { return new Color(0 / 255, 255 / 255, 255 / 255, 255 / 255); }
-	static get Aquamarine() { return new Color(127 / 255, 255 / 255, 212 / 255, 255 / 255); }
-	static get Azure() { return new Color(240 / 255, 255 / 255, 255 / 255, 255 / 255); }
-	static get Beige() { return new Color(245 / 255, 245 / 255, 220 / 255, 255 / 255); }
-	static get Bisque() { return new Color(255 / 255, 228 / 255, 196 / 255, 255 / 255); }
-	static get Black() { return new Color(0 / 255, 0 / 255, 0 / 255, 255 / 255); }
-	static get BlanchedAlmond() { return new Color(255 / 255, 235 / 255, 205 / 255, 255 / 255); }
-	static get Blue() { return new Color(0 / 255, 0 / 255, 255 / 255, 255 / 255); }
-	static get BlueViolet() { return new Color(138 / 255, 43 / 255, 226 / 255, 255 / 255); }
-	static get Brown() { return new Color(165 / 255, 42 / 255, 42 / 255, 255 / 255); }
-	static get BurlyWood() { return new Color(222 / 255, 184 / 255, 135 / 255, 255 / 255); }
-	static get CadetBlue() { return new Color(95 / 255, 158 / 255, 160 / 255, 255 / 255); }
-	static get Chartreuse() { return new Color(127 / 255, 255 / 255, 0 / 255, 255 / 255); }
-	static get Chocolate() { return new Color(210 / 255, 105 / 255, 30 / 255, 255 / 255); }
-	static get Coral() { return new Color(255 / 255, 127 / 255, 80 / 255, 255 / 255); }
-	static get CornflowerBlue() { return new Color(100 / 255, 149 / 255, 237 / 255, 255 / 255); }
-	static get Cornsilk() { return new Color(255 / 255, 248 / 255, 220 / 255, 255 / 255); }
-	static get Crimson() { return new Color(220 / 255, 20 / 255, 60 / 255, 255 / 255); }
-	static get Cyan() { return new Color(0 / 255, 255 / 255, 255 / 255, 255 / 255); }
-	static get DarkBlue() { return new Color(0 / 255, 0 / 255, 139 / 255, 255 / 255); }
-	static get DarkCyan() { return new Color(0 / 255, 139 / 255, 139 / 255, 255 / 255); }
-	static get DarkGoldenrod() { return new Color(184 / 255, 134 / 255, 11 / 255, 255 / 255); }
-	static get DarkGray() { return new Color(169 / 255, 169 / 255, 169 / 255, 255 / 255); }
-	static get DarkGreen() { return new Color(0 / 255, 100 / 255, 0 / 255, 255 / 255); }
-	static get DarkKhaki() { return new Color(189 / 255, 183 / 255, 107 / 255, 255 / 255); }
-	static get DarkMagenta() { return new Color(139 / 255, 0 / 255, 139 / 255, 255 / 255); }
-	static get DarkOliveGreen() { return new Color(85 / 255, 107 / 255, 47 / 255, 255 / 255); }
-	static get DarkOrange() { return new Color(255 / 255, 140 / 255, 0 / 255, 255 / 255); }
-	static get DarkOrchid() { return new Color(153 / 255, 50 / 255, 204 / 255, 255 / 255); }
-	static get DarkRed() { return new Color(139 / 255, 0 / 255, 0 / 255, 255 / 255); }
-	static get DarkSalmon() { return new Color(233 / 255, 150 / 255, 122 / 255, 255 / 255); }
-	static get DarkSeaGreen() { return new Color(143 / 255, 188 / 255, 143 / 255, 255 / 255); }
-	static get DarkSlateBlue() { return new Color(72 / 255, 61 / 255, 139 / 255, 255 / 255); }
-	static get DarkSlateGray() { return new Color(47 / 255, 79 / 255, 79 / 255, 255 / 255); }
-	static get DarkTurquoise() { return new Color(0 / 255, 206 / 255, 209 / 255, 255 / 255); }
-	static get DarkViolet() { return new Color(148 / 255, 0 / 255, 211 / 255, 255 / 255); }
-	static get DeepPink() { return new Color(255 / 255, 20 / 255, 147 / 255, 255 / 255); }
-	static get DeepSkyBlue() { return new Color(0 / 255, 191 / 255, 255 / 255, 255 / 255); }
-	static get DimGray() { return new Color(105 / 255, 105 / 255, 105 / 255, 255 / 255); }
-	static get DodgerBlue() { return new Color(30 / 255, 144 / 255, 255 / 255, 255 / 255); }
-	static get FireBrick() { return new Color(178 / 255, 34 / 255, 34 / 255, 255 / 255); }
-	static get FloralWhite() { return new Color(255 / 255, 250 / 255, 240 / 255, 255 / 255); }
-	static get ForestGreen() { return new Color(34 / 255, 139 / 255, 34 / 255, 255 / 255); }
-	static get Fuchsia() { return new Color(255 / 255, 0 / 255, 255 / 255, 255 / 255); }
-	static get Gainsboro() { return new Color(220 / 255, 220 / 255, 220 / 255, 255 / 255); }
-	static get GhostWhite() { return new Color(248 / 255, 248 / 255, 255 / 255, 255 / 255); }
-	static get Gold() { return new Color(255 / 255, 215 / 255, 0 / 255, 255 / 255); }
-	static get Goldenrod() { return new Color(218 / 255, 165 / 255, 32 / 255, 255 / 255); }
-	static get Gray() { return new Color(128 / 255, 128 / 255, 128 / 255, 255 / 255); }
-	static get Green() { return new Color(0 / 255, 128 / 255, 0 / 255, 255 / 255); }
-	static get GreenYellow() { return new Color(173 / 255, 255 / 255, 47 / 255, 255 / 255); }
-	static get Honeydew() { return new Color(240 / 255, 255 / 255, 240 / 255, 255 / 255); }
-	static get HotPink() { return new Color(255 / 255, 105 / 255, 180 / 255, 255 / 255); }
-	static get IndianRed() { return new Color(205 / 255, 92 / 255, 92 / 255, 255 / 255); }
-	static get Indigo() { return new Color(75 / 255, 0 / 255, 130 / 255, 255 / 255); }
-	static get Ivory() { return new Color(255 / 255, 255 / 255, 240 / 255, 255 / 255); }
-	static get Khaki() { return new Color(240 / 255, 230 / 255, 140 / 255, 255 / 255); }
-	static get Lavender() { return new Color(230 / 255, 230 / 255, 250 / 255, 255 / 255); }
-	static get LavenderBlush() { return new Color(255 / 255, 240 / 255, 245 / 255, 255 / 255); }
-	static get LawnGreen() { return new Color(124 / 255, 252 / 255, 0 / 255, 255 / 255); }
-	static get LemonChiffon() { return new Color(255 / 255, 250 / 255, 205 / 255, 255 / 255); }
-	static get LightBlue() { return new Color(173 / 255, 216 / 255, 230 / 255, 255 / 255); }
-	static get LightCoral() { return new Color(240 / 255, 128 / 255, 128 / 255, 255 / 255); }
-	static get LightCyan() { return new Color(224 / 255, 255 / 255, 255 / 255, 255 / 255); }
-	static get LightGoldenrodYellow() { return new Color(250 / 255, 250 / 255, 210 / 255, 255 / 255); }
-	static get LightGray() { return new Color(211 / 255, 211 / 255, 211 / 255, 255 / 255); }
-	static get LightGreen() { return new Color(144 / 255, 238 / 255, 144 / 255, 255 / 255); }
-	static get LightPink() { return new Color(255 / 255, 182 / 255, 193 / 255, 255 / 255); }
-	static get LightSalmon() { return new Color(255 / 255, 160 / 255, 122 / 255, 255 / 255); }
-	static get LightSeaGreen() { return new Color(32 / 255, 178 / 255, 170 / 255, 255 / 255); }
-	static get LightSkyBlue() { return new Color(135 / 255, 206 / 255, 250 / 255, 255 / 255); }
-	static get LightSlateGray() { return new Color(119 / 255, 136 / 255, 153 / 255, 255 / 255); }
-	static get LightSteelBlue() { return new Color(176 / 255, 196 / 255, 222 / 255, 255 / 255); }
-	static get LightYellow() { return new Color(255 / 255, 255 / 255, 224 / 255, 255 / 255); }
-	static get Lime() { return new Color(0 / 255, 255 / 255, 0 / 255, 255 / 255); }
-	static get LimeGreen() { return new Color(50 / 255, 205 / 255, 50 / 255, 255 / 255); }
-	static get Linen() { return new Color(250 / 255, 240 / 255, 230 / 255, 255 / 255); }
-	static get Magenta() { return new Color(255 / 255, 0 / 255, 255 / 255, 255 / 255); }
-	static get Maroon() { return new Color(128 / 255, 0 / 255, 0 / 255, 255 / 255); }
-	static get MediumAquamarine() { return new Color(102 / 255, 205 / 255, 170 / 255, 255 / 255); }
-	static get MediumBlue() { return new Color(0 / 255, 0 / 255, 205 / 255, 255 / 255); }
-	static get MediumOrchid() { return new Color(186 / 255, 85 / 255, 211 / 255, 255 / 255); }
-	static get MediumPurple() { return new Color(147 / 255, 112 / 255, 219 / 255, 255 / 255); }
-	static get MediumSeaGreen() { return new Color(60 / 255, 179 / 255, 113 / 255, 255 / 255); }
-	static get MediumSlateBlue() { return new Color(123 / 255, 104 / 255, 238 / 255, 255 / 255); }
-	static get MediumSpringGreen() { return new Color(0 / 255, 250 / 255, 154 / 255, 255 / 255); }
-	static get MediumTurquoise() { return new Color(72 / 255, 209 / 255, 204 / 255, 255 / 255); }
-	static get MediumVioletRed() { return new Color(199 / 255, 21 / 255, 133 / 255, 255 / 255); }
-	static get MidnightBlue() { return new Color(25 / 255, 25 / 255, 112 / 255, 255 / 255); }
-	static get MintCream() { return new Color(245 / 255, 255 / 255, 250 / 255, 255 / 255); }
-	static get MistyRose() { return new Color(255 / 255, 228 / 255, 225 / 255, 255 / 255); }
-	static get Moccasin() { return new Color(255 / 255, 228 / 255, 181 / 255, 255 / 255); }
-	static get NavajoWhite() { return new Color(255 / 255, 222 / 255, 173 / 255, 255 / 255); }
-	static get Navy() { return new Color(0 / 255, 0 / 255, 128 / 255, 255 / 255); }
-	static get OldLace() { return new Color(253 / 255, 245 / 255, 230 / 255, 255 / 255); }
-	static get Olive() { return new Color(128 / 255, 128 / 255, 0 / 255, 255 / 255); }
-	static get OliveDrab() { return new Color(107 / 255, 142 / 255, 35 / 255, 255 / 255); }
-	static get Orange() { return new Color(255 / 255, 165 / 255, 0 / 255, 255 / 255); }
-	static get OrangeRed() { return new Color(255 / 255, 69 / 255, 0 / 255, 255 / 255); }
-	static get Orchid() { return new Color(218 / 255, 112 / 255, 214 / 255, 255 / 255); }
-	static get PaleGoldenrod() { return new Color(238 / 255, 232 / 255, 170 / 255, 255 / 255); }
-	static get PaleGreen() { return new Color(152 / 255, 251 / 255, 152 / 255, 255 / 255); }
-	static get PaleTurquoise() { return new Color(175 / 255, 238 / 255, 238 / 255, 255 / 255); }
-	static get PaleVioletRed() { return new Color(219 / 255, 112 / 255, 147 / 255, 255 / 255); }
-	static get PapayaWhip() { return new Color(225 / 255, 239 / 255, 213 / 255, 255 / 255); }
-	static get PeachPuff() { return new Color(255 / 255, 218 / 255, 185 / 255, 255 / 255); }
-	static get Peru() { return new Color(205 / 255, 133 / 255, 63 / 255, 255 / 255); }
-	static get Pink() { return new Color(255 / 255, 192 / 255, 203 / 255, 255 / 255); }
-	static get Plum() { return new Color(221 / 255, 160 / 255, 221 / 255, 255 / 255); }
-	static get PowderBlue() { return new Color(176 / 255, 224 / 255, 230 / 255, 255 / 255); }
-	static get Purple() { return new Color(128 / 255, 0 / 255, 128 / 255, 255 / 255); }
-	static get Red() { return new Color(255 / 255, 0 / 255, 0 / 255, 255 / 255); }
-	static get RosyBrown() { return new Color(188 / 255, 143 / 255, 143 / 255, 255 / 255); }
-	static get RoyalBlue() { return new Color(65 / 255, 105 / 255, 225 / 255, 255 / 255); }
-	static get SaddleBrown() { return new Color(139 / 255, 69 / 255, 19 / 255, 255 / 255); }
-	static get Salmon() { return new Color(250 / 255, 128 / 255, 114 / 255, 255 / 255); }
-	static get SandyBrown() { return new Color(244 / 255, 164 / 255, 96 / 255, 255 / 255); }
-	static get SeaGreen() { return new Color(46 / 255, 139 / 255, 87 / 255, 255 / 255); }
-	static get Seashell() { return new Color(255 / 255, 245 / 255, 238 / 255, 255 / 255); }
-	static get Sienna() { return new Color(160 / 255, 82 / 255, 45 / 255, 255 / 255); }
-	static get Silver() { return new Color(192 / 255, 192 / 255, 192 / 255, 255 / 255); }
-	static get SkyBlue() { return new Color(135 / 255, 206 / 255, 235 / 255, 255 / 255); }
-	static get SlateBlue() { return new Color(106 / 255, 90 / 255, 205 / 255, 255 / 255); }
-	static get SlateGray() { return new Color(112 / 255, 128 / 255, 144 / 255, 255 / 255); }
-	static get Snow() { return new Color(255 / 255, 250 / 255, 250 / 255, 255 / 255); }
-	static get SpringGreen() { return new Color(0 / 255, 255 / 255, 127 / 255, 255 / 255); }
-	static get SteelBlue() { return new Color(70 / 255, 130 / 255, 180 / 255, 255 / 255); }
-	static get Tan() { return new Color(210 / 255, 180 / 255, 140 / 255, 255 / 255); }
-	static get Teal() { return new Color(0 / 255, 128 / 255, 128 / 255, 255 / 255); }
-	static get Thistle() { return new Color(216 / 255, 191 / 255, 216 / 255, 255 / 255); }
-	static get Tomato() { return new Color(255 / 255, 99 / 255, 71 / 255, 255 / 255); }
-	static get Transparent() { return new Color(0 / 255, 0 / 255, 0 / 255, 0 / 255); }
-	static get Turquoise() { return new Color(64 / 255, 224 / 255, 208 / 255, 255 / 255); }
-	static get Violet() { return new Color(238 / 255, 130 / 255, 238 / 255, 255 / 255); }
-	static get Wheat() { return new Color(245 / 255, 222 / 255, 179 / 255, 255 / 255); }
-	static get White() { return new Color(255 / 255, 255 / 255, 255 / 255, 255 / 255); }
-	static get WhiteSmoke() { return new Color(245 / 255, 245 / 255, 245 / 255, 255 / 255); }
-	static get Yellow() { return new Color(255 / 255, 255 / 255, 0 / 255, 255 / 255); }
-	static get YellowGreen() { return new Color(154 / 255, 205 / 255, 50 / 255, 255 / 255); }
-	static get PurwaBlue() { return new Color(155 / 255, 225 / 255, 255 / 255, 255 / 255); }
-	static get RebeccaPurple() { return new Color(102 / 255, 51 / 255, 153 / 255, 255 / 255); }
-	static get StankyBean() { return new Color(197 / 255, 162 / 255, 171 / 255, 255 / 255); }
+	// note: predefined colors use `Color.fromRGBA()` rather than `new Color()` because this whole table was
+	//       copied and pasted from the neoSphere codebase and I was too lazy to convert it.
+	static get AliceBlue() { return Color.fromRGBA(240, 248, 255); }
+	static get AntiqueWhite() { return Color.fromRGBA(250, 235, 215); }
+	static get Aqua() { return Color.fromRGBA(0, 255, 255); }
+	static get Aquamarine() { return Color.fromRGBA(127, 255, 212); }
+	static get Azure() { return Color.fromRGBA(240, 255, 255); }
+	static get Beige() { return Color.fromRGBA(245, 245, 220); }
+	static get Bisque() { return Color.fromRGBA(255, 228, 196); }
+	static get Black() { return Color.fromRGBA(0, 0, 0); }
+	static get BlanchedAlmond() { return Color.fromRGBA(255, 235, 205); }
+	static get Blue() { return Color.fromRGBA(0, 0, 255); }
+	static get BlueViolet() { return Color.fromRGBA(138, 43, 226); }
+	static get Brown() { return Color.fromRGBA(165, 42, 42); }
+	static get BurlyWood() { return Color.fromRGBA(222, 184, 135); }
+	static get CadetBlue() { return Color.fromRGBA(95, 158, 160); }
+	static get Chartreuse() { return Color.fromRGBA(127, 255, 0); }
+	static get Chocolate() { return Color.fromRGBA(210, 105, 30); }
+	static get Coral() { return Color.fromRGBA(255, 127, 80); }
+	static get CornflowerBlue() { return Color.fromRGBA(100, 149, 237); }
+	static get Cornsilk() { return Color.fromRGBA(255, 248, 220); }
+	static get Crimson() { return Color.fromRGBA(220, 20, 60); }
+	static get Cyan() { return Color.fromRGBA(0, 255, 255); }
+	static get DarkBlue() { return Color.fromRGBA(0, 0, 139); }
+	static get DarkCyan() { return Color.fromRGBA(0, 139, 139); }
+	static get DarkGoldenrod() { return Color.fromRGBA(184, 134, 11); }
+	static get DarkGray() { return Color.fromRGBA(169, 169, 169); }
+	static get DarkGreen() { return Color.fromRGBA(0, 100, 0); }
+	static get DarkKhaki() { return Color.fromRGBA(189, 183, 107); }
+	static get DarkMagenta() { return Color.fromRGBA(139, 0, 139); }
+	static get DarkOliveGreen() { return Color.fromRGBA(85, 107, 47); }
+	static get DarkOrange() { return Color.fromRGBA(255, 140, 0); }
+	static get DarkOrchid() { return Color.fromRGBA(153, 50, 204); }
+	static get DarkRed() { return Color.fromRGBA(139, 0, 0); }
+	static get DarkSalmon() { return Color.fromRGBA(233, 150, 122); }
+	static get DarkSeaGreen() { return Color.fromRGBA(143, 188, 143); }
+	static get DarkSlateBlue() { return Color.fromRGBA(72, 61, 139); }
+	static get DarkSlateGray() { return Color.fromRGBA(47, 79, 79); }
+	static get DarkTurquoise() { return Color.fromRGBA(0, 206, 209); }
+	static get DarkViolet() { return Color.fromRGBA(148, 0, 211); }
+	static get DeepPink() { return Color.fromRGBA(255, 20, 147); }
+	static get DeepSkyBlue() { return Color.fromRGBA(0, 191, 255); }
+	static get DimGray() { return Color.fromRGBA(105, 105, 105); }
+	static get DodgerBlue() { return Color.fromRGBA(30, 144, 255); }
+	static get FireBrick() { return Color.fromRGBA(178, 34, 34); }
+	static get FloralWhite() { return Color.fromRGBA(255, 250, 240); }
+	static get ForestGreen() { return Color.fromRGBA(34, 139, 34); }
+	static get Fuchsia() { return Color.fromRGBA(255, 0, 255); }
+	static get Gainsboro() { return Color.fromRGBA(220, 220, 220); }
+	static get GhostWhite() { return Color.fromRGBA(248, 248, 255); }
+	static get Gold() { return Color.fromRGBA(255, 215, 0); }
+	static get Goldenrod() { return Color.fromRGBA(218, 165, 32); }
+	static get Gray() { return Color.fromRGBA(128, 128, 128); }
+	static get Green() { return Color.fromRGBA(0, 128, 0); }
+	static get GreenYellow() { return Color.fromRGBA(173, 255, 47); }
+	static get Honeydew() { return Color.fromRGBA(240, 255, 240); }
+	static get HotPink() { return Color.fromRGBA(255, 105, 180); }
+	static get IndianRed() { return Color.fromRGBA(205, 92, 92); }
+	static get Indigo() { return Color.fromRGBA(75, 0, 130); }
+	static get Ivory() { return Color.fromRGBA(255, 255, 240); }
+	static get Khaki() { return Color.fromRGBA(240, 230, 140); }
+	static get Lavender() { return Color.fromRGBA(230, 230, 250); }
+	static get LavenderBlush() { return Color.fromRGBA(255, 240, 245); }
+	static get LawnGreen() { return Color.fromRGBA(124, 252, 0); }
+	static get LemonChiffon() { return Color.fromRGBA(255, 250, 205); }
+	static get LightBlue() { return Color.fromRGBA(173, 216, 230); }
+	static get LightCoral() { return Color.fromRGBA(240, 128, 128); }
+	static get LightCyan() { return Color.fromRGBA(224, 255, 255); }
+	static get LightGoldenrodYellow() { return Color.fromRGBA(250, 250, 210); }
+	static get LightGray() { return Color.fromRGBA(211, 211, 211); }
+	static get LightGreen() { return Color.fromRGBA(144, 238, 144); }
+	static get LightPink() { return Color.fromRGBA(255, 182, 193); }
+	static get LightSalmon() { return Color.fromRGBA(255, 160, 122); }
+	static get LightSeaGreen() { return Color.fromRGBA(32, 178, 170); }
+	static get LightSkyBlue() { return Color.fromRGBA(135, 206, 250); }
+	static get LightSlateGray() { return Color.fromRGBA(119, 136, 153); }
+	static get LightSteelBlue() { return Color.fromRGBA(176, 196, 222); }
+	static get LightYellow() { return Color.fromRGBA(255, 255, 224); }
+	static get Lime() { return Color.fromRGBA(0, 255, 0); }
+	static get LimeGreen() { return Color.fromRGBA(50, 205, 50); }
+	static get Linen() { return Color.fromRGBA(250, 240, 230); }
+	static get Magenta() { return Color.fromRGBA(255, 0, 255); }
+	static get Maroon() { return Color.fromRGBA(128, 0, 0); }
+	static get MediumAquamarine() { return Color.fromRGBA(102, 205, 170); }
+	static get MediumBlue() { return Color.fromRGBA(0, 0, 205); }
+	static get MediumOrchid() { return Color.fromRGBA(186, 85, 211); }
+	static get MediumPurple() { return Color.fromRGBA(147, 112, 219); }
+	static get MediumSeaGreen() { return Color.fromRGBA(60, 179, 113); }
+	static get MediumSlateBlue() { return Color.fromRGBA(123, 104, 238); }
+	static get MediumSpringGreen() { return Color.fromRGBA(0, 250, 154); }
+	static get MediumTurquoise() { return Color.fromRGBA(72, 209, 204); }
+	static get MediumVioletRed() { return Color.fromRGBA(199, 21, 133); }
+	static get MidnightBlue() { return Color.fromRGBA(25, 25, 112); }
+	static get MintCream() { return Color.fromRGBA(245, 255, 250); }
+	static get MistyRose() { return Color.fromRGBA(255, 228, 225); }
+	static get Moccasin() { return Color.fromRGBA(255, 228, 181); }
+	static get NavajoWhite() { return Color.fromRGBA(255, 222, 173); }
+	static get Navy() { return Color.fromRGBA(0, 0, 128); }
+	static get OldLace() { return Color.fromRGBA(253, 245, 230); }
+	static get Olive() { return Color.fromRGBA(128, 128, 0); }
+	static get OliveDrab() { return Color.fromRGBA(107, 142, 35); }
+	static get Orange() { return Color.fromRGBA(255, 165, 0); }
+	static get OrangeRed() { return Color.fromRGBA(255, 69, 0); }
+	static get Orchid() { return Color.fromRGBA(218, 112, 214); }
+	static get PaleGoldenrod() { return Color.fromRGBA(238, 232, 170); }
+	static get PaleGreen() { return Color.fromRGBA(152, 251, 152); }
+	static get PaleTurquoise() { return Color.fromRGBA(175, 238, 238); }
+	static get PaleVioletRed() { return Color.fromRGBA(219, 112, 147); }
+	static get PapayaWhip() { return Color.fromRGBA(225, 239, 213); }
+	static get PeachPuff() { return Color.fromRGBA(255, 218, 185); }
+	static get Peru() { return Color.fromRGBA(205, 133, 63); }
+	static get Pink() { return Color.fromRGBA(255, 192, 203); }
+	static get Plum() { return Color.fromRGBA(221, 160, 221); }
+	static get PowderBlue() { return Color.fromRGBA(176, 224, 230); }
+	static get Purple() { return Color.fromRGBA(128, 0, 128); }
+	static get Red() { return Color.fromRGBA(255, 0, 0); }
+	static get RosyBrown() { return Color.fromRGBA(188, 143, 143); }
+	static get RoyalBlue() { return Color.fromRGBA(65, 105, 225); }
+	static get SaddleBrown() { return Color.fromRGBA(139, 69, 19); }
+	static get Salmon() { return Color.fromRGBA(250, 128, 114); }
+	static get SandyBrown() { return Color.fromRGBA(244, 164, 96); }
+	static get SeaGreen() { return Color.fromRGBA(46, 139, 87); }
+	static get Seashell() { return Color.fromRGBA(255, 245, 238); }
+	static get Sienna() { return Color.fromRGBA(160, 82, 45); }
+	static get Silver() { return Color.fromRGBA(192, 192, 192); }
+	static get SkyBlue() { return Color.fromRGBA(135, 206, 235); }
+	static get SlateBlue() { return Color.fromRGBA(106, 90, 205); }
+	static get SlateGray() { return Color.fromRGBA(112, 128, 144); }
+	static get Snow() { return Color.fromRGBA(255, 250, 250); }
+	static get SpringGreen() { return Color.fromRGBA(0, 255, 127); }
+	static get SteelBlue() { return Color.fromRGBA(70, 130, 180); }
+	static get Tan() { return Color.fromRGBA(210, 180, 140); }
+	static get Teal() { return Color.fromRGBA(0, 128, 128); }
+	static get Thistle() { return Color.fromRGBA(216, 191, 216); }
+	static get Tomato() { return Color.fromRGBA(255, 99, 71); }
+	static get Transparent() { return Color.fromRGBA(0, 0, 0, 0); }
+	static get Turquoise() { return Color.fromRGBA(64, 224, 208); }
+	static get Violet() { return Color.fromRGBA(238, 130, 238); }
+	static get Wheat() { return Color.fromRGBA(245, 222, 179); }
+	static get White() { return Color.fromRGBA(255, 255, 255); }
+	static get WhiteSmoke() { return Color.fromRGBA(245, 245, 245); }
+	static get Yellow() { return Color.fromRGBA(255, 255, 0); }
+	static get YellowGreen() { return Color.fromRGBA(154, 205, 50); }
+	static get PurwaBlue() { return Color.fromRGBA(155, 225, 255); }
+	static get RebeccaPurple() { return Color.fromRGBA(102, 51, 153); }
+	static get StankyBean() { return Color.fromRGBA(197, 162, 171); }
+	static get EatyPigPink() { return Color.fromRGBA(231, 142, 165); }
 
-	static fromRGB(r, g, b, a = 255)
+	static fromRGBA(r, g, b, a = 255)
 	{
 		return new Color(r / 255.0, g / 255.0, b / 255.0, a / 255.0);
 	}
