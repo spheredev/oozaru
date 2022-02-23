@@ -160,8 +160,6 @@ function animate()
 
 	++frameCount;
 
-	Galileo.flip();
-
 	// sort the Dispatch jobs for this frame
 	if (jobSortNeeded) {
 		// job queue sorting criteria, in order of key ranking:
@@ -208,4 +206,8 @@ function animate()
 		jobs[ptr++] = job;
 	}
 	jobs.length = ptr;
+
+	// TODO: is the timing of flip correct here? if not, job queue handling will need to be
+	//       rearranged.
+	Galileo.flip();
 }

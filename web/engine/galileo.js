@@ -74,7 +74,9 @@ const ShapeType =
 
 var activeShader = null;
 var activeSurface = null;
+var backBuffer;
 var defaultShader;
+var flipShader;
 var gl;
 
 export default
@@ -99,6 +101,9 @@ class Galileo
 			vertexFile: '#/default.vert.glsl',
 			fragmentFile: '#/default.frag.glsl',
 		});
+		flipShader = defaultShader.clone();
+
+		backBuffer = new Surface(canvas.width, canvas.height);
 
 		Galileo.flip();
 	}
@@ -128,6 +133,23 @@ class Galileo
 
 	static flip()
 	{
+		activeSurface = null;
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+		gl.scissor(0, 0, gl.canvas.width, gl.canvas.height);
+		gl.blendEquation(gl.FUNC_ADD);
+		gl.blendFunc(gl.ONE, gl.ZERO);
+		gl.depthFunc(gl.ALWAYS);
+		backBuffer.useTexture(0);
+		flipShader.activate(true);
+		Galileo.draw(ShapeType.TriStrip, new VertexList([
+			{ x: 0, y: 0, u: 0.0, v: 1.0 },
+			{ x: gl.canvas.width, y: 0, u: 1.0, v: 1.0 },
+			{ x: 0, y: gl.canvas.height, u: 0.0, v: 0.0 },
+			{ x: gl.canvas.width, y: gl.canvas.height, u: 1.0, v: 0.0 },
+		]));
+		gl.bindTexture(gl.TEXTURE_2D, null);
+
 		Surface.Screen.activate(defaultShader);
 		Surface.Screen.unclip();
 		gl.disable(gl.SCISSOR_TEST);
@@ -139,9 +161,13 @@ class Galileo
 	{
 		gl.canvas.width = width;
 		gl.canvas.height = height;
-		Surface.Screen.size = { width, height };
-		Surface.Screen.projection = new Transform()
-			.project2D(0, 0, width, height);
+		const oldBackBuffer = backBuffer;
+		backBuffer = new Surface(width, height);
+		flipShader.project(new Transform().project2D(0, 0, width, height));
+		if (activeSurface === oldBackBuffer) {
+			gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+			activeSurface = backBuffer;
+		}
 		if (width <= 400 && height <= 300) {
 			gl.canvas.style.width = `${width * 2}px`;
 			gl.canvas.style.height = `${height * 2}px`;
@@ -150,8 +176,6 @@ class Galileo
 			gl.canvas.style.width = `${width}px`;
 			gl.canvas.style.height = `${height}px`;
 		}
-		if (activeSurface === Surface.Screen)
-			gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 	}
 }
 
@@ -875,16 +899,17 @@ class Shape
 export
 class Texture
 {
-	fileName;
-	glTexture;
-	size = { width: 0, height: 0 };
+	#fileName;
+	#glTexture;
+	#height;
+	#width;
 
 	static async fromFile(fileName)
 	{
 		const imageURL = Game.urlOf(fileName);
 		const image = await Fido.fetchImage(imageURL);
 		const texture = new Texture(image);
-		texture.fileName = Game.fullPath(fileName);
+		texture.#fileName = Game.fullPath(fileName);
 		return texture;
 	}
 
@@ -893,7 +918,7 @@ class Texture
 		const glTexture = gl.createTexture();
 		if (glTexture === null)
 			throw new Error(`Engine couldn't create a WebGL texture object.`);
-		this.glTexture = glTexture;
+		this.#glTexture = glTexture;
 		if (typeof args[0] === 'string') {
 			throw Error("'new Texture' with filename is not supported in Oozaru.");
 		}
@@ -904,7 +929,8 @@ class Texture
 			if (args[0] instanceof HTMLImageElement) {
 				const image = args[0];
 				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-				this.size = { width: args[0].width, height: args[0].height };
+				this.#width = args[0].width;
+				this.#height = args[0].height;
 			}
 			else if (typeof args[0] === 'number' && typeof args[1] === 'number') {
 				const width = args[0];
@@ -925,7 +951,8 @@ class Texture
 					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
 						new Uint8Array(pixels.buffer));
 				}
-				this.size = { width, height };
+				this.#width = width;
+				this.#height = height;
 			}
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -934,14 +961,24 @@ class Texture
 		}
 	}
 
+	get fileName()
+	{
+		return this.#fileName;
+	}
+
+	get glHandle()
+	{
+		return this.#glTexture;
+	}
+
 	get height()
 	{
-		return this.size.height;
+		return this.#height;
 	}
 
 	get width()
 	{
-		return this.size.width;
+		return this.#width;
 	}
 
 	upload(content, x = 0, y = 0, width = this.width, height = this.height)
@@ -949,43 +986,29 @@ class Texture
 		const pixelData = ArrayBuffer.isView(content)
 			? new Uint8Array(content.buffer)
 			: new Uint8Array(content);
-		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
-		gl.texSubImage2D(gl.TEXTURE_2D, 0, x, this.size.height - y - height, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
+		gl.bindTexture(gl.TEXTURE_2D, this.#glTexture);
+		gl.texSubImage2D(gl.TEXTURE_2D, 0, x, this.#height - y - height, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
 	}
 
 	useTexture(textureUnit = 0)
 	{
 		gl.activeTexture(gl.TEXTURE0 + textureUnit);
-		gl.bindTexture(gl.TEXTURE_2D, this.glTexture);
+		gl.bindTexture(gl.TEXTURE_2D, this.#glTexture);
 	}
 }
 
 export
 class Surface extends Texture
 {
-	blendOp_ = BlendOp.Default;
-	clipRectangle;
-	depthOp_ = DepthOp.AlwaysPass;
-	frameBuffer;
-	projection;
+	#blendOp = BlendOp.Default;
+	#clipRectangle;
+	#depthOp = DepthOp.AlwaysPass;
+	#frameBuffer;
+	#projection;
 
 	static get Screen()
 	{
-		const screenSurface = Object.create(Surface.prototype);
-		screenSurface.size = { width: gl.canvas.width, height: gl.canvas.height };
-		screenSurface.blendOp_ = BlendOp.Default;
-		screenSurface.clipRectangle = { x: 0, y: 0, w: gl.canvas.width, h: gl.canvas.height };
-		screenSurface.depthOp_ = DepthOp.AlwaysPass;
-		screenSurface.frameBuffer = null;
-		screenSurface.projection = new Transform()
-			.project2D(0, 0, gl.canvas.width, gl.canvas.height);
-		Object.defineProperty(Surface, 'Screen', {
-			value: screenSurface,
-			writable: false,
-			enumerable: false,
-			configurable: true,
-		});
-		return screenSurface;
+		return backBuffer;
 	}
 
 	static async fromFile(fileName)
@@ -996,87 +1019,87 @@ class Surface extends Texture
 	constructor(...args)
 	{
 		if (typeof args[0] === 'string')
-			throw Error("'new Surface' with filename is not supported in Oozaru.");
+			throw Error(`'new Surface' with filename is not supported in Oozaru.`);
 
 		super(...args);
 
 		const frameBuffer = gl.createFramebuffer();
 		const depthBuffer = gl.createRenderbuffer();
 		if (frameBuffer === null || depthBuffer === null)
-			throw new Error(`Engine couldn't create a WebGL framebuffer object.`);
+			throw new Error(`Oozaru couldn't create a WebGL framebuffer object.`);
 
 		// in order to set up a new FBO we need to change the current framebuffer binding, so make sure
 		// it gets changed back afterwards.
 		const previousFBO = gl.getParameter(gl.FRAMEBUFFER_BINDING);
 		gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
-		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.glTexture, 0);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.glHandle, 0);
 		gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
 		gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.width, this.height);
 		gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
 		gl.bindFramebuffer(gl.FRAMEBUFFER, previousFBO);
 
-		this.clipRectangle = { x: 0, y: 0, w: this.width, h: this.height };
-		this.frameBuffer = frameBuffer;
-		this.projection = new Transform()
+		this.#clipRectangle = { x: 0, y: 0, w: this.width, h: this.height };
+		this.#frameBuffer = frameBuffer;
+		this.#projection = new Transform()
 			.project2D(0, 0, this.width, this.height);
 	}
 
 	get blendOp()
 	{
-		return this.blendOp_;
+		return this.#blendOp;
 	}
 
 	get depthOp()
 	{
-		return this.depthOp_;
+		return this.#depthOp;
 	}
 
 	get transform()
 	{
-		return this.projection;
+		return this.#projection;
 	}
 
 	set blendOp(value)
 	{
-		this.blendOp_ = value;
+		this.#blendOp = value;
 		if (activeSurface === this)
 			applyBlendOp(value);
 	}
 
 	set depthOp(value)
 	{
-		this.depthOp_ = value;
+		this.#depthOp = value;
 		if (activeSurface === this)
 			applyDepthOp(value);
 	}
 
 	set transform(value)
 	{
-		this.projection = value;
+		this.#projection = value;
 	}
 
 	activate(shader, texture = null, transform = Transform.Identity)
 	{
 		if (this !== activeSurface) {
-			gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
+			gl.bindFramebuffer(gl.FRAMEBUFFER, this.#frameBuffer);
 			gl.viewport(0, 0, this.width, this.height);
-			gl.scissor(this.clipRectangle.x, this.clipRectangle.y, this.clipRectangle.w, this.clipRectangle.h);
-			applyBlendOp(this.blendOp_);
-			applyDepthOp(this.depthOp_);
+			gl.scissor(this.#clipRectangle.x, this.#clipRectangle.y, this.#clipRectangle.w, this.#clipRectangle.h);
+			applyBlendOp(this.#blendOp);
+			applyDepthOp(this.#depthOp);
 			activeSurface = this;
 		}
 		shader.activate(texture !== null);
-		shader.project(this.projection);
+		shader.project(this.#projection);
 		shader.transform(transform);
 		texture?.useTexture(0);
 	}
 
 	clipTo(x, y, width, height)
 	{
-		this.clipRectangle.x = x;
-		this.clipRectangle.y = y;
-		this.clipRectangle.w = width;
-		this.clipRectangle.h = height;
+		this.#clipRectangle.x = x;
+		this.#clipRectangle.y = y;
+		this.#clipRectangle.w = width;
+		this.#clipRectangle.h = height;
 		if (this === activeSurface)
 			gl.scissor(x, this.height - y - height, width, height);
 	}
@@ -1144,7 +1167,7 @@ class Transform
 	{
 		if (!(other instanceof Transform))
 			throw TypeError("Transform#compose argument must be a Transform object");
-		
+
 		const m1 = this.#values;
 		const m2 = other.#values;
 

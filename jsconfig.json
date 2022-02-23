@@ -3,7 +3,6 @@
         "target": "esnext",
         "lib": [ "esnext", "dom" ],
         "module": "esnext",
-        "checkJs": true,
     },
     "include": [
         "web/engine/*.js",
