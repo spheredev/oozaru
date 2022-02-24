@@ -152,6 +152,7 @@ var keyStates = { '': false };
 var lastMouseX = undefined;
 var lastMouseY = undefined;
 var mouseQueue = [];
+var nullJoystick;
 
 export default
 class InputEngine
@@ -306,6 +307,51 @@ class InputEngine
 				y: e.offsetY,
 			});
 		});
+
+		nullJoystick = new Joystick();
+	}
+}
+
+export
+class Joystick
+{
+	static get P1() { return nullJoystick; }
+	static get P2() { return nullJoystick; }
+	static get P3() { return nullJoystick; }
+	static get P4() { return nullJoystick; }
+
+	static getDevices()
+	{
+		return [];
+	}
+
+	constructor()
+	{
+	}
+
+	get name()
+	{
+		return "Null Device";
+	}
+
+	get numAxes()
+	{
+		return Infinity;
+	}
+
+	get numButtons()
+	{
+		return Infinity;
+	}
+
+	getPosition(axisID)
+	{
+		return 0.0;
+	}
+
+	isPressed(buttonID)
+	{
+		return false;
 	}
 }
 

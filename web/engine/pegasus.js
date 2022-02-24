@@ -36,7 +36,7 @@ import Fido from './fido.js';
 import { Font } from './fontso.js';
 import Game from './game.js';
 import Galileo, { BlendOp, Color, DepthOp, IndexList, Model, Shader, Shape, ShapeType, Surface, Texture, Transform, VertexList } from './galileo.js';
-import InputEngine, { Key, Keyboard, Mouse, MouseKey } from './input-engine.js';
+import InputEngine, { Joystick, Key, Keyboard, Mouse, MouseKey } from './input-engine.js';
 import JobQueue, { Dispatch, JobToken, JobType } from './job-queue.js';
 import { Version } from './version.js';
 
@@ -86,6 +86,7 @@ class Pegasus
 			Font,
 			IndexList,
 			JobToken,
+			Joystick,
 			Keyboard,
 			Mixer,
 			Model,

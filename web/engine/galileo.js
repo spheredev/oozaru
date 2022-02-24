@@ -101,8 +101,9 @@ class Galileo
 			vertexFile: '#/default.vert.glsl',
 			fragmentFile: '#/default.frag.glsl',
 		});
-		flipShader = defaultShader.clone();
 
+		// TODO: see if there's a way to avoid needing a separate shader instance for flips.
+		flipShader = defaultShader.clone();
 		backBuffer = new Surface(canvas.width, canvas.height);
 
 		Galileo.flip();
@@ -231,6 +232,7 @@ class Color
 	static get DeepSkyBlue() { return Color.fromRGBA(0, 191, 255); }
 	static get DimGray() { return Color.fromRGBA(105, 105, 105); }
 	static get DodgerBlue() { return Color.fromRGBA(30, 144, 255); }
+	static get EatyPig() { return Color.fromRGBA(231, 142, 165); }
 	static get FireBrick() { return Color.fromRGBA(178, 34, 34); }
 	static get FloralWhite() { return Color.fromRGBA(255, 250, 240); }
 	static get ForestGreen() { return Color.fromRGBA(34, 139, 34); }
@@ -302,6 +304,8 @@ class Color
 	static get Plum() { return Color.fromRGBA(221, 160, 221); }
 	static get PowderBlue() { return Color.fromRGBA(176, 224, 230); }
 	static get Purple() { return Color.fromRGBA(128, 0, 128); }
+	static get PurwaBlue() { return Color.fromRGBA(155, 225, 255); }
+	static get RebeccaPurple() { return Color.fromRGBA(102, 51, 153); }
 	static get Red() { return Color.fromRGBA(255, 0, 0); }
 	static get RosyBrown() { return Color.fromRGBA(188, 143, 143); }
 	static get RoyalBlue() { return Color.fromRGBA(65, 105, 225); }
@@ -317,6 +321,7 @@ class Color
 	static get SlateGray() { return Color.fromRGBA(112, 128, 144); }
 	static get Snow() { return Color.fromRGBA(255, 250, 250); }
 	static get SpringGreen() { return Color.fromRGBA(0, 255, 127); }
+	static get StankyBean() { return Color.fromRGBA(197, 162, 171); }
 	static get SteelBlue() { return Color.fromRGBA(70, 130, 180); }
 	static get Tan() { return Color.fromRGBA(210, 180, 140); }
 	static get Teal() { return Color.fromRGBA(0, 128, 128); }
@@ -330,10 +335,6 @@ class Color
 	static get WhiteSmoke() { return Color.fromRGBA(245, 245, 245); }
 	static get Yellow() { return Color.fromRGBA(255, 255, 0); }
 	static get YellowGreen() { return Color.fromRGBA(154, 205, 50); }
-	static get PurwaBlue() { return Color.fromRGBA(155, 225, 255); }
-	static get RebeccaPurple() { return Color.fromRGBA(102, 51, 153); }
-	static get StankyBean() { return Color.fromRGBA(197, 162, 171); }
-	static get EatyPigPink() { return Color.fromRGBA(231, 142, 165); }
 
 	static fromRGBA(r, g, b, a = 255)
 	{
