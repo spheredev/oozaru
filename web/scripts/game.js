@@ -128,7 +128,7 @@ class Game
 		}
 		else if (hops[0] === '#') {
 			hops.splice(0, 1);
-			return `resources/${hops.join('/')}`;
+			return `assets/${hops.join('/')}`;
 		}
 		else {
 			throw new RangeError(`Unsupported SphereFS prefix '${hops[0]}'`);

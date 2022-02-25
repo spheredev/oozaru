@@ -5,6 +5,6 @@
         "module": "esnext",
     },
     "include": [
-        "web/engine/*.js",
+        "web/scripts/*.js",
     ]
 }

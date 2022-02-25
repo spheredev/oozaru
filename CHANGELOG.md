@@ -1,10 +1,14 @@
 Oozaru Changelog
 ================
 
-v0.5.2 - TBD
+v0.6.0 - TBD
 ------------
 
-* Removes support for `JSON.fromFile()`.
+* Adds support for the `Color.fromRGBA()` and `Color.EatyPig` APIs.
+* Adds support for the `DataType.JSON` file reading mode.
+* Removes support for the `global` binding.
+* Removes support for the `JSON.fromFile()` API.
+
 
 v0.5.1 - January 27, 2022
 -------------------------
