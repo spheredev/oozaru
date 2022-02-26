@@ -159,9 +159,11 @@ class InputEngine
 {
 	static initialize(canvas)
 	{
-		canvas.addEventListener('contextmenu', e => e.preventDefault());
+		canvas.addEventListener('contextmenu', (e) => {
+			e.preventDefault();
+		});
 
-		canvas.addEventListener('keydown', e => {
+		canvas.addEventListener('keydown', (e) => {
 			e.preventDefault();
 			keyStates[e.code] = true;
 			switch (e.code) {
@@ -262,17 +264,17 @@ class InputEngine
 			keyStates[e.code] = false;
 		});
 
-		canvas.addEventListener('mousemove', e => {
+		canvas.addEventListener('mousemove', (e) => {
 			e.preventDefault();
 			lastMouseX = e.offsetX;
 			lastMouseY = e.offsetY;
 		});
-		canvas.addEventListener('mouseout', e => {
+		canvas.addEventListener('mouseout', (e) => {
 			e.preventDefault();
 			lastMouseX = undefined;
 			lastMouseY = undefined;
 		});
-		canvas.addEventListener('mousedown', e => {
+		canvas.addEventListener('mousedown', (e) => {
 			e.preventDefault();
 			canvas.focus();
 			const key = e.button === 1 ? MouseKey.Middle
@@ -282,7 +284,7 @@ class InputEngine
 				: MouseKey.Left;
 			buttonStates[key] = true;
 		});
-		canvas.addEventListener('mouseup', e => {
+		canvas.addEventListener('mouseup', (e) => {
 			e.preventDefault();
 			const key = e.button === 1 ? MouseKey.Middle
 				: e.button === 2 ? MouseKey.Right
@@ -296,7 +298,7 @@ class InputEngine
 				y: e.offsetY,
 			});
 		});
-		canvas.addEventListener('wheel', e => {
+		canvas.addEventListener('wheel', (e) => {
 			e.preventDefault();
 			const key = e.deltaY < 0.0 ? MouseKey.WheelUp
 				: MouseKey.WheelDown;

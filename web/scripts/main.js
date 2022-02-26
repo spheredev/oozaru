@@ -36,7 +36,7 @@ import Fontso from './fontso.js';
 import Galileo from './galileo.js';
 import InputEngine from './input-engine.js';
 import Pegasus from './pegasus.js';
-import { Version } from './version.js';
+import Version from './version.js';
 
 main();
 
@@ -50,10 +50,10 @@ async function main()
 	// use event handling to intercept errors originating inside the Sphere sandbox, rather than a
 	// try-catch.  otherwise the debugger thinks the error is handled and doesn't do a breakpoint,
 	// making diagnosing bugs in the engine harder than necessary.
-	window.addEventListener('error', e => {
+	window.addEventListener('error', (e) => {
 		reportException(e.error);
 	});
-	window.addEventListener('unhandledrejection', e => {
+	window.addEventListener('unhandledrejection', (e) => {
 		reportException(e.reason);
 	});
 

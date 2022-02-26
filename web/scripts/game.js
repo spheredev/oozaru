@@ -33,7 +33,7 @@
 import Fido from './fido.js';
 import Galileo from './galileo.js';
 import { fullURL, isConstructible } from './utilities.js';
-import { Version } from './version.js';
+import Version from './version.js';
 
 export default
 class Game
@@ -77,7 +77,9 @@ class Game
 			// '$/' aliases the directory containing the main module; it's not a root itself.
 			input.splice(0, 1, ...this.manifest.mainPath.split(/[\\/]+/).slice(0, -1));
 		}
-		const output = [ input[0] ];
+		const output = [
+			input[0],
+		];
 		for (let i = 1, len = input.length; i < len; ++i) {
 			if (input[i] === '..') {
 				if (output.length > 1) {

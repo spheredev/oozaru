@@ -87,7 +87,7 @@ class Font
 			if (rfnHeader.signature !== '.rfn')
 				throw new Error(`Unable to load RFN font file`);
 			if (rfnHeader.version < 2 || rfnHeader.version > 2)
-				throw new Error(`Unsupported RFN version '${rfnHeader.version}'`)
+				throw new Error(`Unsupported RFN version '${rfnHeader.version}'`);
 			if (rfnHeader.numGlyphs <= 0)
 				throw new Error(`Malformed RFN font (no glyphs)`);
 			const numAcross = Math.ceil(Math.sqrt(rfnHeader.numGlyphs));

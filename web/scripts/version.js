@@ -32,27 +32,35 @@
 
 import Fido from './fido.js';
 
-export
+var releaseData;
+
+export default
 class Version
 {
-    static apiVersion = 2;
-    static apiLevel = 4;
-    static releaseData;
-
     static async initialize()
     {
-        this.releaseData = await Fido.fetchJSON('oozaru.json');
+        releaseData = await Fido.fetchJSON('oozaru.json');
+    }
+
+    static get apiLevel()
+    {
+        return 4;
+    }
+    
+    static get apiVersion()
+    {
+        return 2;
     }
 
     static get engine()
     {
-        return typeof this.releaseData.name === 'string'
-            ? this.releaseData.name : "Oozaru";
+        return typeof releaseData.name === 'string'
+            ? releaseData.name : "Oozaru";
     }
 
     static get version()
     {
-        return typeof this.releaseData.version === 'string'
-            ? this.releaseData.version : "WiP";
+        return typeof releaseData.version === 'string'
+            ? releaseData.version : "WiP";
     }
 }

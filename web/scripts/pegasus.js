@@ -38,7 +38,7 @@ import Game from './game.js';
 import Galileo, { BlendOp, Color, DepthOp, IndexList, Model, Shader, Shape, ShapeType, Surface, Texture, Transform, VertexList } from './galileo.js';
 import InputEngine, { Joystick, Key, Keyboard, Mouse, MouseKey } from './input-engine.js';
 import JobQueue, { Dispatch, JobToken, JobType } from './job-queue.js';
-import { Version } from './version.js';
+import Version from './version.js';
 
 const DataType =
 {
@@ -173,14 +173,14 @@ class Sphere
 		return false;
 	}
 
-	static set frameRate(_value)
+	static set frameRate(value)
 	{
 		throw new Error(`Oozaru doesn't support setting the frame rate`);
 	}
 
-	static set frameSkip(_value)
+	static set frameSkip(value)
 	{
-		throw new Error(`Oozaru doesn't support frameskip`);
+		throw new Error(`Oozaru doesn't support frame skipping`);
 	}
 
 	static set fullScreen(value)

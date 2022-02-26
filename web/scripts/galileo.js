@@ -134,7 +134,6 @@ class Galileo
 
 	static flip()
 	{
-		activeSurface = null;
 		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 		gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 		gl.scissor(0, 0, gl.canvas.width, gl.canvas.height);
@@ -149,8 +148,8 @@ class Galileo
 			{ x: 0, y: gl.canvas.height, u: 0.0, v: 0.0 },
 			{ x: gl.canvas.width, y: gl.canvas.height, u: 1.0, v: 0.0 },
 		]));
-		gl.bindTexture(gl.TEXTURE_2D, null);
 
+		activeSurface = null;
 		Surface.Screen.activate(defaultShader);
 		Surface.Screen.unclip();
 		gl.disable(gl.SCISSOR_TEST);
@@ -393,7 +392,9 @@ class Color
 					if (propValue instanceof Color)
 						return propValue;
 				}
-				catch {}
+				catch {
+					// *MUNCH*
+				}
 				break;
 			}
 		}
@@ -1093,7 +1094,13 @@ class Surface extends Texture
 		shader.activate(texture !== null);
 		shader.project(this.#projection);
 		shader.transform(transform);
-		texture?.useTexture(0);
+		if (texture !== null) {
+			texture.useTexture(0);
+		}
+		else {
+			gl.activeTexture(gl.TEXTURE0 + 0);
+			gl.bindTexture(gl.TEXTURE_2D, null);
+		}
 	}
 
 	clipTo(x, y, width, height)
