@@ -4,8 +4,10 @@ Oozaru Changelog
 v0.6.0 - TBD
 ------------
 
-* Adds support for the `Color.fromRGBA()` and `Color.EatyPig` APIs.
+* Adds support for the `Color.fromRGBA()`, `Color.EatyPig`, and
+  `Transform#matrix` APIs.
 * Adds support for the `DataType.JSON` file reading mode.
+* Adds static methods to `Transform` for constructing basic matrices.
 * Removes support for the `global` binding.
 * Removes support for the `JSON.fromFile()` API.
 

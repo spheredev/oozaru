@@ -140,8 +140,8 @@ class Galileo
 		gl.blendEquation(gl.FUNC_ADD);
 		gl.blendFunc(gl.ONE, gl.ZERO);
 		gl.depthFunc(gl.ALWAYS);
-		backBuffer.useTexture(0);
 		flipShader.activate(true);
+		backBuffer.useTexture(0);
 		Galileo.draw(ShapeType.TriStrip, new VertexList([
 			{ x: 0, y: 0, u: 0.0, v: 1.0 },
 			{ x: gl.canvas.width, y: 0, u: 1.0, v: 1.0 },
@@ -163,7 +163,7 @@ class Galileo
 		gl.canvas.height = height;
 		const oldBackBuffer = backBuffer;
 		backBuffer = new Surface(width, height);
-		flipShader.project(new Transform().project2D(0, 0, width, height));
+		flipShader.project(Transform.project2D(0, 0, width, height));
 		if (activeSurface === oldBackBuffer) {
 			gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 			activeSurface = backBuffer;
@@ -608,7 +608,7 @@ class Shader
 							: gl.uniform1iv(location, entry.value);
 						break;
 					case 'matrix':
-						gl.uniformMatrix4fv(location, false, entry.value.matrix);
+						gl.uniformMatrix4fv(location, false, entry.value.values);
 						break;
 				}
 			}
@@ -798,7 +798,7 @@ class Shader
 				location = gl.getUniformLocation(this.#glProgram, name);
 				this.#uniformIDs[name] = location;
 			}
-			gl.uniformMatrix4fv(location, false, value.matrix);
+			gl.uniformMatrix4fv(location, false, value.values);
 		}
 		else {
 			this.#valuesToSet[name] = { type: 'matrix', value };
@@ -1043,8 +1043,7 @@ class Surface extends Texture
 
 		this.#clipRectangle = { x: 0, y: 0, w: this.width, h: this.height };
 		this.#frameBuffer = frameBuffer;
-		this.#projection = new Transform()
-			.project2D(0, 0, this.width, this.height);
+		this.#projection = Transform.project2D(0, 0, this.width, this.height);
 	}
 
 	get blendOp()
@@ -1122,11 +1121,12 @@ class Surface extends Texture
 export
 class Transform
 {
+	#subarrays;
 	#values;
 
 	static get Identity()
 	{
-		return new this([
+		return new Transform([
 			1.0, 0.0, 0.0, 0.0,
 			0.0, 1.0, 0.0, 0.0,
 			0.0, 0.0, 1.0, 0.0,
@@ -1136,11 +1136,103 @@ class Transform
 
 	static get Zero()
 	{
-		return new this([
+		return new Transform([
 			0.0, 0.0, 0.0, 0.0,
 			0.0, 0.0, 0.0, 0.0,
 			0.0, 0.0, 0.0, 0.0,
 			0.0, 0.0, 0.0, 0.0,
+		]);
+	}
+
+	static project2D(left, top, right, bottom, near = -1.0, far = 1.0)
+	{
+		const deltaX = right - left;
+		const deltaY = top - bottom;
+		const deltaZ = far - near;
+
+		const transform = Transform.Zero;
+		const values = transform.#values;
+		values[0] = 2.0 / deltaX;
+		values[5] = 2.0 / deltaY;
+		values[10] = 2.0 / deltaZ;
+		values[15] = 1.0;
+		values[12] = -(right + left) / deltaX;
+		values[13] = -(top + bottom) / deltaY;
+		values[14] = -(far + near) / deltaZ;
+		return transform;
+	}
+
+	static project3D(fov, aspect, near, far)
+	{
+		const fh = Math.tan(fov * Math.PI / 360.0) * near;
+		const fw = fh * aspect;
+
+		const deltaX = fw - -fw;
+		const deltaY = -fh - fh;
+		const deltaZ = far - near;
+
+		const transform = Transform.Zero;
+		const values = transform.#values;
+		values[0] = 2.0 * near / deltaX;
+		values[5] = 2.0 * near / deltaY;
+		values[8] = (fw + -fw) / deltaX;
+		values[9] = (-fh + fh) / deltaY;
+		values[10] = -(far + near) / deltaZ;
+		values[11] = -1.0;
+		values[14] = -2.0 * far * near / deltaZ;
+		values[15] = 0.0;
+		return transform;
+	}
+
+	static rotate(angle, vX, vY, vZ)
+	{
+		// normalize the rotation axis vector
+		const norm = Math.sqrt(vX * vX + vY * vY + vZ * vZ);
+		if (norm > 0.0) {
+			vX = vX / norm;
+			vY = vY / norm;
+			vZ = vZ / norm;
+		}
+
+		// convert degrees to radians
+		const theta = angle * Math.PI / 180.0;
+
+		const cos = Math.cos(theta);
+		const sin = Math.sin(theta);
+		const siv = 1.0 - cos;
+
+		const transform = Transform.Zero;
+		const values = transform.#values;
+		values[0] = (siv * vX * vX) + cos;
+		values[1] = (siv * vX * vY) + (vZ * sin);
+		values[2] = (siv * vX * vZ) - (vY * sin);
+		values[4] = (siv * vX * vY) - (vZ * sin);
+		values[5] = (siv * vY * vY) + cos;
+		values[6] = (siv * vZ * vY) + (vX * sin);
+		values[8] = (siv * vX * vZ) + (vY * sin);
+		values[9] = (siv * vY * vZ) - (vX * sin);
+		values[10] = (siv * vZ * vZ) + cos;
+		values[15] = 1.0;
+		return transform;
+	}
+	
+	static scale(sX, sY, sZ = 1.0)
+	{
+		return new Transform([
+			sX, 0,  0,  0,
+			0,  sY, 0,  0,
+			0,  0,  sZ, 0,
+			0,  0,  0,  1,
+		]);
+	}
+	
+	static translate(tX, tY, tZ = 0.0)
+	{
+		return new Transform([
+			1,  0,  0,  0,
+			0,  1,  0,  0,
+			0,  0,  1,  0,
+			tX, tY, tZ, 1,
 		]);
 	}
 
@@ -1163,6 +1255,19 @@ class Transform
 	}
 
 	get matrix()
+	{
+		if (this.#subarrays === undefined) {
+			this.#subarrays = [
+				this.#values.subarray(0, 4),
+				this.#values.subarray(4, 8),
+				this.#values.subarray(8, 12),
+				this.#values.subarray(12, 16),
+			];
+		}
+		return this.#subarrays;
+	}
+	
+	get values()
 	{
 		return this.#values;
 	}
@@ -1227,77 +1332,17 @@ class Transform
 
 	project2D(left, top, right, bottom, near = -1.0, far = 1.0)
 	{
-		const deltaX = right - left;
-		const deltaY = top - bottom;
-		const deltaZ = far - near;
-
-		const projection = Transform.Zero;
-		const values = projection.#values;
-		values[0] = 2.0 / deltaX;
-		values[5] = 2.0 / deltaY;
-		values[10] = 2.0 / deltaZ;
-		values[15] = 1.0;
-		values[12] = -(right + left) / deltaX;
-		values[13] = -(top + bottom) / deltaY;
-		values[14] = -(far + near) / deltaZ;
-
-		return this.compose(projection);
+		return this.compose(Transform.project2D(left, top, right, bottom, near, far));
 	}
 
 	project3D(fov, aspect, near, far)
 	{
-		const fh = Math.tan(fov * Math.PI / 360.0) * near;
-		const fw = fh * aspect;
-
-		const deltaX = fw - -fw;
-		const deltaY = -fh - fh;
-		const deltaZ = far - near;
-
-		const projection = Transform.Zero;
-		const values = projection.#values;
-		values[0] = 2.0 * near / deltaX;
-		values[5] = 2.0 * near / deltaY;
-		values[8] = (fw + -fw) / deltaX;
-		values[9] = (-fh + fh) / deltaY;
-		values[10] = -(far + near) / deltaZ;
-		values[11] = -1.0;
-		values[14] = -2.0 * far * near / deltaZ;
-		values[15] = 0.0;
-
-		return this.compose(projection);
+		return this.compose(Transform.project3D(fov, aspect, near, far));
 	}
 
 	rotate(angle, vX, vY, vZ)
 	{
-		// normalize the rotation axis vector
-		const norm = Math.sqrt(vX * vX + vY * vY + vZ * vZ);
-		if (norm > 0.0) {
-			vX = vX / norm;
-			vY = vY / norm;
-			vZ = vZ / norm;
-		}
-
-		// convert degrees to radians
-		const theta = angle * Math.PI / 180.0;
-
-		const cos = Math.cos(theta);
-		const sin = Math.sin(theta);
-		const siv = 1.0 - cos;
-
-		const rotation = Transform.Zero;
-		const values = rotation.#values;
-		values[0] = (siv * vX * vX) + cos;
-		values[1] = (siv * vX * vY) + (vZ * sin);
-		values[2] = (siv * vX * vZ) - (vY * sin);
-		values[4] = (siv * vX * vY) - (vZ * sin);
-		values[5] = (siv * vY * vY) + cos;
-		values[6] = (siv * vZ * vY) + (vX * sin);
-		values[8] = (siv * vX * vZ) + (vY * sin);
-		values[9] = (siv * vY * vZ) - (vX * sin);
-		values[10] = (siv * vZ * vZ) + cos;
-		values[15] = 1.0;
-
-		return this.compose(rotation);
+		return this.compose(Transform.rotate(angle, vX, vY, vZ));
 	}
 
 	scale(sX, sY, sZ = 1.0)
@@ -1322,7 +1367,7 @@ class Transform
 
 	translate(tX, tY, tZ = 0.0)
 	{
-		this.#values[12]	+= tX;
+		this.#values[12] += tX;
 		this.#values[13] += tY;
 		this.#values[14] += tZ;
 		return this;
