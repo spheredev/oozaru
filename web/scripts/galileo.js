@@ -1134,23 +1134,13 @@ class Transform
 		]);
 	}
 
-	static get Zero()
-	{
-		return new Transform([
-			0.0, 0.0, 0.0, 0.0,
-			0.0, 0.0, 0.0, 0.0,
-			0.0, 0.0, 0.0, 0.0,
-			0.0, 0.0, 0.0, 0.0,
-		]);
-	}
-
 	static project2D(left, top, right, bottom, near = -1.0, far = 1.0)
 	{
 		const deltaX = right - left;
 		const deltaY = top - bottom;
 		const deltaZ = far - near;
 
-		const transform = Transform.Zero;
+		const transform = Transform.Identity;
 		const values = transform.#values;
 		values[0] = 2.0 / deltaX;
 		values[5] = 2.0 / deltaY;
@@ -1171,7 +1161,7 @@ class Transform
 		const deltaY = -fh - fh;
 		const deltaZ = far - near;
 
-		const transform = Transform.Zero;
+		const transform = Transform.Identity;
 		const values = transform.#values;
 		values[0] = 2.0 * near / deltaX;
 		values[5] = 2.0 * near / deltaY;
@@ -1201,7 +1191,7 @@ class Transform
 		const sin = Math.sin(theta);
 		const siv = 1.0 - cos;
 
-		const transform = Transform.Zero;
+		const transform = Transform.Identity;
 		const values = transform.#values;
 		values[0] = (siv * vX * vX) + cos;
 		values[1] = (siv * vX * vY) + (vZ * sin);
@@ -1212,27 +1202,26 @@ class Transform
 		values[8] = (siv * vX * vZ) + (vY * sin);
 		values[9] = (siv * vY * vZ) - (vX * sin);
 		values[10] = (siv * vZ * vZ) + cos;
-		values[15] = 1.0;
 		return transform;
 	}
 	
 	static scale(sX, sY, sZ = 1.0)
 	{
 		return new Transform([
-			sX, 0,  0,  0,
-			0,  sY, 0,  0,
-			0,  0,  sZ, 0,
-			0,  0,  0,  1,
+			sX,  0.0, 0.0, 0.0,
+			0.0, sY,  0.0, 0.0,
+			0.0, 0.0, sZ,  0.0,
+			0.0, 0.0, 0.0, 1.0,
 		]);
 	}
 	
 	static translate(tX, tY, tZ = 0.0)
 	{
 		return new Transform([
-			1,  0,  0,  0,
-			0,  1,  0,  0,
-			0,  0,  1,  0,
-			tX, tY, tZ, 1,
+			1.0, 0.0, 0.0, 0.0,
+			0.0, 1.0, 0.0, 0.0,
+			0.0, 0.0, 1.0, 0.0,
+			tX,  tY,  tZ,  1.0,
 		]);
 	}
 
