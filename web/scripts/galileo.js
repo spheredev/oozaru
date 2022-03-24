@@ -103,8 +103,8 @@ class Galileo
 		});
 
 		// TODO: see if there's a way to avoid needing a separate shader instance for flips.
-		flipShader = defaultShader.clone();
 		backBuffer = new Surface(canvas.width, canvas.height);
+		flipShader = defaultShader.clone();
 
 		Galileo.flip();
 	}

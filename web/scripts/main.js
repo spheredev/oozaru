@@ -79,7 +79,7 @@ async function main()
 	}
 	catch {
 		const iconImage = document.createElement('img');
-		iconImage.src = `game/icon.png`;
+		iconImage.src = `dist/icon.png`;
 		iconImage.width = 48;
 		iconImage.height = 48;
 		menu.appendChild(iconImage);
@@ -100,7 +100,7 @@ async function main()
 			await Fontso.initialize();
 			InputEngine.initialize(canvas);
 			Pegasus.initialize();
-			await Pegasus.launchGame(gameID !== null ? `games/${gameID}` : 'game');
+			await Pegasus.launchGame(gameID !== null ? `games/${gameID}` : 'dist');
 		}
 		else {
 			reportException("Please select a game from the top menu first.");

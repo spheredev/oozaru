@@ -1,5 +1,5 @@
 node_modules/
 .DS_STORE
 
-web/game/
+web/dist/
 web/games/

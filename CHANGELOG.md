@@ -1,8 +1,8 @@
 Oozaru Changelog
 ================
 
-v0.6.0 - TBD
-------------
+v0.6.0 - March 23, 2022
+-----------------------
 
 * Adds support for the `Color.fromRGBA()`, `Color.EatyPig`, and
   `Transform#matrix` APIs.

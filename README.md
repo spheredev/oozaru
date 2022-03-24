@@ -14,8 +14,8 @@ into the official Sphere development toolchain.
 
 ## Download
 
-**Oozaru 0.5.1**, released on January 27, 2021, is available for download here,
-along with all previous releases:
+Oozaru is available for download from the GitHub repository's Releases page,
+which can be found here:
 
 * https://github.com/spheredev/oozaru/releases
 
