@@ -32,11 +32,11 @@
 
 import Logger from './logger.js';
 import Prim from './prim.js';
-import Thread from './thread.js';
+import Task from './task.js';
 import Tween, { Easing } from './tween.js';
 
 export default
-class Console extends Thread
+class Console extends Task
 {
 	constructor(options = {})
 	{

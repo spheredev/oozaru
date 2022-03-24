@@ -10,7 +10,7 @@ import TestHarness from './testHarness.js';
 
 import './defineScenelets.js';
 
-global.console =
+globalThis.console =
 	new Console({ hotKey: Key.Tilde });
 
 export default

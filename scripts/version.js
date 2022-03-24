@@ -1,5 +1,5 @@
 /**
- *  Sphere: the JavaScript game platform
+ *  Oozaru: Sphere for the Web
  *  Copyright (c) 2015-2022, Fat Cerberus
  *  All rights reserved.
  *
@@ -30,17 +30,37 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-export { default as Console } from './console.js';
-export { default as FocusTarget } from './focus-target.js';
-export { default as Music } from './music.js';
-export { default as Pact } from './pact.js';
-export { default as Prim } from './prim.js';
-export { default as Scene } from './scene.js';
-export { default as Thread } from './thread.js';
-export { default as Tween, Easing } from './tween.js';
+import Fido from './fido.js';
 
-// Sphere Runtime shared modules
-export { default as DataStream } from './data-stream.js';
-export { default as from, Query } from './from.js';
-export { default as Logger } from './logger.js';
-export { default as Random } from './random.js';
+var releaseData;
+
+export default
+class Version
+{
+    static async initialize()
+    {
+        releaseData = await Fido.fetchJSON('oozaru.json');
+    }
+
+    static get apiLevel()
+    {
+        return 4;
+    }
+    
+    static get apiVersion()
+    {
+        return 2;
+    }
+
+    static get engine()
+    {
+        return typeof releaseData.name === 'string'
+            ? releaseData.name : "Oozaru";
+    }
+
+    static get version()
+    {
+        return typeof releaseData.version === 'string'
+            ? releaseData.version : "WiP";
+    }
+}
