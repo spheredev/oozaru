@@ -1,6 +1,6 @@
 /**
  *  Oozaru: Sphere for the Web
- *  Copyright (c) 2015-2022, Fat Cerberus
+ *  Copyright (c) 2015-2023, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -65,14 +65,14 @@ class DataStream
 	set position(value)
 	{
 		if (value > this.#bytes.length)
-			throw new RangeError(`Stream position '${value}' is out of range`);
+			throw RangeError(`Stream position '${value}' is out of range`);
 		this.#ptr = value;
 	}
 
 	readBytes(numBytes)
 	{
 		if (this.#ptr + numBytes > this.#bytes.length)
-			throw new Error(`Unable to read ${numBytes} bytes from stream`);
+			throw Error(`Unable to read ${numBytes} bytes from stream`);
 		const bytes = this.#bytes.slice(this.#ptr, this.#ptr + numBytes);
 		this.#ptr += numBytes;
 		return bytes;
@@ -81,7 +81,7 @@ class DataStream
 	readFloat32(littleEndian = false)
 	{
 		if (this.#ptr + 4 > this.#bytes.length)
-			throw new Error(`Unable to read 32-bit float from stream`);
+			throw Error(`Unable to read 32-bit float from stream`);
 		const value = this.#dataView.getFloat32(this.#ptr, littleEndian);
 		this.#ptr += 4;
 		return value;
@@ -90,7 +90,7 @@ class DataStream
 	readFloat64(littleEndian = false)
 	{
 		if (this.#ptr + 8 > this.#bytes.length)
-			throw new Error(`Unable to read 64-bit float from stream`);
+			throw Error(`Unable to read 64-bit float from stream`);
 		const value = this.#dataView.getFloat64(this.#ptr, littleEndian);
 		this.#ptr += 8;
 		return value;
@@ -99,14 +99,14 @@ class DataStream
 	readInt8()
 	{
 		if (this.#ptr + 1 > this.#bytes.length)
-			throw new Error(`Unable to read 8-bit signed integer from stream`);
+			throw Error(`Unable to read 8-bit signed integer from stream`);
 		return this.#dataView.getInt8(this.#ptr++);
 	}
 
 	readInt16(littleEndian = false)
 	{
 		if (this.#ptr + 2 > this.#bytes.length)
-			throw new Error(`Unable to read 16-bit signed integer from stream`);
+			throw Error(`Unable to read 16-bit signed integer from stream`);
 		const value = this.#dataView.getInt16(this.#ptr, littleEndian);
 		this.#ptr += 2;
 		return value;
@@ -115,7 +115,7 @@ class DataStream
 	readInt32(littleEndian = false)
 	{
 		if (this.#ptr + 4 > this.#bytes.length)
-			throw new Error(`Unable to read 32-bit signed integer from stream`);
+			throw Error(`Unable to read 32-bit signed integer from stream`);
 		const value = this.#dataView.getInt32(this.#ptr, littleEndian);
 		this.#ptr += 4;
 		return value;
@@ -124,7 +124,7 @@ class DataStream
 	readString(numBytes)
 	{
 		if (this.#ptr + numBytes > this.#bytes.length)
-			throw new Error(`Unable to read ${numBytes}-byte string from stream`);
+			throw Error(`Unable to read ${numBytes}-byte string from stream`);
 		const slice = this.#bytes.subarray(this.#ptr, this.#ptr + numBytes);
 		this.#ptr += numBytes;
 		return this.#textDecoder.decode(slice);
@@ -221,7 +221,7 @@ class DataStream
 					retval[key] = this.readUint32(true);
 					break;
 				default:
-					throw new RangeError(`Unknown readStruct() value type '${valueType}'`);
+					throw RangeError(`Unknown readStruct() value type '${valueType}'`);
 			}
 		}
 		return retval;
@@ -230,14 +230,14 @@ class DataStream
 	readUint8()
 	{
 		if (this.#ptr + 1 > this.#bytes.length)
-			throw new Error(`Unable to read 8-bit unsigned integer from stream`);
+			throw Error(`Unable to read 8-bit unsigned integer from stream`);
 		return this.#dataView.getUint8(this.#ptr++);
 	}
 
 	readUint16(littleEndian = false)
 	{
 		if (this.#ptr + 2 > this.#bytes.length)
-			throw new Error(`Unable to read 16-bit unsigned integer from stream`);
+			throw Error(`Unable to read 16-bit unsigned integer from stream`);
 		const value = this.#dataView.getUint16(this.#ptr, littleEndian);
 		this.#ptr += 2;
 		return value;
@@ -246,7 +246,7 @@ class DataStream
 	readUint32(littleEndian = false)
 	{
 		if (this.#ptr + 4 > this.#bytes.length)
-			throw new Error(`Unable to read 32-bit unsigned integer from stream`);
+			throw Error(`Unable to read 32-bit unsigned integer from stream`);
 		const value = this.#dataView.getUint32(this.#ptr, littleEndian);
 		this.#ptr += 4;
 		return value;
@@ -255,7 +255,7 @@ class DataStream
 	skipAhead(numBytes)
 	{
 		if (this.#ptr + numBytes > this.#bytes.length)
-			throw new Error(`Cannot read ${numBytes} bytes from stream`);
+			throw Error(`Cannot read ${numBytes} bytes from stream`);
 		this.#ptr += numBytes;
 	}
 }

@@ -1,6 +1,12 @@
 Oozaru Changelog
 ================
 
+v0.7.0 - TBD
+------------
+
+* Adds new async `File` APIs.
+
+
 v0.6.0 - March 23, 2022
 -----------------------
 

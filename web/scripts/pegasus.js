@@ -1,6 +1,6 @@
 /**
  *  Oozaru: Sphere for the Web
- *  Copyright (c) 2015-2022, Fat Cerberus
+ *  Copyright (c) 2015-2023, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -82,6 +82,7 @@ class Pegasus
 			Color,
 			Dispatch,
 			FS,
+			File,
 			FileStream,
 			Font,
 			IndexList,
@@ -175,18 +176,18 @@ class Sphere
 
 	static set frameRate(value)
 	{
-		throw new Error(`Oozaru doesn't support setting the frame rate`);
+		throw Error(`Oozaru doesn't support setting the frame rate`);
 	}
 
 	static set frameSkip(value)
 	{
-		throw new Error(`Oozaru doesn't support frame skipping`);
+		throw Error(`Oozaru doesn't support frame skipping`);
 	}
 
 	static set fullScreen(value)
 	{
 		if (value !== false)
-			throw new Error(`Oozaru doesn't yet support fullScreen mode`);
+			throw Error(`Oozaru doesn't yet support fullScreen mode`);
 	}
 
 	static get main()
@@ -214,42 +215,15 @@ class Sphere
 
 class FS
 {
-	static async evaluateScript(fileName)
-	{
-		const url = Game.urlOf(fileName);
-		return new Promise((resolve, reject) => {
-			const script = document.createElement('script');
-			script.onload = () => {
-				resolve();
-				script.remove();
-			}
-			script.onerror = () => {
-				reject(Error(`Oozaru was unable to load '${url}' as a script`));
-				script.remove();
-			}
-			script.src = url;
-			document.head.appendChild(script);
-		});
-	}
-
-	static async fileExists(pathName)
-	{
-		const url = Game.urlOf(pathName);
-		try {
-			const response = await fetch(url);
-			return response.status === 200;
-		}
-		catch {
-			return false;
-		}
-	}
-
 	static fullPath(pathName, baseDirName)
 	{
 		return Game.fullPath(pathName, baseDirName);
 	}
+}
 
-	static async readFile(fileName, dataType = DataType.Text)
+class File
+{
+	static async load(fileName, dataType = DataType.Text)
 	{
 		const url = Game.urlOf(fileName);
 		switch (dataType) {
@@ -267,6 +241,29 @@ class FS
 				return Fido.fetchText(url);
 		}
 	}
+
+	static async run(fileName)
+	{
+		const url = Game.urlOf(fileName);
+		return new Promise((resolve, reject) => {
+			const script = document.createElement('script');
+			script.onload = () => {
+				resolve();
+				script.remove();
+			}
+			script.onerror = () => {
+				reject(Error(`Oozaru was unable to load '${url}' as a script`));
+				script.remove();
+			}
+			script.src = url;
+			document.head.appendChild(script);
+		});
+	}
+	
+	static async save(fileName, data)
+	{
+		throw Error(`File.save() is not yet implemented in Oozaru`);
+	}
 }
 
 class FileStream
@@ -277,7 +274,7 @@ class FileStream
 	static async fromFile(fileName, fileOp)
 	{
 		if (fileOp !== FileOp.Read)
-			throw new RangeError(`Oozaru currently only supports FileStreams in read mode`);
+			throw RangeError(`Oozaru currently only supports FileStreams in read mode`);
 
 		const url = Game.urlOf(fileName);
 		const data = await Fido.fetchData(url);
@@ -289,7 +286,7 @@ class FileStream
 
 	constructor()
 	{
-		throw new RangeError(`new FileStream() is not supported under Oozaru.`);
+		throw RangeError(`new FileStream() is not supported under Oozaru.`);
 	}
 
 	get fileName()
@@ -300,21 +297,21 @@ class FileStream
 	get fileSize()
 	{
 		if (this.dataStream === null)
-			throw new Error(`The FileStream has already been disposed`);
+			throw Error(`The FileStream has already been disposed`);
 		return this.dataStream.bufferSize;
 	}
 
 	get position()
 	{
 		if (this.dataStream === null)
-			throw new Error(`The FileStream has already been disposed`);
+			throw Error(`The FileStream has already been disposed`);
 		return this.dataStream.position;
 	}
 
 	set position(value)
 	{
 		if (this.dataStream === null)
-			throw new Error(`The FileStream has already been disposed`);
+			throw Error(`The FileStream has already been disposed`);
 		this.dataStream.position = value;
 	}
 
@@ -326,7 +323,7 @@ class FileStream
 	read(numBytes)
 	{
 		if (this.dataStream === null)
-			throw new Error(`The FileStream has already been disposed`);
+			throw Error(`The FileStream has already been disposed`);
 		return this.dataStream.readBytes(numBytes).buffer;
 	}
 

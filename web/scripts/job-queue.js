@@ -1,6 +1,6 @@
 /**
  *  Oozaru: Sphere for the Web
- *  Copyright (c) 2015-2022, Fat Cerberus
+ *  Copyright (c) 2015-2023, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -77,7 +77,7 @@ class Dispatch
 {
 	static cancelAll()
 	{
-		throw new Error(`'Dispatch#cancelAll()' API is not implemented`);
+		throw Error(`'Dispatch#cancelAll()' API is not implemented`);
 	}
 
 	static later(numFrames, callback)
