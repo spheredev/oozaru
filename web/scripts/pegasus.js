@@ -176,18 +176,18 @@ class Sphere
 
 	static set frameRate(value)
 	{
-		throw Error(`Oozaru doesn't support setting the frame rate`);
+		throw Error(`'Sphere.frameRate' cannot be set in Oozaru`);
 	}
 
 	static set frameSkip(value)
 	{
-		throw Error(`Oozaru doesn't support frame skipping`);
+		throw Error(`'Sphere.frameSkip' cannot be set in Oozaru`);
 	}
 
 	static set fullScreen(value)
 	{
 		if (value !== false)
-			throw Error(`Oozaru doesn't yet support fullScreen mode`);
+			throw Error(`Full-screen mode is not implemented`);
 	}
 
 	static get main()
@@ -223,6 +223,11 @@ class FS
 
 class File
 {
+	static async exists(fileName)
+	{
+		throw Error(`'File.exists' is not implemented`);
+	}
+	
 	static async load(fileName, dataType = DataType.Text)
 	{
 		const url = Game.urlOf(fileName);
@@ -242,6 +247,16 @@ class File
 		}
 	}
 
+	static async remove(fileName)
+	{
+		throw Error(`'File.remove' is not implemented`);
+	}
+
+	static async rename(fileName, newFileName)
+	{
+		throw Error(`'File.rename' is not implemented`)
+	}
+
 	static async run(fileName)
 	{
 		const url = Game.urlOf(fileName);
@@ -252,86 +267,86 @@ class File
 				script.remove();
 			}
 			script.onerror = () => {
-				reject(Error(`Oozaru was unable to load '${url}' as a script`));
+				reject(Error(`Couldn't load JS script '${url}'`));
 				script.remove();
 			}
 			script.src = url;
 			document.head.appendChild(script);
 		});
 	}
-	
+
 	static async save(fileName, data)
 	{
-		throw Error(`File.save() is not yet implemented in Oozaru`);
+		throw Error(`'File.save' is not implemented`);
 	}
 }
 
 class FileStream
 {
-	dataStream;
-	fullPath;
+	#dataStream;
+	#fullPath;
 
 	static async fromFile(fileName, fileOp)
 	{
 		if (fileOp !== FileOp.Read)
-			throw RangeError(`Oozaru currently only supports FileStreams in read mode`);
+			throw RangeError(`Opening files in write mode is not yet supported`);
 
 		const url = Game.urlOf(fileName);
 		const data = await Fido.fetchData(url);
 		const fileStream = Object.create(this.prototype);
-		fileStream.fullPath = fileName;
-		fileStream.dataStream = new DataStream(data);
+		fileStream.#fullPath = fileName;
+		fileStream.#dataStream = new DataStream(data);
 		return fileStream;
 	}
 
 	constructor()
 	{
-		throw RangeError(`new FileStream() is not supported under Oozaru.`);
+		throw RangeError(`'new FileStream()' is not supported`);
 	}
 
 	get fileName()
 	{
-		return this.fullPath;
+		return this.#fullPath;
 	}
 
 	get fileSize()
 	{
-		if (this.dataStream === null)
+		if (this.#dataStream === null)
 			throw Error(`The FileStream has already been disposed`);
-		return this.dataStream.bufferSize;
+		return this.#dataStream.bufferSize;
 	}
 
 	get position()
 	{
-		if (this.dataStream === null)
+		if (this.#dataStream === null)
 			throw Error(`The FileStream has already been disposed`);
-		return this.dataStream.position;
+		return this.#dataStream.position;
 	}
 
 	set position(value)
 	{
-		if (this.dataStream === null)
+		if (this.#dataStream === null)
 			throw Error(`The FileStream has already been disposed`);
-		this.dataStream.position = value;
+		this.#dataStream.position = value;
 	}
 
 	dispose()
 	{
-		this.dataStream = null;
+		this.#dataStream = null;
 	}
 
 	read(numBytes)
 	{
-		if (this.dataStream === null)
+		if (this.#dataStream === null)
 			throw Error(`The FileStream has already been disposed`);
-		return this.dataStream.readBytes(numBytes).buffer;
+		return this.#dataStream.readBytes(numBytes).buffer;
 	}
 
 	write(data)
 	{
-		if (this.dataStream === null)
+		if (this.#dataStream === null)
 			throw Error(`The FileStream has already been disposed`);
-		throw Error(`Oozaru doesn't yet support FileStream#write()`);
+		throw Error(`'FileStream#write' is not yet implemented.`);
 	}
 }
 

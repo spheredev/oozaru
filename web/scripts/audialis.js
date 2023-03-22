@@ -136,7 +136,7 @@ class Sound
 			this.#audioElement.loop = true;
 		}
 		else if (typeof source === 'string') {
-			throw Error("'new Sound' with filename is not supported under Oozaru.");
+			throw Error("'new Sound' from filename is not supported");
 		}
 		else {
 			throw TypeError(`Invalid value '${source}' passed for 'Sound' source`);
@@ -236,7 +236,7 @@ class SoundStream
 	constructor(frequency = 22050, bits = 8, numChannels = 1)
 	{
 		if (bits != 32)
-			throw RangeError("SoundStream bit depth must be 32-bit under Oozaru.");
+			throw RangeError("SoundStream bit depth must be 32-bit under Oozaru");
 		this.#numChannels = numChannels;
 		this.#sampleRate = frequency;
 	}

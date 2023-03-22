@@ -154,7 +154,7 @@ function addJob(type, callback, recurring = false, delay = 0, options)
 	return job;
 }
 
-function animate()
+function animate(timestamp)
 {
 	rAFID = requestAnimationFrame(animate);
 

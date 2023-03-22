@@ -102,7 +102,7 @@ class Fido
 				URL.revokeObjectURL(image.src);
 			};
 			image.onerror = () => {
-				reject(new Error(`Unable to load image file '${url}'`));
+				reject(Error(`Couldn't load image '${url}'`));
 				URL.revokeObjectURL(image.src);
 			}
 			image.src = URL.createObjectURL(blob);

@@ -74,7 +74,7 @@ class Font
 	constructor(...args)
 	{
 		if (typeof args[0] === 'string') {
-			throw Error("'new Font' with filename is not supported in Oozaru.");
+			throw Error("'new Font' from filename is not supported");
 		}
 		else if (args[0] instanceof ArrayBuffer) {
 			let dataStream = new DataStream(args[0]);
