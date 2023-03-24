@@ -227,7 +227,7 @@ class File
 	{
 		throw Error(`'File.exists' is not implemented`);
 	}
-	
+
 	static async load(fileName, dataType = DataType.Text)
 	{
 		const url = Game.urlOf(fileName);
