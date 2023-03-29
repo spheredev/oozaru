@@ -4,7 +4,11 @@ Oozaru Changelog
 v0.7.0 - TBD
 ------------
 
-* Adds new async `File` APIs.
+* Adds the new asynchronous `File` APIs.
+* Fixes an issue that caused the engine to run too fast on high-refresh-rate
+  screens.
+* Fixes an issue that caused games that heavily use `Shape.drawImmediate` to
+  stutter and drop frames due to high GC pressure.
 
 
 v0.6.0 - March 23, 2022

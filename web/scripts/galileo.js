@@ -78,6 +78,7 @@ var backBuffer;
 var defaultShader;
 var flipShader;
 var gl;
+var immediateVL;
 
 export default
 class Galileo
@@ -828,12 +829,16 @@ class Shape
 			const texture = arg1;
 			const vertices = arg2;
 			surface.activate(defaultShader, texture);
-			Galileo.draw(shapeType, new VertexList(vertices));
+			(immediateVL ??= new VertexList([]))
+				.upload(vertices);
+			Galileo.draw(shapeType, immediateVL);
 		}
 		else {
 			const vertices = arg1;
 			surface.activate(defaultShader);
-			Galileo.draw(shapeType, new VertexList(vertices));
+			(immediateVL ??= new VertexList([]))
+				.upload(vertices);
+			Galileo.draw(shapeType, immediateVL);
 		}
 	}
 
