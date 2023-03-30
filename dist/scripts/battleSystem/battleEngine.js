@@ -1,9 +1,9 @@
 /***
  * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2021 Fat Cerberus
+  *            Copyright (c) 2023 Fat Cerberus
 ***/
 
-import { from, Music, Random, Thread } from 'sphere-runtime';
+import { from, Music, Random, Task } from 'sphere-runtime';
 
 import { Animations, Battles, Characters, Game, Maths, MoveEffects } from '../gameDef/index.js';
 import { clone } from '../utilities.js';
@@ -21,7 +21,7 @@ const BattleResult =
 };
 
 export default
-class BattleEngine extends Thread
+class BattleEngine extends Task
 {
 	constructor(session, battleID)
 	{
@@ -126,7 +126,7 @@ class BattleEngine extends Thread
 		if ('bgm' in this.parameters)
 			battleBGMTrack = this.parameters.bgm;
 		this.ui.hud.turnPreview.set(this.predictTurns());
-		Music.push(`music/${battleBGMTrack}.mp3`);
+		Music.push(`music/${battleBGMTrack}.ogg`);
 		this.result = null;
 		this.timer = 0;
 		this.mode = 'setup';
@@ -171,17 +171,19 @@ class BattleEngine extends Thread
 		let forecast = [];
 		for (let turnIndex = 0; turnIndex < 8; ++turnIndex) {
 			if (actingUnit !== null && targetUnits !== null) {
-				from(nextActions).skip(turnIndex).take(1)
+				from(nextActions)
+					.skip(turnIndex)
+					.take(1)
 					.selectMany(action => typeof action === 'object' ? action.effects : [])
 					.where(effect => effect.type === 'knockBack' && effect.targetHint === 'selected')
-					.forEach(effect => {
-						for (const target of targetUnits) {
-							const divisor = target.turnRatio;
-							let delay = delayMap.get(target) || 0;
-							delay += Math.max(Math.round(Maths.timeUntilNextTurn(target.battlerInfo, effect.rank) / divisor), 1);
-							delayMap.set(target, delay);
-						}
-					});
+				.forEach(effect => {
+					for (const target of targetUnits) {
+						const divisor = target.turnRatio;
+						let delay = delayMap.get(target) || 0;
+						delay += Math.max(Math.round(Maths.timeUntilNextTurn(target.battlerInfo, effect.rank) / divisor), 1);
+						delayMap.set(target, delay);
+					}
+				});
 			}
 			let bias = 0;
 			const candidates = from(this.enemyUnits, this.playerUnits)

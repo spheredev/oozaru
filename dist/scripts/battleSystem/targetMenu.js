@@ -1,9 +1,9 @@
 /***
  * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2021 Fat Cerberus
+  *            Copyright (c) 2023 Fat Cerberus
 ***/
 
-import { from, Prim, Scene, Thread } from 'sphere-runtime';
+import { from, Prim, Scene, Task } from 'sphere-runtime';
 
 import { drawTextEx } from '../utilities.js';
 
@@ -11,7 +11,7 @@ import { Game } from '../gameDef/index.js';
 import { Stance } from './battleUnit.js';
 
 export default
-class TargetMenu extends Thread
+class TargetMenu extends Task
 {
 	constructor(unit, battle, usable = null, moveName = null, stance = Stance.Normal)
 	{
@@ -143,7 +143,7 @@ class TargetMenu extends Thread
 		this.start();
 		this.takeFocus();
 		this.updateTurnPreview();
-		await Thread.join(this);
+		await Task.join(this);
 		return this.targets;
 	}
 

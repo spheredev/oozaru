@@ -1,6 +1,6 @@
 /**
  *  Oozaru: Sphere for the Web
- *  Copyright (c) 2015-2022, Fat Cerberus
+ *  Copyright (c) 2015-2023, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -78,6 +78,7 @@ var backBuffer;
 var defaultShader;
 var flipShader;
 var gl;
+var immediateVL;
 
 export default
 class Galileo
@@ -86,7 +87,7 @@ class Galileo
 	{
 		const webGLContext = canvas.getContext('webgl', { alpha: false });
 		if (webGLContext === null)
-			throw new Error(`Couldn't acquire a WebGL rendering context.`);
+			throw Error(`Couldn't acquire a WebGL rendering context.`);
 		gl = webGLContext;
 		gl.clearColor(0.0, 0.0, 0.0, 1.0);
 		gl.clearDepth(1.0);
@@ -400,7 +401,7 @@ class Color
 		}
 
 		// if we got here, none of the parsing attempts succeeded, so throw an error.
-		throw new RangeError(`Invalid color designation '${name}'`);
+		throw RangeError(`Invalid color designation '${name}'`);
 	}
 
 	constructor(r, g, b, a = 1.0)
@@ -413,7 +414,7 @@ class Color
 
 	get name()
 	{
-		throw new Error(`The Color#name API is not implemented.`);
+		throw Error(`The Color#name API is not implemented.`);
 	}
 
 	clone()
@@ -443,7 +444,7 @@ class IndexList
 	{
 		this.#glBuffer = gl.createBuffer();
 		if (this.#glBuffer === null)
-			throw new Error(`The engine couldn't create a WebGL buffer object.`);
+			throw Error(`The engine couldn't create a WebGL buffer object.`);
 		this.upload(indices);
 	}
 
@@ -493,14 +494,14 @@ class Model
 	set shader(value)
 	{
 		if (!(value instanceof Shader))
-			throw TypeError("Model#shader must be set to a 'Shader' object");
+			throw TypeError(`Model#shader must be set to a 'Shader' object`);
 		this.#shader = value;
 	}
 
 	set transform(value)
 	{
 		if (!(value instanceof Transform))
-			throw TypeError("Model#transform must be set to a 'Transform' object");
+			throw TypeError(`Model#transform must be set to a 'Transform' object`);
 		this.#transform = value;
 	}
 
@@ -549,19 +550,19 @@ class Shader
 		const vertexShader = gl.createShader(gl.VERTEX_SHADER);
 		const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
 		if (program === null || vertexShader === null || fragmentShader === null)
-			throw new Error(`Engine couldn't create a WebGL shader object.`);
+			throw Error(`Couldn't create a WebGL shader object`);
 		this.#glProgram = program;
 		this.#glVertexShader = vertexShader;
 		this.#glFragmentShader = fragmentShader;
 
 		if ('vertexFile' in options && options.vertexFile !== undefined) {
-			throw Error("'new Shader' with filenames is not supported in Oozaru.");
+			throw Error(`'new Shader' from filenames is not supported`);
 		}
 		else if ('vertexSource' in options && options.vertexSource !== undefined) {
 			this.compile(options.vertexSource, options.fragmentSource);
 		}
 		else {
-			throw RangeError("'new Shader()' was called without either filenames or shader sources.");
+			throw RangeError(`'new Shader()' called without either filenames or shader sources`);
 		}
 	}
 
@@ -828,12 +829,16 @@ class Shape
 			const texture = arg1;
 			const vertices = arg2;
 			surface.activate(defaultShader, texture);
-			Galileo.draw(shapeType, new VertexList(vertices));
+			(immediateVL ??= new VertexList([]))
+				.upload(vertices);
+			Galileo.draw(shapeType, immediateVL);
 		}
 		else {
 			const vertices = arg1;
 			surface.activate(defaultShader);
-			Galileo.draw(shapeType, new VertexList(vertices));
+			(immediateVL ??= new VertexList([]))
+				.upload(vertices);
+			Galileo.draw(shapeType, immediateVL);
 		}
 	}
 
@@ -842,14 +847,14 @@ class Shape
 		this.#shapeType = shapeType;
 		if (arg2 instanceof VertexList) {
 			if (!(arg1 instanceof Texture) && arg1 != undefined)
-				throw new Error("Expected a Texture or 'null' as second argument of Shape constructor");
+				throw Error(`Expected a Texture or 'null' as second argument of Shape constructor`);
 			this.#vertexList = arg2;
 			this.#indexList = arg3;
 			this.#texture = arg1;
 		}
 		else {
 			if (!(arg1 instanceof VertexList))
-				throw new Error("Expected a VertexList or Texture as second argument of Shape constructor");
+				throw Error(`Expected a VertexList or Texture as second argument of Shape constructor`);
 			this.#vertexList = arg1;
 			this.#indexList = arg2;
 			this.#texture = null;
@@ -874,21 +879,21 @@ class Shape
 	set indexList(value)
 	{
 		if (value !== null && !(value instanceof IndexList))
-			throw TypeError("Shape#indexList must be set to an IndexList object or 'null'.");
+			throw TypeError(`Shape#indexList must be set to an IndexList object or 'null'.`);
 		this.#indexList = value;
 	}
 
 	set texture(value)
 	{
 		if (value !== null && !(value instanceof Texture))
-			throw TypeError("Shape#texture must be set to a Texture object or 'null'.");
+			throw TypeError(`Shape#texture must be set to a Texture object or 'null'.`);
 		this.#texture = value;
 	}
 
 	set vertexList(value)
 	{
 		if (!(value instanceof VertexList))
-			throw TypeError("Shape#vertexList must be set to a VertexList object.");
+			throw TypeError(`Shape#vertexList must be set to a VertexList object.`);
 		this.#vertexList = value;
 	}
 
@@ -920,10 +925,10 @@ class Texture
 	{
 		const glTexture = gl.createTexture();
 		if (glTexture === null)
-			throw new Error(`Engine couldn't create a WebGL texture object.`);
+			throw Error(`Engine couldn't create a WebGL texture object.`);
 		this.#glTexture = glTexture;
 		if (typeof args[0] === 'string') {
-			throw Error("'new Texture' with filename is not supported in Oozaru.");
+			throw Error(`'new Texture' from filename is not supported`);
 		}
 		else {
 			const oldBinding = gl.getParameter(gl.TEXTURE_BINDING_2D);
@@ -1016,20 +1021,20 @@ class Surface extends Texture
 
 	static async fromFile(fileName)
 	{
-		throw Error("'Surface.fromFile' is not supported in Oozaru.");
+		throw Error(`'Surface.fromFile' is not supported`);
 	}
 
 	constructor(...args)
 	{
 		if (typeof args[0] === 'string')
-			throw Error(`'new Surface' with filename is not supported in Oozaru.`);
+			throw Error(`'new Surface' from filename is not supported`);
 
 		super(...args);
 
 		const frameBuffer = gl.createFramebuffer();
 		const depthBuffer = gl.createRenderbuffer();
 		if (frameBuffer === null || depthBuffer === null)
-			throw new Error(`Oozaru couldn't create a WebGL framebuffer object.`);
+			throw Error(`Couldn't create a WebGL framebuffer object`);
 
 		// in order to set up a new FBO we need to change the current framebuffer binding, so make sure
 		// it gets changed back afterwards.
@@ -1373,7 +1378,7 @@ class VertexList
 	{
 		this.#glBuffer = gl.createBuffer();
 		if (this.#glBuffer === null)
-			throw new Error(`Engine couldn't create a WebGL buffer object.`);
+			throw Error(`Engine couldn't create a WebGL buffer object.`);
 		this.upload(vertices);
 	}
 

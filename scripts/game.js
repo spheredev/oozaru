@@ -1,6 +1,6 @@
 /**
  *  Oozaru: Sphere for the Web
- *  Copyright (c) 2015-2022, Fat Cerberus
+ *  Copyright (c) 2015-2023, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -54,7 +54,7 @@ class Game
 		// browser.  let Oozaru launch the game, but log a warning to the console to let the user know
 		// there might be an issue.
 		if (manifest.apiLevel < 4)
-			console.warn(`'${manifest.name}' targets Sphere API level ${manifest.apiLevel} and may not run correctly under Oozaru. If this is a problem, consider summoning Big Chungus to fix it.`);
+			console.warn(`'${manifest.name}' targets deprecated Sphere API level ${manifest.apiLevel} and may not run correctly. If this is a problem, consider summoning Big Chungus to fix it.`);
 
 		this.manifest = manifest;
 		this.rootPath = rootPath;
@@ -87,7 +87,7 @@ class Game
 				}
 				else {
 					// if collapsing a '../' would navigate past the SphereFS prefix, we've gone too far.
-					throw new RangeError(`SphereFS sandbox violation '${pathName}'`);
+					throw RangeError(`SphereFS sandbox violation '${pathName}'`);
 				}
 			}
 			else if (input[i] !== '.') {
@@ -133,7 +133,7 @@ class Game
 			return `assets/${hops.join('/')}`;
 		}
 		else {
-			throw new RangeError(`Unsupported SphereFS prefix '${hops[0]}'`);
+			throw RangeError(`Unsupported SphereFS prefix '${hops[0]}'`);
 		}
 	}
 }

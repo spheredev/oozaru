@@ -1,6 +1,6 @@
 /**
  *  Oozaru: Sphere for the Web
- *  Copyright (c) 2015-2022, Fat Cerberus
+ *  Copyright (c) 2015-2023, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -74,7 +74,7 @@ class Font
 	constructor(...args)
 	{
 		if (typeof args[0] === 'string') {
-			throw Error("'new Font' with filename is not supported in Oozaru.");
+			throw Error("'new Font' from filename is not supported");
 		}
 		else if (args[0] instanceof ArrayBuffer) {
 			let dataStream = new DataStream(args[0]);
@@ -85,11 +85,11 @@ class Font
 				reserved:  'reserve/248',
 			});
 			if (rfnHeader.signature !== '.rfn')
-				throw new Error(`Unable to load RFN font file`);
+				throw Error(`Unable to load RFN font file`);
 			if (rfnHeader.version < 2 || rfnHeader.version > 2)
-				throw new Error(`Unsupported RFN version '${rfnHeader.version}'`);
+				throw Error(`Unsupported RFN version '${rfnHeader.version}'`);
 			if (rfnHeader.numGlyphs <= 0)
-				throw new Error(`Malformed RFN font (no glyphs)`);
+				throw Error(`Malformed RFN font (no glyphs)`);
 			const numAcross = Math.ceil(Math.sqrt(rfnHeader.numGlyphs));
 			this.#stride = 1.0 / numAcross;
 			for (let i = 0; i < rfnHeader.numGlyphs; ++i) {

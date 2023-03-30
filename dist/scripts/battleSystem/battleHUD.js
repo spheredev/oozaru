@@ -1,9 +1,9 @@
 /***
  * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2021 Fat Cerberus
+  *            Copyright (c) 2023 Fat Cerberus
 ***/
 
-import { Prim, Scene, Thread } from 'sphere-runtime';
+import { Prim, Scene, Task } from 'sphere-runtime';
 
 import { Game } from '../gameDef/index.js';
 import { drawTextEx } from '../utilities.js';
@@ -13,7 +13,7 @@ import MPGauge from './mpGauge.js';
 import TurnPreview from './turnPreview.js';
 
 export default
-class BattleHUD extends Thread
+class BattleHUD extends Task
 {
 	constructor(partyMaxMP)
 	{
@@ -135,7 +135,7 @@ class BattleHUD extends Thread
 		if (slot < 0 || slot >= this.partyInfo.length)
 			throw new RangeError(`invalid party slot index '${slot}'`);
 
-		let hpGauge = new HPGauge(maxHP, Game.partyHPPerBar, this.partyHPGaugeColor, 10);
+		let hpGauge = new HPGauge(maxHP, Game.partyHPPerBar, this.partyHPGaugeColor, 5);
 		hpGauge.show();
 		this.partyInfo[slot] = {
 			unit: unit,

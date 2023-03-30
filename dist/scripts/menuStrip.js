@@ -1,12 +1,12 @@
 /***
  * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2021 Fat Cerberus
+  *            Copyright (c) 2023 Fat Cerberus
 ***/
 
-import { from, Prim, Scene, Thread } from 'sphere-runtime';
+import { from, Prim, Scene, Task } from 'sphere-runtime';
 
 export default
-class MenuStrip extends Thread
+class MenuStrip extends Task
 {
 	constructor(title = "", canCancel = true, items = null)
 	{
@@ -47,7 +47,7 @@ class MenuStrip extends Thread
 		this.animation = new Scene()
 			.tween(this, 15, 'easeOutQuad', { openness: 1.0 });
 		this.animation.run();
-		await Thread.join(this);
+		await Task.join(this);
 		return this.chosenItem !== null
 			? this.menuItems[this.chosenItem].tag
 			: null;

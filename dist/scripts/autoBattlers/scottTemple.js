@@ -1,6 +1,6 @@
 /***
  * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2021 Fat Cerberus
+  *            Copyright (c) 2023 Fat Cerberus
 ***/
 
 import { from, Random } from 'sphere-runtime';
@@ -14,7 +14,7 @@ class ScottTempleAI extends AutoBattler
 	{
 		super(unit, battle);
 
-		this.definePhases([ 4000, 1500 ], 100);
+		this.definePhases([ 10000, 5000 ], 100);
 		this.defaultSkill = 'swordSlash';
 
 		this.omniCounter = 'tenPointFive';

@@ -1,6 +1,6 @@
 /***
  * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2021 Fat Cerberus
+  *            Copyright (c) 2023 Fat Cerberus
 ***/
 
 import { Music, Prim, Scene } from 'sphere-runtime';
@@ -13,14 +13,9 @@ let fadeMask = new AutoColorMask();
 
 Scene.defineOp('adjustBGM',
 {
-	start(scene, volume, numFrames = 0)
+	async start(scene, volume, numFrames = 0)
 	{
-		Music.adjustVolume(volume, numFrames);
-	},
-
-	update(scene)
-	{
-		return Music.adjustingVolume;
+		await Music.adjustVolume(volume, numFrames);
 	},
 });
 
@@ -79,7 +74,7 @@ Scene.defineOp('changeBGM',
 	start(scene, trackName, fadeTime)
 	{
 		const fileName = trackName !== null
-			? `@/music/${trackName}.mp3`
+			? `@/music/${trackName}.ogg`
 			: null;
 		Music.play(fileName, fadeTime);
 	},
@@ -170,7 +165,7 @@ Scene.defineOp('pushBGM',
 {
 	start(scene, trackName)
 	{
-		Music.push(`@/music/${trackName}.mp3`);
+		Music.push(`@/music/${trackName}.ogg`);
 	},
 });
 

@@ -1,6 +1,6 @@
 /***
  * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2021 Fat Cerberus
+  *            Copyright (c) 2023 Fat Cerberus
 ***/
 
 import { from } from 'sphere-runtime';
@@ -43,24 +43,29 @@ const Maths =
 
 	damage: {
 		calculate(power, level, targetTier, attack, defense, isGroupCast = false) {
-			const base = ((level * power) + (power * (attack - defense))) / 15;
-			return isGroupCast ? base / 1.5 : base;
+			let damage = power * level**0.5 * attack / defense;
+			if (isGroupCast)
+				damage /= 1.5;
+			return damage;
 		},
 		bow(userInfo, targetInfo, power) {
+			const defense = Maths.statValue(0, userInfo.level);
 			return Maths.damage.calculate(power, userInfo.level, targetInfo.tier,
-				userInfo.stats.str, 0);
+				userInfo.stats.str, defense);
 		},
 		magicArrow(userInfo, targetInfo, power) {
+			const defense = Maths.statValue(0, userInfo.level);
 			return Maths.damage.calculate(power, userInfo.level, targetInfo.tier,
-				userInfo.stats.mag, 0);
+				userInfo.stats.mag, defense);
 		},
 		breath(userInfo, targetInfo, power) {
 			return Maths.damage.calculate(power, userInfo.level, targetInfo.tier,
 				userInfo.stats.str, targetInfo.stats.foc);
 		},
 		gun(userInfo, targetInfo, power) {
+			const attack = Maths.statValue(100, userInfo.level);
 			return Maths.damage.calculate(power, userInfo.level, targetInfo.tier,
-				100, targetInfo.stats.def);
+				attack, targetInfo.stats.def);
 		},
 		magic(userInfo, targetInfo, power, isGroupCast) {
 			return Maths.damage.calculate(power, userInfo.level, targetInfo.tier,
@@ -117,12 +122,14 @@ const Maths =
 	},
 
 	healing(userInfo, targetInfo, power, isGroupCast) {
+		const defense = Maths.statValue(0, userInfo.level);
 		return Maths.damage.calculate(power, userInfo.level, targetInfo.tier,
-			userInfo.stats.mag, 0, isGroupCast);
+			userInfo.stats.mag, defense, isGroupCast);
 	},
 
 	hp(unitInfo, level, tier) {
-		return unitInfo.baseStats.vit * level * tier / 4;
+		const vit = Maths.statValue(unitInfo.baseStats.vit, level);
+		return 25 * vit * (tier ** 2);
 	},
 
 	mp: {
@@ -148,7 +155,7 @@ const Maths =
 	},
 
 	statValue(baseStat, level) {
-		return Math.floor(baseStat / 10 + 0.9 * baseStat * level / 100);
+		return Math.round((50 + 0.5 * baseStat) * (10 + level) / 110);
 	},
 
 	timeUntilNextTurn(unitInfo, rank) {

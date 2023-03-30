@@ -1,13 +1,13 @@
 {
-	"titleScreen": "@/images/titleScreen.png",
-	"music": "@/music/titleTheme.ogg",
+	"titleScreen": "images/titleScreen.png",
+	"music": "music/titleTheme.ogg",
 	"menuText": "DEMO",
 	"musicOverSplash": true,
 	"persistBGM": false,
 	"splashFadeFrames": 60,
 	"titleFadeFrames": 120,
 	"splashScreens": [
-		{ "fileName": "@/logos/sphere.png", "holdFrames": 180 },
-		{ "fileName": "@/logos/spectaclesBS.png", "holdFrames": 180 }
+		{ "fileName": "logos/sphere.png", "holdFrames": 180 },
+		{ "fileName": "logos/spectaclesBS.png", "holdFrames": 180 }
 	]
 }

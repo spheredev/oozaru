@@ -1,9 +1,9 @@
 /***
  * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2021 Fat Cerberus
+  *            Copyright (c) 2023 Fat Cerberus
 ***/
 
-import { Prim, Scene, Thread } from 'sphere-runtime';
+import { Prim, Scene, Task } from 'sphere-runtime';
 
 const
 	BoxColor = Color.Black.fadeTo(0.75),
@@ -12,7 +12,7 @@ const
 	TextShadowColor = Color.Black;
 
 export default
-class TurnPreview extends Thread
+class TurnPreview extends Task
 {
 	constructor()
 	{

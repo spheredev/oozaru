@@ -1,12 +1,12 @@
 /***
  * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2021 Fat Cerberus
+  *            Copyright (c) 2023 Fat Cerberus
 ***/
 
 // note: don't run more than one day/night clock at a time.  doing so will cause multiple
 //       filters to be applied to the screen, which won't look too nice. :o)
 
-import { Thread } from 'sphere-runtime';
+import { Task } from 'sphere-runtime';
 
 const
 	DayMask      = [ 0.0, 0.0, 0.0, 0.0 ],
@@ -19,7 +19,7 @@ const
 	Fading = 2;
 
 export default
-class DayNightClock extends Thread
+class DayNightClock extends Task
 {
 	constructor()
 	{

@@ -1,6 +1,6 @@
 /**
  *  Oozaru: Sphere for the Web
- *  Copyright (c) 2015-2022, Fat Cerberus
+ *  Copyright (c) 2015-2023, Fat Cerberus
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -102,7 +102,7 @@ class Fido
 				URL.revokeObjectURL(image.src);
 			};
 			image.onerror = () => {
-				reject(new Error(`Unable to load image file '${url}'`));
+				reject(Error(`Couldn't load image '${url}'`));
 				URL.revokeObjectURL(image.src);
 			}
 			image.src = URL.createObjectURL(blob);
