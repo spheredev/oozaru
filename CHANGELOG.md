@@ -1,6 +1,12 @@
 Oozaru Changelog
 ================
 
+v0.6.2 - TBD
+------------
+
+* Fixes a bug that caused texture magnification to be done using nearest-
+  neighbor scaling instead of linear.
+
 v0.6.1 - March 30, 2023
 -----------------------
 
