@@ -209,6 +209,7 @@ class Color
 	static get Coral() { return Color.fromRGBA(255, 127, 80); }
 	static get CornflowerBlue() { return Color.fromRGBA(100, 149, 237); }
 	static get Cornsilk() { return Color.fromRGBA(255, 248, 220); }
+	static get CosmicLatte() { return Color.fromRGBA(255, 248, 231); }
 	static get Crimson() { return Color.fromRGBA(220, 20, 60); }
 	static get Cyan() { return Color.fromRGBA(0, 255, 255); }
 	static get DarkBlue() { return Color.fromRGBA(0, 0, 139); }
@@ -232,7 +233,7 @@ class Color
 	static get DeepSkyBlue() { return Color.fromRGBA(0, 191, 255); }
 	static get DimGray() { return Color.fromRGBA(105, 105, 105); }
 	static get DodgerBlue() { return Color.fromRGBA(30, 144, 255); }
-	static get EatyPig() { return Color.fromRGBA(231, 142, 165); }
+	static get EatyPink() { return Color.fromRGBA(231, 142, 165); }
 	static get FireBrick() { return Color.fromRGBA(178, 34, 34); }
 	static get FloralWhite() { return Color.fromRGBA(255, 250, 240); }
 	static get ForestGreen() { return Color.fromRGBA(34, 139, 34); }
@@ -949,14 +950,16 @@ class Texture
 					const buffer = args[2] instanceof ArrayBuffer ? args[2] : args[2].buffer;
 					if (buffer.byteLength < width * height * 4)
 						throw RangeError(`The provided buffer is too small to initialize a ${width}x${height} texture.`);
-					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+					gl.texImage2D(gl.TEXTURE_2D,
+						0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
 						new Uint8Array(buffer));
 				}
 				else {
 					const pixels = new Uint32Array(width * height);
 					if (args[2] !== undefined)
 						pixels.fill((args[2].a * 255 << 24) + (args[2].b * 255 << 16) + (args[2].g * 255 << 8) + (args[2].r * 255));
-					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+					gl.texImage2D(gl.TEXTURE_2D,
+						0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE,
 						new Uint8Array(pixels.buffer));
 				}
 				this.#width = width;

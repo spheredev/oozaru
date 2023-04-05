@@ -4,6 +4,8 @@ Oozaru Changelog
 v0.6.2 - TBD
 ------------
 
+* Adds support for the `Color.CosmicLatte` predefined color.
+* Renames `Color.EatyPig` to `Color.EatyPink`.
 * Fixes a bug that caused texture magnification to be done using nearest-
   neighbor scaling instead of linear.
 
