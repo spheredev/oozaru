@@ -233,7 +233,7 @@ class Color
 	static get DeepSkyBlue() { return Color.fromRGBA(0, 191, 255); }
 	static get DimGray() { return Color.fromRGBA(105, 105, 105); }
 	static get DodgerBlue() { return Color.fromRGBA(30, 144, 255); }
-	static get EatyPink() { return Color.fromRGBA(231, 142, 165); }
+	static get EatyPink() { return Color.fromRGBA(253, 215, 228); }
 	static get FireBrick() { return Color.fromRGBA(178, 34, 34); }
 	static get FloralWhite() { return Color.fromRGBA(255, 250, 240); }
 	static get ForestGreen() { return Color.fromRGBA(34, 139, 34); }
