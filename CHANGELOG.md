@@ -1,8 +1,8 @@
 Oozaru Changelog
 ================
 
-v0.6.2 - TBD
-------------
+v0.6.2 - April 7, 2023
+----------------------
 
 * Adds support for the `Color.CosmicLatte` predefined color.
 * Renames `Color.EatyPig` to `Color.EatyPink`.
