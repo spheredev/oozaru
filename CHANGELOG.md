@@ -1,8 +1,8 @@
 Oozaru Changelog
 ================
 
-v0.6.3 - TBD
-------------
+v0.6.3 - December 22, 2023
+--------------------------
 
 * Fixes several bugs in the `from` module where the key wasn't being passed to
   the reducer for object sources.
