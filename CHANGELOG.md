@@ -1,6 +1,12 @@
 Oozaru Changelog
 ================
 
+v0.7.0 - WiP
+------------
+
+* Removes the dependency on `es-module-shims` in favor of using native import
+  maps.
+
 v0.6.3 - December 22, 2023
 --------------------------
 
