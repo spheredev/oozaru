@@ -4,6 +4,9 @@ Oozaru Changelog
 v0.7.0 - WiP
 ------------
 
+* Adds a `clipOp` parameter to `Surface#clipTo()` that lets games control how
+  the clipping box is changed by the call.
+* Adds a `Surface#unclip()` method for undoing the previous clipping change.
 * Removes the dependency on `es-module-shims` in favor of using native import
   maps.
 

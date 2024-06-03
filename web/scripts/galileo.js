@@ -48,6 +48,14 @@ const BlendOp =
 };
 
 export
+const ClipOp =
+{
+	Narrow: 'narrow',
+	Override: 'override',
+	Reset: 'reset',
+}
+
+export
 const DepthOp =
 {
 	AlwaysPass: 0,
@@ -152,7 +160,7 @@ class Galileo
 
 		activeSurface = null;
 		Surface.Screen.activate(defaultShader);
-		Surface.Screen.unclip();
+		Surface.Screen.clipTo(0, 0, Surface.Screen.width, Surface.Screen.height, ClipOp.Reset);
 		gl.disable(gl.SCISSOR_TEST);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		gl.enable(gl.SCISSOR_TEST);
@@ -1014,6 +1022,7 @@ class Surface extends Texture
 {
 	#blendOp = BlendOp.Default;
 	#clipRectangle;
+	#clipStack = [];
 	#depthOp = DepthOp.AlwaysPass;
 	#frameBuffer;
 	#projection;
@@ -1050,9 +1059,10 @@ class Surface extends Texture
 		gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
 		gl.bindFramebuffer(gl.FRAMEBUFFER, previousFBO);
 
-		this.#clipRectangle = { x: 0, y: 0, w: this.width, h: this.height };
 		this.#frameBuffer = frameBuffer;
 		this.#projection = Transform.project2D(0, 0, this.width, this.height);
+
+		this.#computeClipping();
 	}
 
 	get blendOp()
@@ -1094,7 +1104,11 @@ class Surface extends Texture
 		if (this !== activeSurface) {
 			gl.bindFramebuffer(gl.FRAMEBUFFER, this.#frameBuffer);
 			gl.viewport(0, 0, this.width, this.height);
-			gl.scissor(this.#clipRectangle.x, this.#clipRectangle.y, this.#clipRectangle.w, this.#clipRectangle.h);
+			gl.scissor(
+				this.#clipRectangle.x1,
+				this.height - this.#clipRectangle.y2,
+				this.#clipRectangle.x2 - this.#clipRectangle.x1,
+				this.#clipRectangle.y2 - this.#clipRectangle.y1);
 			applyBlendOp(this.#blendOp);
 			applyDepthOp(this.#depthOp);
 			activeSurface = this;
@@ -1111,19 +1125,50 @@ class Surface extends Texture
 		}
 	}
 
-	clipTo(x, y, width, height)
+	clipTo(x, y, width, height, clipOp = ClipOp.Narrow)
 	{
-		this.#clipRectangle.x = x;
-		this.#clipRectangle.y = y;
-		this.#clipRectangle.w = width;
-		this.#clipRectangle.h = height;
-		if (this === activeSurface)
-			gl.scissor(x, this.height - y - height, width, height);
+		if (clipOp === ClipOp.Reset) {
+			this.#clipStack.length = 0;
+			clipOp = ClipOp.Override;
+		}
+		this.#clipStack.push({ clipOp, x1: x, y1: y, x2: x + width, y2: y + height });
+		this.#computeClipping();
 	}
 
 	unclip()
 	{
-		this.clipTo(0, 0, this.width, this.height);
+		if (this.#clipStack.length === 0)
+			throw RangeError(`No clipping rectangle changes to undo`);
+		this.#clipStack.pop();
+		this.#computeClipping();
+	}
+
+	#computeClipping()
+	{
+		let x1 = 0;
+		let y1 = 0;
+		let x2 = this.width;
+		let y2 = this.height;
+		for (let i = 0, len = this.#clipStack.length; i < len; ++i) {
+			const clip = this.#clipStack[i];
+			switch (clip.clipOp) {
+				case ClipOp.Narrow:
+					x1 = Math.max(x1, clip.x1);
+					y1 = Math.max(y1, clip.y1);
+					x2 = Math.min(x2, clip.x2);
+					y2 = Math.min(y2, clip.y2);
+					break;
+				case ClipOp.Override:
+					x1 = clip.x1;
+					y1 = clip.y1;
+					x2 = clip.x2;
+					y2 = clip.y2;
+					break;
+			}
+		}
+		if (this === activeSurface)
+			gl.scissor(x1, this.height - y2, x2 - x1, y2 - y1);
+		this.#clipRectangle = { x1, y1, x2, y2 };
 	}
 }
 
