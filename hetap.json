@@ -1,7 +1,0 @@
-{
-    "uses": "defaults",
-    "serveFrom": "web",
-    "endpoints": {
-        "game": "/dist"
-    }
-}
