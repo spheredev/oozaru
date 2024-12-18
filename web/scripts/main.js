@@ -58,6 +58,10 @@ async function main()
 	});
 
 	const menu = document.getElementById('menu');
+	const engineNameSpan = document.getElementById('name');
+	const copyrightSpan = document.getElementById('copyright');
+	engineNameSpan.innerText = Version.engine;
+	copyrightSpan.innerText = `© ${Version.copyright}`;
 	let useDistDir = true;
 	try {
 		const gameList = await Fido.fetchJSON('games/index.json');

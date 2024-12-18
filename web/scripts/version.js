@@ -52,6 +52,11 @@ class Version
         return 2;
     }
 
+    static get copyright()
+    {
+        return releaseData.copyright;
+    }
+
     static get engine()
     {
         return typeof releaseData.name === 'string'
