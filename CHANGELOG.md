@@ -1,8 +1,8 @@
 Oozaru Changelog
 ================
 
-v0.7.0 - WiP
-------------
+v0.7.0 - December 18, 2024
+--------------------------
 
 * Adds a `clipOp` parameter to `Surface#clipTo()` that lets games control how
   the clipping box is changed by the call.
