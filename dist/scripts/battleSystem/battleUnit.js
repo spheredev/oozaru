@@ -1,7 +1,8 @@
-/***
- * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2023 Fat Cerberus
-***/
+/**
+ *  Specs Engine: the Spectacles Saga game engine
+ *  Copyright © 2012-2024 Where'd She Go? Productions
+ *  All rights reserved.
+**/
 
 import { from, Random, Scene } from 'sphere-runtime';
 
@@ -729,7 +730,7 @@ class BattleUnit
 			}
 			console.log(`${this.name}'s turn is up`);
 			this.actor.animate('active');
-			this.battle.notifyAIs('unitReady', this.id);
+			await this.battle.notifyAIs('unitReady', this.id);
 			let eventData = { skipTurn: false };
 			this.raiseEvent('beginTurn', eventData);
 			if (!this.isAlive()) {

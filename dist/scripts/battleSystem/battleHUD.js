@@ -1,7 +1,8 @@
-/***
- * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2023 Fat Cerberus
-***/
+/**
+ *  Specs Engine: the Spectacles Saga game engine
+ *  Copyright © 2012-2024 Where'd She Go? Productions
+ *  All rights reserved.
+**/
 
 import { Prim, Scene, Task } from 'sphere-runtime';
 
@@ -41,9 +42,9 @@ class BattleHUD extends Task
 
 		this.drawHighlight = function(x, y, width, height, color)
 		{
-			let outerColor = color;
-			let innerColor = Color.mix(outerColor, Color.Black.fadeTo(color.a));
-			let halfHeight = Math.round(height / 2);
+			const outerColor = color;
+			const innerColor = Color.mix(outerColor, Color.Black.fadeTo(color.a));
+			const halfHeight = Math.round(height / 2);
 			Prim.drawSolidRectangle(Surface.Screen, x, y, width, halfHeight, outerColor, outerColor, innerColor, innerColor);
 			Prim.drawSolidRectangle(Surface.Screen, x, y + halfHeight, width, height - halfHeight, innerColor, innerColor, outerColor, outerColor);
 			Prim.drawRectangle(Surface.Screen, x, y, width, height, Color.Black.fadeTo(color.a / 2));
@@ -55,7 +56,7 @@ class BattleHUD extends Task
 			if (isHighlighted)
 				this.drawHighlight(x, y, 100, 20, this.highlightColor);
 			this.drawHighlight(x, y, 100, 20, memberInfo.lightColor);
-			let textColor = isHighlighted ?
+			const textColor = isHighlighted ?
 				Color.mix(Color.White, Color.Silver, this.highlightColor.a, 1.0 - this.highlightColor.a) :
 				Color.Silver;
 			memberInfo.hpGauge.draw(x + 5, y + 5, 24, 10);
@@ -73,7 +74,7 @@ class BattleHUD extends Task
 
 	createEnemyHPGauge(unit)
 	{
-		let gauge = new HPGauge(unit.maxHP, Game.bossHPPerBar, this.enemyHPGaugeColor, 20);
+		const gauge = new HPGauge(unit.maxHP, Game.bossHPPerBar, this.enemyHPGaugeColor, 20);
 		this.hpGaugesInfo.push({ owner: unit, gauge: gauge });
 		gauge.show(0.0);
 		console.log(`create HP gauge for unit '${unit.name}'`, `cap: ${unit.maxHP}`);
@@ -105,15 +106,15 @@ class BattleHUD extends Task
 	setHP(unit, hp)
 	{
 		for (let i = 0; i < this.partyInfo.length; ++i) {
-			let characterInfo = this.partyInfo[i];
+			const characterInfo = this.partyInfo[i];
 			if (characterInfo !== null && characterInfo.unit == unit && hp != characterInfo.hp) {
 				characterInfo.hpGauge.set(hp);
-				let gaugeColor =
+				const gaugeColor =
 					hp / characterInfo.maxHP <= 0.1 ? Color.Red
 					: hp / characterInfo.maxHP <= 0.33 ? Color.Yellow
 					: this.partyHPGaugeColor;
 				characterInfo.hpGauge.changeColor(gaugeColor, 0.5);
-				let flashColor = hp > characterInfo.hp ? Color.LimeGreen : Color.DarkRed;
+				const flashColor = hp > characterInfo.hp ? Color.LimeGreen : Color.DarkRed;
 				new Scene()
 					.fork()
 						.tween(characterInfo.lightColor, 15, 'easeOutQuad', flashColor)
@@ -124,7 +125,7 @@ class BattleHUD extends Task
 			}
 		}
 		for (let i = 0; i < this.hpGaugesInfo.length; ++i) {
-			let gaugeInfo = this.hpGaugesInfo[i];
+			const gaugeInfo = this.hpGaugesInfo[i];
 			if (gaugeInfo.owner == unit)
 				gaugeInfo.gauge.set(hp);
 		}
@@ -135,7 +136,7 @@ class BattleHUD extends Task
 		if (slot < 0 || slot >= this.partyInfo.length)
 			throw new RangeError(`invalid party slot index '${slot}'`);
 
-		let hpGauge = new HPGauge(maxHP, Game.partyHPPerBar, this.partyHPGaugeColor, 5);
+		const hpGauge = new HPGauge(maxHP, Game.partyHPPerBar, this.partyHPGaugeColor, 5);
 		hpGauge.show();
 		this.partyInfo[slot] = {
 			unit: unit,
@@ -159,22 +160,22 @@ class BattleHUD extends Task
 
 	on_render()
 	{
-		let y = -((this.partyInfo.length + this.hpGaugesInfo.length) * 20) * (1.0 - this.fadeness);
-		let itemY = y;
+		const y = -((this.partyInfo.length + this.hpGaugesInfo.length) * 20) * (1.0 - this.fadeness);
+		const itemY = y;
 		this.drawElementBox(260, itemY, 60, 60);
 		this.mpGauge.draw(261, itemY + 1, 58);
 		for (let i = 0; i < this.partyInfo.length; ++i) {
-			let itemX = 160;
-			let itemY = y + i * 20;
+			const itemX = 160;
+			const itemY = y + i * 20;
 			if (this.partyInfo[i] !== null)
 				this.drawPartyElement(itemX, itemY, this.partyInfo[i], this.highlightedUnit == this.partyInfo[i].unit);
 			else
 				this.drawElementBox(itemX, itemY, 100, 20);
 		}
 		for (let i = 0; i < this.hpGaugesInfo.length; ++i) {
-			let gaugeInfo = this.hpGaugesInfo[i];
-			let itemX = 160;
-			let itemY = y + this.partyInfo.length * 20 + i * 20;
+			const gaugeInfo = this.hpGaugesInfo[i];
+			const itemX = 160;
+			const itemY = y + this.partyInfo.length * 20 + i * 20;
 			this.drawElementBox(itemX, itemY, 160, 20);
 			if (this.highlightedUnit == gaugeInfo.owner)
 				this.drawHighlight(itemX, itemY, 160, 20, this.highlightColor);

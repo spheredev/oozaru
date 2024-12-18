@@ -1,7 +1,8 @@
-/***
- * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2023 Fat Cerberus
-***/
+/**
+ *  Specs Engine: the Spectacles Saga game engine
+ *  Copyright © 2012-2024 Where'd She Go? Productions
+ *  All rights reserved.
+**/
 
 export { default as AutoBattler } from './autoBattler.js';
 export { default as BattleEngine, BattleResult } from './battleEngine.js';

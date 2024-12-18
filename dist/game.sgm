@@ -1,8 +1,8 @@
 version=2
 api=4
 name=Spectacles: Bruce's Story
-author=Fat Cerberus
-description=Follow Scott Starcross in his quest to stop the Primus from destroying both worlds.
+author=Where'd She Go? Productions
+description=Follow Scott Starcross in his quest to stop the Primus from, um... what does the Primus do again?
 saveID=Spectacles Saga
 resolution=320x240
 main=scripts/main.js

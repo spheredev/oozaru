@@ -1,7 +1,8 @@
-/***
- * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2023 Fat Cerberus
-***/
+/**
+ *  Specs Engine: the Spectacles Saga game engine
+ *  Copyright © 2012-2024 Where'd She Go? Productions
+ *  All rights reserved.
+**/
 
 import { from, Music, Random, Task } from 'sphere-runtime';
 
@@ -68,7 +69,7 @@ class BattleEngine extends Task
 
 	findUnit(unitID)
 	{
-		let unit = from(this.enemyUnits, this.playerUnits)
+		const unit = from(this.enemyUnits, this.playerUnits)
 			.first(it => it.id == unitID);
 		return unit !== undefined ? unit : null;
 	}
@@ -89,13 +90,13 @@ class BattleEngine extends Task
 		console.log("start up battle engine", `battleID: ${this.battleID}`);
 		let partyMaxMP = 0;
 		for (const key in this.session.party.members) {
-			let battlerInfo = this.session.party.members[key].getInfo();
-			let mpDonated = Math.round(Maths.mp.capacity(battlerInfo));
+			const battlerInfo = this.session.party.members[key].getInfo();
+			const mpDonated = Math.round(Maths.mp.capacity(battlerInfo));
 			partyMaxMP += mpDonated;
 			console.log(`${Characters[battlerInfo.characterID].name} contributes ${mpDonated} MP to party pool`);
 		}
 		partyMaxMP = Math.min(Math.max(partyMaxMP, 0), 9999);
-		let partyMPPool = new MPPool('partyMP', Math.min(Math.max(partyMaxMP, 0), 9999));
+		const partyMPPool = new MPPool('partyMP', Math.min(Math.max(partyMaxMP, 0), 9999));
 		partyMPPool.gainedMP.addHandler((mpPool, availableMP) => {
 			this.ui.hud.mpGauge.set(availableMP);
 		});
@@ -108,15 +109,15 @@ class BattleEngine extends Task
 		this.enemyUnits = [];
 		this.conditions = [];
 		for (let i = 0; i < this.parameters.enemies.length; ++i) {
-			let enemyID = this.parameters.enemies[i];
-			let unit = new BattleUnit(this, enemyID, i == 0 ? 1 : i == 1 ? 0 : i, Row.Middle);
+			const enemyID = this.parameters.enemies[i];
+			const unit = new BattleUnit(this, enemyID, i == 0 ? 1 : i == 1 ? 0 : i, Row.Middle);
 			await unit.initialize();
 			this.battleUnits.push(unit);
 			this.enemyUnits.push(unit);
 		}
 		let i = 0;
 		for (const name in this.session.party.members) {
-			let unit = new BattleUnit(this, this.session.party.members[name], i == 0 ? 1 : i == 1 ? 0 : i, Row.Middle, partyMPPool);
+			const unit = new BattleUnit(this, this.session.party.members[name], i == 0 ? 1 : i == 1 ? 0 : i, Row.Middle, partyMPPool);
 			await unit.initialize();
 			this.battleUnits.push(unit);
 			this.playerUnits.push(unit);
@@ -200,8 +201,8 @@ class BattleEngine extends Task
 			}
 		}
 		forecast.sort((a, b) => {
-			let sortOrder = a.remainingTime - b.remainingTime;
-			let biasOrder = a.bias - b.bias;
+			const sortOrder = a.remainingTime - b.remainingTime;
+			const biasOrder = a.bias - b.bias;
 			return sortOrder !== 0 ? sortOrder : biasOrder;
 		});
 		forecast = forecast.slice(0, 10);
@@ -210,7 +211,7 @@ class BattleEngine extends Task
 
 	raiseEvent(eventID, data = null)
 	{
-		let conditions = [ ...this.conditions ];
+		const conditions = [ ...this.conditions ];
 		for (const condition of conditions)
 			condition.invoke(eventID, data);
 	}
@@ -228,29 +229,29 @@ class BattleEngine extends Task
 
 	async runAction(action, actingUnit, targetUnits, useAiming = true, isGroupCast = false)
 	{
-		let eventData = { action: action, targets: targetUnits };
+		const eventData = { action: action, targets: targetUnits };
 		this.raiseEvent('actionTaken', eventData);
 		targetUnits = eventData.targets;
 		if ('announceAs' in action && action.announceAs != null)
 			await actingUnit.announce(action.announceAs);
-		let userEffects = from(action.effects)
+		const userEffects = from(action.effects)
 			.where(it => it.targetHint === 'user');
 		for (const effect of userEffects) {
 			console.log(`apply effect '${effect.type}'`, `retarg: ${effect.targetHint}`);
-			let effectHandler = MoveEffects[effect.type];
+			const effectHandler = MoveEffects[effect.type];
 			effectHandler(actingUnit, [ actingUnit ], effect, false);
 		}
 		for (const target of targetUnits)
 			target.takeHit(actingUnit, action);
 		if (action.effects === null)
 			return [];
-		let targetsHit = [];
-		let accuracyRate = 'accuracyRate' in action ? action.accuracyRate : 1.0;
+		const targetsHit = [];
+		const accuracyRate = 'accuracyRate' in action ? action.accuracyRate : 1.0;
 		for (let i = 0; i < targetUnits.length; ++i) {
-			let baseOdds = 'accuracyType' in action ? Maths.accuracy[action.accuracyType](actingUnit.battlerInfo, targetUnits[i].battlerInfo) : 1.0;
+			const baseOdds = 'accuracyType' in action ? Maths.accuracy[action.accuracyType](actingUnit.battlerInfo, targetUnits[i].battlerInfo) : 1.0;
 			let aimRate = 1.0;
 			if (useAiming) {
-				let eventData = {
+				const eventData = {
 					action: clone(action),
 					aimRate: 1.0,
 					targetInfo: clone(targetUnits[i].battlerInfo),
@@ -258,8 +259,8 @@ class BattleEngine extends Task
 				actingUnit.raiseEvent('aiming', eventData);
 				aimRate = eventData.aimRate;
 			}
-			let odds = Math.min(Math.max(baseOdds * accuracyRate * aimRate, 0.0), 1.0);
-			let isHit = Random.chance(odds);
+			const odds = Math.min(Math.max(baseOdds * accuracyRate * aimRate, 0.0), 1.0);
+			const isHit = Random.chance(odds);
 			console.log(`odds of hitting ${targetUnits[i].name} ~${Math.round(odds * 100)}%`,
 				isHit ? "hit" : "miss");
 			if (isHit) {
@@ -276,7 +277,7 @@ class BattleEngine extends Task
 		// apply move effects to target(s)
 		for (const target of targetsHit)
 			target.beginTargeting(actingUnit);
-		let animContext = {
+		const animContext = {
 			effects: from(action.effects)
 				.where(it => from([ 'selected', 'random' ]).anyIs(it.targetHint))
 				.where(it => it.type != null)
@@ -284,8 +285,8 @@ class BattleEngine extends Task
 			pc: 0,
 			nextEffect() {
 				if (this.pc < this.effects.length) {
-					let effect = this.effects[this.pc++];
-					let targets = effect.targetHint == 'random'
+					const effect = this.effects[this.pc++];
+					const targets = effect.targetHint == 'random'
 						? [ Random.sample(targetsHit) ]
 						: targetsHit;
 					console.log(`apply effect '${effect.type}'`, `retarg: ${effect.targetHint}`);
@@ -324,8 +325,8 @@ class BattleEngine extends Task
 		console.log("");
 		console.log(`begin CTB turn cycle #${this.timer + 1}`);
 		++this.timer;
-		let isUnitDead = unit => !unit.isAlive();
-		let unitLists = [ this.enemyUnits, this.playerUnits ];
+		const isUnitDead = unit => !unit.isAlive();
+		const unitLists = [ this.enemyUnits, this.playerUnits ];
 		for (const unit of from(...unitLists))
 			unit.beginCycle();
 		for (const condition of this.conditions)
@@ -364,9 +365,9 @@ class BattleEngine extends Task
 	async on_update() {
 		switch (this.mode) {
 			case 'setup': {
-				let heading = ('isFinalBattle' in this.parameters && this.parameters.isFinalBattle)
+				const heading = ('isFinalBattle' in this.parameters && this.parameters.isFinalBattle)
 					? "Final Battle: " : "Boss Battle: ";
-				await this.ui.go('title' in this.parameters ? heading + this.parameters.title : null);
+				await this.ui.go('title' in this.parameters ? `${heading}${this.parameters.title}` : null);
 				for (const unit of from(this.enemyUnits, this.playerUnits))
 					await unit.actor.enter();
 				this.ui.hud.turnPreview.show();

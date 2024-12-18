@@ -1,7 +1,8 @@
-/***
- * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2023 Fat Cerberus
-***/
+/**
+ *  Specs Engine: the Spectacles Saga game engine
+ *  Copyright © 2012-2024 Where'd She Go? Productions
+ *  All rights reserved.
+**/
 
 import { Prim, Scene, Task } from 'sphere-runtime';
 
@@ -304,7 +305,7 @@ class MoveMenu extends Task
 		Prim.drawRectangle(Surface.Screen, 0, yOrigin, 136, 16, 1, Color.Black.fadeTo(0.1 * this.fadeness));
 		Prim.drawSolidRectangle(Surface.Screen, 136, yOrigin, 24, 16, Color.Black.fadeTo(0.7 * this.fadeness));
 		Prim.drawRectangle(Surface.Screen, 136, yOrigin, 24, 16, 1, Color.Black.fadeTo(0.1 * this.fadeness));
-		drawTextEx(this.font, 68, yOrigin + 2, `${this.unit.name}'s turn`, Color.DarkGray.fadeTo(this.fadeness), 1, 'center');
+		drawTextEx(this.font, 68, yOrigin + 2, this.unit.fullName, Color.DarkGray.fadeTo(this.fadeness), 1, 'center');
 		drawTextEx(this.font, 148, yOrigin + 2, stanceText, Color.Khaki.fadeTo(this.fadeness), 1, 'center');
 		let itemWidth = 160 / this.drawers.length;
 		Prim.drawSolidRectangle(Surface.Screen, 0, 16, 160, yOrigin - 16, Color.Black.fadeTo(0.75 * this.fadeness));
@@ -313,7 +314,7 @@ class MoveMenu extends Task
 			let width = Math.floor((i + 1) * itemWidth) - x;
 			this.drawTopItem(x, yOrigin + 16, width, this.drawers[i], i == this.topCursor);
 		}
-		Surface.Screen.clipTo(0, 0, Surface.Screen.width, Surface.Screen.height);
+		Surface.Screen.unclip();
 		let itemY;
 		if (this.expansion > 0.0) {
 			Surface.Screen.clipTo(0, yOrigin + 34, 160, Surface.Screen.height - (yOrigin + 34));
@@ -325,7 +326,7 @@ class MoveMenu extends Task
 				this.drawMoveItem(0, itemY, this.moveMenu[i], i == this.moveCursor, this.chooseMove.running);
 				itemY += 18;
 			}
-			Surface.Screen.clipTo(0, 0, Surface.Screen.width, Surface.Screen.height);
+			Surface.Screen.unclip();
 		}
 		else {
 			itemY = yOrigin + 34;

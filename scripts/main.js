@@ -1,6 +1,6 @@
 /**
  *  Oozaru: Sphere for the Web
- *  Copyright (c) 2016-2024, Fat Cerberus
+ *  Copyright (c) 2016-2024, Where'd She Go? LLC
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@ main();
 async function main()
 {
 	await Version.initialize();
-	
+
 	const urlQuery = new URL(location.href).searchParams;
 	const gameID = urlQuery.get('game');
 
@@ -58,6 +58,10 @@ async function main()
 	});
 
 	const menu = document.getElementById('menu');
+	const engineNameSpan = document.getElementById('name');
+	const copyrightSpan = document.getElementById('copyright');
+	engineNameSpan.innerText = Version.engine;
+	copyrightSpan.innerText = `© ${Version.copyright}`;
 	let useDistDir = true;
 	try {
 		const gameList = await Fido.fetchJSON('games/index.json');

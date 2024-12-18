@@ -1,7 +1,8 @@
-/***
- * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2023 Fat Cerberus
-***/
+/**
+ *  Specs Engine: the Spectacles Saga game engine
+ *  Copyright © 2012-2024 Where'd She Go? Productions
+ *  All rights reserved.
+**/
 
 // note: don't run more than one day/night clock at a time.  doing so will cause multiple
 //       filters to be applied to the screen, which won't look too nice. :o)
@@ -49,9 +50,9 @@ class DayNightClock extends Task
 
 	async on_startUp()
 	{
-		let width = Surface.Screen.width;
-		let height = Surface.Screen.height;
-		let rectangle = new Shape(ShapeType.TriStrip,
+		const width = Surface.Screen.width;
+		const height = Surface.Screen.height;
+		const rectangle = new Shape(ShapeType.TriStrip,
 			new VertexList([
 				{ x: 0,     y: 0 },
 				{ x: width, y: 0 },
@@ -79,7 +80,7 @@ class DayNightClock extends Task
 
 	on_update()
 	{
-		let now = this.now();
+		const now = this.now();
 		if (now.hour < 5 || now.hour >= 19) {
 			if (this.state !== Night) {
 				this.state = Night;
@@ -94,22 +95,22 @@ class DayNightClock extends Task
 		}
 		else if (now.hour >= 5 && now.hour < 6) {
 			this.state = Fading;
-			let alpha = now.minute / 60;
+			const alpha = now.minute / 60;
 			this.mixMasks(TwilightMask, NightMask, alpha, 1.0 - alpha);
 		}
 		else if (now.hour >= 6 && now.hour < 7) {
 			this.state = Fading;
-			let alpha = now.minute / 60;
+			const alpha = now.minute / 60;
 			this.mixMasks(DayMask, TwilightMask, alpha, 1.0 - alpha);
 		}
 		else if (now.hour >= 17 && now.hour < 18) {
 			this.state = Fading;
-			let alpha = now.minute / 60;
+			const alpha = now.minute / 60;
 			this.mixMasks(TwilightMask, DayMask, alpha, 1.0 - alpha);
 		}
 		else if (now.hour >= 18 && now.hour < 19) {
 			this.state = Fading;
-			let alpha = now.minute / 60;
+			const alpha = now.minute / 60;
 			this.mixMasks(NightMask, TwilightMask, alpha, 1.0 - alpha);
 		}
 	}
@@ -127,9 +128,9 @@ class InGameTime
 
 	toString()
 	{
-		let hourText = `0${this.hour}`.slice(-2);
-		let minuteText = `0${this.minute}`.slice(-2);
-		let secondText = `0${this.second}`.slice(-2);
+		const hourText = `0${this.hour}`.slice(-2);
+		const minuteText = `0${this.minute}`.slice(-2);
+		const secondText = `0${this.second}`.slice(-2);
 		return `${hourText}:${minuteText}:${secondText}`;
 	}
 }

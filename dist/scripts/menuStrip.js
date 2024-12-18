@@ -1,7 +1,8 @@
-/***
- * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2023 Fat Cerberus
-***/
+/**
+ *  Specs Engine: the Spectacles Saga game engine
+ *  Copyright © 2012-2024 Where'd She Go? Productions
+ *  All rights reserved.
+**/
 
 import { from, Prim, Scene, Task } from 'sphere-runtime';
 
@@ -37,7 +38,7 @@ class MenuStrip extends Task
 		this.scrollProgress = 0.0;
 		this.brightness = 0.0;
 		this.mode = "open";
-		let carouselWidth = from(this.menuItems)
+		const carouselWidth = from(this.menuItems)
 			.select(it => this.font.widthOf(it.text) + 10)
 			.aggregate((a, v) => Math.max(a, v), 0);
 		this.carousel = new Surface(carouselWidth, this.font.height + 10);
@@ -58,7 +59,7 @@ class MenuStrip extends Task
 		if (this.mode != 'idle')
 			return;
 
-		let key = Keyboard.Default.getKey();
+		const key = Keyboard.Default.getKey();
 		if (key == Key.Z) {
 			this.chosenItem = this.selectedItem;
 			this.animation = new Scene()
@@ -95,36 +96,36 @@ class MenuStrip extends Task
 
 	on_render()
 	{
-		let height = this.font.height + 10;
-		let menuY = Surface.Screen.height - height * this.openness;
-		let normalStripColor = Color.Black.fadeTo(0.75 * this.openness);
-		let litStripColor = Color.White.fadeTo(0.75 * this.openness);
-		let stripColor = Color.mix(litStripColor, normalStripColor, this.brightness, 1.0 - this.brightness);
+		const height = this.font.height + 10;
+		const menuY = Surface.Screen.height - height * this.openness;
+		const normalStripColor = Color.Black.fadeTo(0.75 * this.openness);
+		const litStripColor = Color.White.fadeTo(0.75 * this.openness);
+		const stripColor = Color.mix(litStripColor, normalStripColor, this.brightness, 1.0 - this.brightness);
 		Prim.drawSolidRectangle(Surface.Screen, 0, menuY, Surface.Screen.width, height, stripColor);
-		let normalTitleColor = Color.of('#404040').fadeTo(this.openness);
-		let litTitleColor = Color.Black.fadeTo(this.openness);
-		let titleColor = Color.mix(litTitleColor, normalTitleColor, this.brightness, 1.0 - this.brightness);
+		const normalTitleColor = Color.of('#404040').fadeTo(this.openness);
+		const litTitleColor = Color.Black.fadeTo(this.openness);
+		const titleColor = Color.mix(litTitleColor, normalTitleColor, this.brightness, 1.0 - this.brightness);
 		this.font.drawText(Surface.Screen, 6, menuY + 6, this.title, Color.Black.fadeTo(this.openness));
 		this.font.drawText(Surface.Screen, 5, menuY + 5, this.title, titleColor);
 		this.carousel.blendOp = BlendOp.Replace;
 		Prim.drawSolidRectangle(this.carousel, 0, 0, this.carousel.width, this.carousel.height, Color.Transparent);
 		this.carousel.blendOp = BlendOp.Default;
-		let xOffset = (this.selectedItem + this.scrollProgress * this.scrollDirection) * this.carousel.width;
-		let normalItemColor = Color.Orange.fadeTo(this.openness);
-		let litItemColor = Color.of('#808040').fadeTo(this.openness);
-		let itemColor = Color.mix(litItemColor, normalItemColor, this.brightness, 1.0 - this.brightness);
+		const xOffset = (this.selectedItem + this.scrollProgress * this.scrollDirection) * this.carousel.width;
+		const normalItemColor = Color.Orange.fadeTo(this.openness);
+		const litItemColor = Color.of('#808040').fadeTo(this.openness);
+		const itemColor = Color.mix(litItemColor, normalItemColor, this.brightness, 1.0 - this.brightness);
 		for (let i = -1; i <= this.menuItems.length; ++i) {
 			let itemIndex = i;
 			if (i >= this.menuItems.length)
 				itemIndex = i % this.menuItems.length;
 			else if (i < 0)
 				itemIndex = this.menuItems.length - 1 - Math.abs(i + 1) % this.menuItems.length;
-			let itemText = this.menuItems[itemIndex].text;
-			let textX = i * this.carousel.width + (this.carousel.width / 2 - this.font.widthOf(itemText) / 2);
+			const itemText = this.menuItems[itemIndex].text;
+			const textX = i * this.carousel.width + (this.carousel.width / 2 - this.font.widthOf(itemText) / 2);
 			this.font.drawText(this.carousel, textX - xOffset + 1, 6, itemText, Color.Black.fadeTo(this.openness));
 			this.font.drawText(this.carousel, textX - xOffset, 5, itemText, itemColor);
 		}
-		let carouselX = Surface.Screen.width - 5 - this.carousel.width - this.font.widthOf(">") - 5;
+		const carouselX = Surface.Screen.width - 5 - this.carousel.width - this.font.widthOf(">") - 5;
 		Prim.blit(Surface.Screen, carouselX, menuY, this.carousel);
 		this.font.drawText(Surface.Screen, carouselX - this.font.widthOf("<") - 5, menuY + 5, "<",
 			Color.Gray.fadeTo(this.openness));

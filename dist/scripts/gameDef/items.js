@@ -1,7 +1,8 @@
-/***
- * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2023 Fat Cerberus
-***/
+/**
+ *  Specs Engine: the Spectacles Saga game engine
+ *  Copyright © 2012-2024 Where'd She Go? Productions
+ *  All rights reserved.
+**/
 
 export
 const Items =
@@ -71,7 +72,7 @@ const Items =
 				{
 					targetHint: 'selected',
 					type: 'recoverHP',
-					strength: 25,
+					strength: 33,
 				},
 			],
 		},
@@ -86,7 +87,7 @@ const Items =
 				{
 					targetHint: 'selected',
 					type: 'recoverHP',
-					strength: 50,
+					strength: 66,
 				},
 			],
 		},

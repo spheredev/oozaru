@@ -1,13 +1,31 @@
-/***
- * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2023 Fat Cerberus
-***/
+/**
+ *  Specs Engine: the Spectacles Saga game engine
+ *  Copyright © 2012-2024 Where'd She Go? Productions
+ *  All rights reserved.
+**/
 
 export
 const Enemies =
 {
-	robert2:
-	{
+	beverly: {
+		name: "Beverly",
+		fullName: "Wide-Load Beverly",
+		hasLifeBar: true,
+		tier: 3,
+		turnRatio: 3.0,
+		baseStats: {
+			vit: 90,
+			str: 60,
+			def: 80,
+			foc: 50,
+			mag: 65,
+			agi: 35,
+		},
+		immunities: [],
+		items: [],
+	},
+	
+	robert2: {
 		name: "Robert",
 		fullName: "Robert Spellbinder",
 		hasLifeBar: true,
@@ -36,10 +54,8 @@ const Enemies =
 		],
 	},
 
-
-	scottTemple:
-	{
-		name: "S. Temple",
+	scottTemple: {
+		name: "Temple",
 		fullName: "Scott Victor Temple",
 		hasLifeBar: true,
 		tier: 3,

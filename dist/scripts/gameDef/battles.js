@@ -1,15 +1,29 @@
-/***
- * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2023 Fat Cerberus
-***/
+/**
+ *  Specs Engine: the Spectacles Saga game engine
+ *  Copyright © 2012-2024 Where'd She Go? Productions
+ *  All rights reserved.
+**/
 
 import { Scene } from 'sphere-runtime';
 
 export
 const Battles =
 {
-	rsbFinal:
-	{
+	beverly: {
+		title: "Beverly, the Wide-Load Queen",
+		bgm: 'basicInstinct',
+		battleLevel: 13,
+		enemies: [
+			'beverly',
+		],
+		async onStart() {
+			await new Scene()
+				.talk("Beverly", true, 1.0, Infinity, "Well, it seems I have a bit of a rat problem on my hands now, doesn't it?")
+				.run();
+}
+	},
+	
+	rsbFinal: {
 		title: "Robert Spellbinder",
 		isFinalBattle: true,
 		bgm: 'thePromise',
@@ -36,8 +50,7 @@ const Battles =
 		},
 	},
 
-	scottTemple:
-	{
+	scottTemple: {
 		title: "Scott Victor Temple",
 		isFinalBattle: true,
 		bgm: 'revelation',
@@ -47,8 +60,7 @@ const Battles =
 		],
 	},
 
-	scottStarcross:
-	{
+	scottStarcross: {
 		title: "Scott Starcross",
 		isFinalBattle: true,
 		bgm: 'sixthDimension',

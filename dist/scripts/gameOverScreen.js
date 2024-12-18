@@ -1,7 +1,8 @@
-/***
- * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2023 Fat Cerberus
-***/
+/**
+ *  Specs Engine: the Spectacles Saga game engine
+ *  Copyright © 2012-2024 Where'd She Go? Productions
+ *  All rights reserved.
+**/
 
 import { Music, Prim, Scene, Task } from 'sphere-runtime';
 
@@ -53,7 +54,7 @@ class GameOverScreen extends Task
 			case 'transitionIn':
 				if (!this.transition.running) {
 					this.mode = 'idle';
-					let menu = new MenuStrip("Game Over", false);
+					const menu = new MenuStrip("Game Over", false);
 					menu.addItem("Retry Battle", GameOverAction.Retry);
 					menu.addItem("Give Up", GameOverAction.Quit);
 					this.action = await menu.run();

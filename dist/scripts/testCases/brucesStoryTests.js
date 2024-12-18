@@ -1,7 +1,8 @@
-/***
- * Specs Engine v6: Spectacles Saga Game Engine
-  *            Copyright (c) 2023 Fat Cerberus
-***/
+/**
+ *  Specs Engine: the Spectacles Saga game engine
+ *  Copyright © 2012-2024 Where'd She Go? Productions
+ *  All rights reserved.
+**/
 
 import TestHarness from '../testHarness.js';
 
@@ -13,9 +14,26 @@ TestHarness.addBattle('horse', {
 	}
 });
 
+TestHarness.addBattle('bev', {
+	battleID: 'beverly',
+	items: [ 'tonic', 'powerTonic', 'redBull' ],
+	party: {
+		scott: { level: 15, weapon: 'templeSword' },
+		maggie: { leve: 15 },
+		lauren: { level: 15, weapon: 'risingSun' },
+	}
+});
+
 TestHarness.addBattle('rsb2', {
 	battleID: 'rsbFinal',
-	items: [ 'tonic', 'redBull', 'holyWater', 'vaccine', 'alcohol' ],
+	items: [
+		'tonic',
+		'powerTonic',
+		'redBull',
+		'holyWater',
+		'vaccine',
+		'alcohol'
+	],
 	party: {
 		scott: { level: 50, weapon: 'templeSword' },
 	},
