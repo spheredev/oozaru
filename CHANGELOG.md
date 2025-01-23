@@ -1,6 +1,12 @@
 Oozaru Changelog
 ================
 
+v0.7.1 - TBD
+------------
+
+* Fixes the Oozaru header bar to not show the name of the currently running
+  game.
+
 v0.7.0 - December 18, 2024
 --------------------------
 
